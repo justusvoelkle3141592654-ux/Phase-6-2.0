@@ -94,6 +94,9 @@ export const en: Messages = {
     wrong: 'Wrong',
     checking: 'Checking …',
     next: 'Next',
+    aiFailed:
+      'The AI did not answer in time, so Gero decided on its own. Unclear answers then count as wrong.',
+    byAi: 'Checked by the AI',
     iWasRight: 'I was right',
     localDecision:
       'There is no AI verdict, so Gero decided on its own. Unclear answers then count as wrong.',

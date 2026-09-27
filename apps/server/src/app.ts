@@ -17,6 +17,7 @@ import { packageRoutes } from './routes/packages';
 import { learnRoutes } from './routes/learn';
 import { aiRoutes } from './routes/ai';
 import { AiService } from './ai/service';
+import { aiCheckFor } from './learn/ai-check';
 
 export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
@@ -73,7 +74,14 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
       await api.register(authRoutes, { db, registrationCode: secrets.registrationCode });
       await api.register(settingsRoutes, { db });
       await api.register(packageRoutes, { db });
-      await api.register(learnRoutes, { db });
+      await api.register(learnRoutes, {
+        db,
+        aiCheckFor: (userId, language) => aiCheckFor(db, ai, userId, language),
+        warmUp: async (userId) => {
+          const binding = ai.binding(userId, 'check');
+          await binding?.provider.warmUp(binding.model, AbortSignal.timeout(15_000));
+        },
+      });
       await api.register(aiRoutes, { db, ai });
     },
     { prefix: '/api' },

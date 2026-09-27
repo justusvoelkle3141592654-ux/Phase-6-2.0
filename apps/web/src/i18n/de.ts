@@ -93,6 +93,9 @@ export const de = {
     wrong: 'Falsch',
     checking: 'Wird geprüft …',
     next: 'Weiter',
+    aiFailed:
+      'Die KI hat nicht rechtzeitig geantwortet, deshalb hat Gero selbst entschieden. Unklare Antworten zählen dann als falsch.',
+    byAi: 'Von der KI geprüft',
     iWasRight: 'Ich hatte recht',
     localDecision:
       'Es liegt kein KI-Urteil vor, deshalb hat Gero selbst entschieden. Unklare Antworten zählen dann als falsch.',

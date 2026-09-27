@@ -9,7 +9,7 @@ import { useI18n } from '../i18n';
 import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';
 import { languageName } from '../lib/languages';
-import { useDueCards } from '../lib/learn';
+import { useDueCards, warmUp } from '../lib/learn';
 import { usePackages } from '../lib/packages';
 import {
   changeDirection,
@@ -64,6 +64,7 @@ function SessionLoader({
   const { m } = useI18n();
   const cards = useDueCards(packageId, true);
   const data = cards.data;
+  useEffect(() => warmUp(), []);
   useEffect(() => {
     if (data) onReady(startSession(data, choice));
   }, [data, choice, onReady]);

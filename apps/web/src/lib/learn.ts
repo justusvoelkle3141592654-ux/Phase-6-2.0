@@ -43,3 +43,8 @@ export function useOverride() {
     onSuccess: refresh,
   });
 }
+
+/** Loads the checking model in the background (Ollama keep_alive, open connections). */
+export function warmUp() {
+  void api<void>('/learn/warmup', { method: 'POST' }).catch(() => undefined);
+}

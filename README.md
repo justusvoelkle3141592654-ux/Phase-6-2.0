@@ -157,8 +157,18 @@ mit ← und →).
 3. Kleiner Tippfehler → richtig mit Hinweis. Schwellen (Damerau-Levenshtein): bis 4 Zeichen exakt,
    5–8 Zeichen 1 Fehler, ab 9 Zeichen 2 Fehler.
 4. Leere Antwort → falsch.
-5. Alles andere entscheidet die KI. Ohne KI-Urteil zählt es als falsch, dann gibt es den Button
-   „Ich hatte recht“. So korrigierte Antworten werden für diese Vokabel gemerkt.
+5. Alles andere entscheidet das Prüfmodell (kurzer Prompt, Antwort nur ein Wort: richtig /
+   tippfehler / falsch; Synonyme zählen als richtig). **Sagt die KI „falsch“, ist es falsch.**
+6. Zeitlimit (Standard 2 Sekunden, in den Einstellungen änderbar). Antwortet die KI nicht
+   rechtzeitig, ist sie nicht erreichbar oder unverständlich, entscheidet Gero selbst (unklar =
+   falsch) und zeigt den Button „Ich hatte recht“. Das Lernen läuft immer weiter.
+7. KI-Urteile und Korrekturen werden je Vokabel und normalisierter Antwort gespeichert und beim
+   nächsten Mal ohne KI verwendet.
+8. Beim Start einer Lernsitzung wird das Prüfmodell vorgewärmt (Ollama: Modell laden mit
+   `keep_alive`, sonst Verbindung öffnen).
+
+Ziel sind unter 100 ms bis zum ersten Token und 100–300 ms für die ganze Prüfung. Das hängt von
+Modell und Anbieter ab; die gemessenen Werte stehen in den Einstellungen.
 
 ## Projektstruktur
 
@@ -177,7 +187,7 @@ packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 - [x] 3. Vokabelpakete: anlegen, bearbeiten, löschen, Sprache (Vorlagen oder frei), Richtung, Aktivieren
 - [x] 4. Stufensystem und Lernen (ohne KI): Karteikarten, Tippen optional, Umdrehen, Wischen, lokale Prüfung, Wiederholung
 - [x] 5. KI-Anbieter und Einrichtungsassistent: Pollinations, Anthropic, OpenAI, OpenRouter, Ollama (lokal/online), eigener Server
-- [ ] 6. KI-Antwortprüfung
+- [x] 6. KI-Antwortprüfung: Zeitlimit mit lokalem Fallback und „Ich hatte recht“, Cache, Latenzstatistik, Vorwärmen
 - [ ] 7. Hochladen und Erkennung
 - [ ] 8. Startseite mit Tageszusammenfassung
 - [ ] 9. Android-App (APK) mit Erinnerungen

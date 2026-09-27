@@ -207,7 +207,7 @@ export function SettingsPage() {
   return (
     <>
       <PageHeader title={m.settings.title} />
-      <div className="grid max-w-xl gap-6">
+      <div className="grid max-w-xl grid-cols-[minmax(0,1fr)] gap-6">
         <section className="panel">
           <span className="label">{m.settings.language}</span>
           <LanguageSwitch

@@ -104,4 +104,6 @@ export interface AnswerResult {
   learned: boolean;
   /** "I was right" is offered: no AI verdict, the local check decided. */
   canOverride: boolean;
+  /** An AI is set up but gave no verdict in time (or failed). */
+  aiFailed?: boolean;
 }

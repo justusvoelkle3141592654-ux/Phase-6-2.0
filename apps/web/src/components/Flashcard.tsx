@@ -311,7 +311,12 @@ export function Flashcard({
                   </p>
                 )}
                 {result.canOverride && (
-                  <p className="text-sm text-ink-soft">{m.learn.localDecision}</p>
+                  <p className="text-sm text-ink-soft">
+                    {result.aiFailed ? m.learn.aiFailed : m.learn.localDecision}
+                  </p>
+                )}
+                {result.decidedBy === 'ai' && (
+                  <p className="text-sm text-ink-soft">{m.learn.byAi}</p>
                 )}
                 <div className="flex flex-wrap justify-end gap-2">
                   {result.canOverride && (

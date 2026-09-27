@@ -13,6 +13,8 @@ beforeEach(async () => {
     origin: ORIGIN,
     cookie: `gero_session=${sessionCookie(await register(app, { timezone: 'Europe/Berlin' }))}`,
   };
+  // These tests run without AI (no network): remove the preset checking model.
+  await app.inject({ method: 'DELETE', url: '/api/ai/tasks/check', headers });
 });
 afterEach(async () => {
   await app.close();

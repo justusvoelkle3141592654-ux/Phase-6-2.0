@@ -8,6 +8,8 @@ export interface Decision {
   decidedBy: DecidedBy;
   typoOf?: string;
   canOverride: boolean;
+  /** An AI was set up but gave no verdict (time limit, error, unreadable reply). */
+  aiFailed?: boolean;
 }
 
 /** Answer check by an AI model; resolves to null when no verdict is available in time. */
@@ -78,7 +80,7 @@ export async function decide(
       canOverride: false,
     };
   }
-  return { correct: false, decidedBy: 'local', canOverride: true };
+  return { correct: false, decidedBy: 'local', canOverride: true, aiFailed: aiCheck !== undefined };
 }
 
 /** Remembers an answer the user marked as correct ("I was right"). */

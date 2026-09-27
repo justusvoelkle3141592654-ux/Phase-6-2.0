@@ -53,6 +53,7 @@ function api(answer: (body: Record<string, unknown>) => AnswerResult) {
       status: 200,
       body: answer(body as Record<string, unknown>),
     }),
+    'POST /learn/warmup': () => ({ status: 204 }),
     'POST /learn/attempts/10/override': () => ({
       status: 200,
       body: result(true, { decidedBy: 'correction' }),
@@ -127,6 +128,23 @@ describe('Lernen', () => {
     expect(typeof body.msToFirstKey).toBe('number');
   });
 
+  it('Zeitlimit überschritten: Hinweis und „Ich hatte recht“', async () => {
+    api(() => result(false, { decidedBy: 'local', canOverride: true, aiFailed: true }));
+    await start();
+    fireEvent.change(screen.getByLabelText('Deine Übersetzung (optional)'), {
+      target: { value: 'Kumpel' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
+    expect(await screen.findByText(/Die KI hat nicht rechtzeitig geantwortet/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Ich hatte recht/ })).toBeTruthy();
+  });
+
+  it('wärmt das Prüfmodell beim Start vor', async () => {
+    const calls = api(() => result(true));
+    await start();
+    expect(calls.some((c) => c.key === 'POST /learn/warmup')).toBe(true);
+  });
+
   it('kein „Ich hatte recht“, wenn die KI entschieden hat', async () => {
     api(() => result(false, { decidedBy: 'ai', canOverride: false }));
     await start();
@@ -135,6 +153,7 @@ describe('Lernen', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
     expect(await screen.findByText('Falsch')).toBeTruthy();
+    expect(screen.getByText('Von der KI geprüft')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Ich hatte recht/ })).toBeNull();
   });
 

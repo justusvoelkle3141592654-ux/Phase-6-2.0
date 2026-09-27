@@ -9,14 +9,16 @@ import {
 } from '@gero/shared';
 import type { Db } from '../db';
 import { attempts, packages, vocab } from '../db/schema';
-import { decide, rememberCorrection, type AiCheck } from '../learn/decide';
+import { decide, rememberCorrection, type AiCheck, type Decision } from '../learn/decide';
 import { getSettings } from './settings';
 import { parseBody } from './parse';
 
 export interface LearnOptions {
   db: Db;
-  /** Returns the AI check for a user, or undefined without AI. */
-  aiCheckFor?: (userId: number) => AiCheck | undefined;
+  /** Returns the AI check for a user and package language, or undefined without AI. */
+  aiCheckFor?: (userId: number, language: string) => AiCheck | undefined;
+  /** Loads the checking model so the first answer is fast. */
+  warmUp?: (userId: number) => Promise<void>;
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -27,7 +29,10 @@ function shuffle<T>(items: T[]): T[] {
   return items;
 }
 
-export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (app, { db, aiCheckFor }) => {
+export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
+  app,
+  { db, aiCheckFor, warmUp },
+) => {
   app.addHook('preHandler', app.requireAuth);
 
   /** Due cards (optionally of one package), in random order. */
@@ -73,10 +78,15 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (app, { db, a
       .get();
     if (!word || !word.active || word.learned) return reply.code(404).send({ error: 'not_found' });
 
-    const decision =
+    const language = db
+      .select({ language: packages.language })
+      .from(packages)
+      .where(eq(packages.id, word.packageId))
+      .get()!.language;
+    const decision: Decision =
       input.answer === null
-        ? { correct: input.selfGrade!, decidedBy: 'self' as const, canOverride: false }
-        : await decide(db, word, input.direction, input.answer, aiCheckFor?.(user.id));
+        ? { correct: input.selfGrade!, decidedBy: 'self', canOverride: false }
+        : await decide(db, word, input.direction, input.answer, aiCheckFor?.(user.id, language));
 
     const today = todayIn(user.timezone);
     const next = applyAnswer(word.stage, decision.correct, getSettings(db, user.id), today);
@@ -106,13 +116,20 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (app, { db, a
       attemptId: attempt.id,
       correct: decision.correct,
       decidedBy: decision.decidedBy,
-      typoOf: 'typoOf' in decision ? decision.typoOf : undefined,
+      typoOf: decision.typoOf,
+      aiFailed: decision.aiFailed,
       stageBefore: word.stage,
       stageAfter: next.stage,
       learned: next.learned,
       canOverride: decision.canOverride,
     };
     return result;
+  });
+
+  /** Called when a session starts; answers right away, loading happens in the background. */
+  app.post('/learn/warmup', async (request, reply) => {
+    void warmUp?.(request.user!.id).catch(() => undefined);
+    return reply.code(204).send();
   });
 
   /** "I was right": only for the latest answer of a word that the local check marked wrong. */
