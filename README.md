@@ -88,6 +88,25 @@ E-Mails verschickt.
 - Anmelden, Registrieren und Passwort ändern sind auf 10 Versuche pro Minute begrenzt.
 - Wer das Passwort ändert, wird auf allen anderen Geräten abgemeldet.
 
+## Einrichtungsassistent
+
+Nach der Registrierung führt ein Assistent in zehn Schritten durch die Einrichtung:
+
+1. Sprache (Deutsch/Englisch)
+2. Name (optional)
+3. Zeitzone (legt fest, wann ein neuer Tag beginnt)
+4. KI-Anbieter für die Antwortprüfung (voreingestellt: Pollinations.ai)
+5. Modell für die Antwortprüfung (voreingestellt: `openai/gpt-oss-20b`)
+6. KI für die Tageszusammenfassung
+7. Bilderkennung (bildfähiges Modell)
+8. Zeitlimit der KI-Prüfung (Standard: 2 Sekunden)
+9. Lernen: Intervalle der Stufen 2–6 (Standard: 5 / 10 / 20 / 40 / 80 Tage) und Verhalten bei falschen Antworten
+10. Übersicht und Fertig
+
+Die Schritte 4–7 zeigen vorerst nur die Voreinstellung. Anbieterwahl, „Verbindung testen“
+und die Auswahl des Bildmodells kommen mit Schritt 5 des Umsetzungsplans. Alle Werte lassen sich
+später in den Einstellungen ändern.
+
 ## Projektstruktur
 
 ```
@@ -100,7 +119,8 @@ packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 ## Umsetzungsstand
 
 - [x] 1. Grundgerüst: Server, Oberfläche mit 5 Tabs (Desktop + Handy), Deutsch/Englisch, Tests
-- [x] 2. Accounts: Registrierung mit Code, Anmelden, Abmelden, Passwort ändern
+- [x] 2. Accounts: Registrierung mit Code, Anmelden, Abmelden, Passwort ändern,
+      Einrichtungsassistent (10 Schritte), schlichtes Schwarz-Weiß-Design
 - [ ] 3. Vokabelpakete
 - [ ] 4. Stufensystem und Lernen (ohne KI)
 - [ ] 5. KI-Anbieter und Einrichtungsassistent

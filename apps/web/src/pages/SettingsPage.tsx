@@ -1,35 +1,32 @@
 import { useState, type FormEvent } from 'react';
 import { LogOut } from 'lucide-react';
-import { PASSWORD_MIN_LENGTH, type UserDto } from '@gero/shared';
+import { PASSWORD_MIN_LENGTH, type UserDto, type UserSettings, type WrongMode } from '@gero/shared';
 import { LanguageSwitch } from '../components/LanguageSwitch';
+import { Notice } from '../components/Notice';
+import {
+  IntervalsField,
+  parseIntervals,
+  parseTimeout,
+  TimeoutField,
+  TimezoneSelect,
+  WrongModeField,
+} from '../components/SettingsFields';
 import { PageHeader } from '../components/Page';
 import { useI18n } from '../i18n';
 import { useChangePassword, useLogout, useMe, useUpdateProfile } from '../lib/auth';
 import { errorMessage } from '../lib/errors';
-
-function Notice({ tone, children }: { tone: 'ok' | 'error'; children: string }) {
-  return (
-    <p
-      role={tone === 'error' ? 'alert' : 'status'}
-      className={[
-        'rounded-xl px-3.5 py-2.5 text-sm font-semibold',
-        tone === 'ok' ? 'bg-richtig-soft text-richtig' : 'bg-falsch-soft text-falsch',
-      ].join(' ')}
-    >
-      {children}
-    </p>
-  );
-}
+import { useSettings, useUpdateSettings } from '../lib/settings';
 
 function AccountSection({ user }: { user: UserDto }) {
   const { m } = useI18n();
   const [name, setName] = useState(user.name);
+  const [timezone, setTimezone] = useState(user.timezone);
   const update = useUpdateProfile();
   const logout = useLogout();
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
-    update.mutate({ name });
+    update.mutate({ name, timezone });
   };
 
   return (
@@ -40,8 +37,8 @@ function AccountSection({ user }: { user: UserDto }) {
       <p className="text-ink-soft">
         {m.account.signedInAs} <strong className="text-ink">{user.email}</strong>
       </p>
-      <form className="flex flex-wrap items-end gap-3" onSubmit={onSubmit}>
-        <div className="min-w-0 flex-1">
+      <form className="space-y-4" onSubmit={onSubmit}>
+        <div>
           <label className="label" htmlFor="account-name">
             {m.account.name}
           </label>
@@ -54,6 +51,19 @@ function AccountSection({ user }: { user: UserDto }) {
             onChange={(e) => {
               update.reset();
               setName(e.target.value);
+            }}
+          />
+        </div>
+        <div>
+          <label className="label" htmlFor="account-timezone">
+            {m.fields.timezone}
+          </label>
+          <TimezoneSelect
+            id="account-timezone"
+            value={timezone}
+            onChange={(v) => {
+              update.reset();
+              setTimezone(v);
             }}
           />
         </div>
@@ -73,6 +83,47 @@ function AccountSection({ user }: { user: UserDto }) {
         {m.account.logout}
       </button>
       {logout.isError && <Notice tone="error">{errorMessage(m, logout.error)}</Notice>}
+    </section>
+  );
+}
+
+function LearningSection({ settings }: { settings: UserSettings }) {
+  const { m } = useI18n();
+  const [intervals, setIntervals] = useState(settings.intervals.map(String));
+  const [wrongMode, setWrongMode] = useState<WrongMode>(settings.wrongMode);
+  const [timeout, setTimeoutValue] = useState(String(settings.aiTimeoutMs / 1000));
+  const update = useUpdateSettings();
+  const parsedIntervals = parseIntervals(intervals);
+  const timeoutMs = parseTimeout(timeout);
+  const valid = parsedIntervals !== null && timeoutMs !== null;
+
+  const onSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!valid) return;
+    update.mutate({ intervals: parsedIntervals, wrongMode, aiTimeoutMs: timeoutMs });
+  };
+  const edit =
+    <T,>(setter: (value: T) => void) =>
+    (value: T) => {
+      update.reset();
+      setter(value);
+    };
+
+  return (
+    <section className="panel" aria-labelledby="learning-title">
+      <h2 id="learning-title" className="mb-4 text-xl font-bold">
+        {m.settings.learningTitle}
+      </h2>
+      <form className="space-y-6" onSubmit={onSubmit}>
+        <IntervalsField value={intervals} onChange={edit(setIntervals)} />
+        <WrongModeField value={wrongMode} onChange={edit(setWrongMode)} />
+        <TimeoutField value={timeout} onChange={edit(setTimeoutValue)} />
+        {update.isSuccess && <Notice tone="ok">{m.account.saved}</Notice>}
+        {update.isError && <Notice tone="error">{errorMessage(m, update.error)}</Notice>}
+        <button type="submit" className="btn btn-primary" disabled={update.isPending || !valid}>
+          {m.account.save}
+        </button>
+      </form>
     </section>
   );
 }
@@ -131,7 +182,7 @@ function PasswordSection() {
             onChange={(e) => setNew(e.target.value)}
             aria-describedby="pw-new-hint"
           />
-          <p id="pw-new-hint" className="mt-1 text-sm text-ink-soft">
+          <p id="pw-new-hint" className="hint">
             {m.auth.passwordHint}
           </p>
         </div>
@@ -150,6 +201,7 @@ export function SettingsPage() {
   const update = useUpdateProfile();
   // Null for one render right after signing out, before AuthGate takes over.
   const user = useMe().data;
+  const settings = useSettings(Boolean(user));
   if (!user) return null;
   return (
     <>
@@ -163,6 +215,7 @@ export function SettingsPage() {
           />
         </section>
         <AccountSection user={user} />
+        {settings.data && <LearningSection settings={settings.data} />}
         <PasswordSection />
       </div>
     </>

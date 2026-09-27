@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { PASSWORD_MIN_LENGTH } from '@gero/shared';
-import { LanguageSwitch } from '../components/LanguageSwitch';
-import { Wordmark } from '../components/Wordmark';
+import { CenteredLayout } from '../components/CenteredLayout';
+import { Notice } from '../components/Notice';
 import { useI18n } from '../i18n';
 import { useLogin, useRegister } from '../lib/auth';
 import { errorMessage } from '../lib/errors';
@@ -14,7 +14,7 @@ function browserTimezone(): string | undefined {
   }
 }
 
-/** Sign-in and registration on an index card. */
+/** Sign-in and registration. */
 export function AuthPage() {
   const { m, lang } = useI18n();
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -50,21 +50,13 @@ export function AuthPage() {
   const title = mode === 'login' ? m.auth.loginTitle : m.auth.registerTitle;
 
   return (
-    <div className="flex min-h-dvh flex-col items-center px-4 pt-[max(2rem,env(safe-area-inset-top))] pb-10">
-      <div className="flex w-full max-w-md items-center justify-between">
-        <Wordmark />
-        <LanguageSwitch label={m.settings.language} />
-      </div>
-
-      <main className="index-card mt-8 w-full max-w-md">
-        <div className="index-card-head">
-          <h1 className="font-word text-3xl font-bold tracking-tight">{title}</h1>
-        </div>
-        <form className="index-card-body space-y-4" onSubmit={onSubmit} noValidate>
-          <p className="text-ink-soft">
-            {mode === 'login' ? m.auth.loginIntro : m.auth.registerIntro}
-          </p>
-
+    <CenteredLayout>
+      <div className="panel sm:p-8">
+        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        <p className="mt-1.5 text-ink-soft">
+          {mode === 'login' ? m.auth.loginIntro : m.auth.registerIntro}
+        </p>
+        <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
           <div>
             <label className="label" htmlFor="auth-email">
               {m.auth.email}
@@ -97,7 +89,7 @@ export function AuthPage() {
               aria-describedby={mode === 'register' ? 'auth-password-hint' : undefined}
             />
             {mode === 'register' && (
-              <p id="auth-password-hint" className="mt-1 text-sm text-ink-soft">
+              <p id="auth-password-hint" className="hint">
                 {m.auth.passwordHint}
               </p>
             )}
@@ -121,23 +113,18 @@ export function AuthPage() {
             </div>
           )}
 
-          {error && (
-            <p
-              role="alert"
-              className="rounded-xl bg-falsch-soft px-3.5 py-2.5 text-sm font-semibold text-falsch"
-            >
-              {errorMessage(m, error)}
-            </p>
-          )}
+          {error && <Notice tone="error">{errorMessage(m, error)}</Notice>}
 
-          <button type="submit" className="btn btn-primary w-full" disabled={pending}>
-            {mode === 'login' ? m.auth.login : m.auth.register}
-          </button>
-          <button type="button" className="btn btn-ghost w-full" onClick={switchMode}>
-            {mode === 'login' ? m.auth.toRegister : m.auth.toLogin}
-          </button>
+          <div className="space-y-2 pt-2">
+            <button type="submit" className="btn btn-primary w-full" disabled={pending}>
+              {mode === 'login' ? m.auth.login : m.auth.register}
+            </button>
+            <button type="button" className="btn btn-ghost w-full" onClick={switchMode}>
+              {mode === 'login' ? m.auth.toRegister : m.auth.toLogin}
+            </button>
+          </div>
         </form>
-      </main>
-    </div>
+      </div>
+    </CenteredLayout>
   );
 }

@@ -2,6 +2,7 @@ export const de = {
   appName: 'Gero',
   tagline: 'Vokabeltrainer',
   nav: {
+    label: 'Hauptnavigation',
     home: 'Start',
     upload: 'Hochladen',
     packages: 'Pakete',
@@ -25,6 +26,7 @@ export const de = {
     empty: 'Heute ist nichts fällig.',
   },
   settings: {
+    learningTitle: 'Lernen',
     title: 'Einstellungen',
     language: 'Sprache der Oberfläche',
   },
@@ -63,6 +65,81 @@ export const de = {
     currentPassword: 'Aktuelles Passwort',
     newPassword: 'Neues Passwort',
     passwordChanged: 'Passwort geändert. Andere Geräte wurden abgemeldet.',
+  },
+  setup: {
+    stepOf: 'Schritt {n} von {total}',
+    back: 'Zurück',
+    next: 'Weiter',
+    finish: 'Fertig',
+    later: 'Wird in einem späteren Update freigeschaltet.',
+    language: {
+      title: 'Sprache',
+      text: 'In welcher Sprache soll Gero angezeigt werden? Das kannst du später jederzeit ändern.',
+    },
+    name: {
+      title: 'Name',
+      text: 'Wie sollen wir dich nennen? Du kannst das Feld auch leer lassen.',
+      placeholder: 'z. B. Anna',
+    },
+    timezone: {
+      title: 'Zeitzone',
+      text: 'Die Zeitzone legt fest, wann für dich ein neuer Tag beginnt – wichtig für fällige Vokabeln und die Tageszusammenfassung.',
+    },
+    checkProvider: {
+      title: 'KI für die Antwortprüfung',
+      text: 'Ein schnelles KI-Modell prüft deine getippten Antworten, zum Beispiel auf Synonyme. Voreingestellt ist ein Anbieter, der keinen API-Schlüssel braucht.',
+      preset: 'Voreinstellung',
+      others:
+        'Weitere Anbieter: Anthropic (Claude), OpenAI, OpenRouter, Ollama (lokal oder online) und eigene Server.',
+    },
+    checkModel: {
+      title: 'Modell für die Antwortprüfung',
+      text: 'Dieses Modell entscheidet, ob eine Antwort richtig ist. Mit „Verbindung testen“ misst du, wie schnell es antwortet.',
+      model: 'Modell',
+      test: 'Verbindung testen',
+    },
+    summary: {
+      title: 'KI für die Tageszusammenfassung',
+      text: 'Auf der Startseite fasst eine KI dein Lernen des Tages zusammen und gibt kurze Tipps. Voreingestellt ist dasselbe Modell wie für die Antwortprüfung.',
+    },
+    vision: {
+      title: 'Bilderkennung',
+      text: 'Für Fotos aus dem Vokabelheft braucht Gero ein Modell, das Bilder lesen kann. Du wählst es aus der Liste der bildfähigen Modelle deines Anbieters.',
+      none: 'Noch kein Bildmodell gewählt.',
+    },
+    timeout: {
+      title: 'Zeitlimit der KI-Prüfung',
+      text: 'Antwortet die KI nicht rechtzeitig, entscheidet Gero selbst. Du kannst die Entscheidung dann mit „Ich hatte recht“ korrigieren.',
+    },
+    learning: {
+      title: 'Lernen',
+      text: 'Nach wie vielen Tagen soll eine Vokabel auf der jeweiligen Stufe wieder abgefragt werden? Die Standardwerte sind vorbelegt.',
+    },
+    done: {
+      title: 'Fertig',
+      text: 'Das sind deine Einstellungen. Alles lässt sich später in den Einstellungen ändern.',
+    },
+  },
+  fields: {
+    timezone: 'Zeitzone',
+    provider: 'Anbieter',
+    seconds: 'Sekunden',
+    timeout: 'Zeitlimit',
+    timeoutHint: 'Zwischen 0,5 und 30 Sekunden. Standard: 2 Sekunden.',
+    intervals: 'Intervalle',
+    intervalsLegend: 'Intervalle (in Tagen)',
+    stage: 'Stufe {n}',
+    days: 'Tage',
+    intervalsHint:
+      'Stufe 1 ist sofort fällig. Wer Stufe 6 richtig beantwortet, hat die Vokabel gelernt.',
+    wrongMode: 'Bei einer falschen Antwort',
+    wrongReset: 'Zurück auf Stufe 1',
+    wrongBack: 'Eine Stufe zurück',
+    textModel: 'Antwortprüfung und Zusammenfassung',
+    visionModel: 'Bilderkennung',
+    name: 'Name',
+    noName: '(kein Name)',
+    language: 'Sprache',
   },
   common: {
     retry: 'Nochmal versuchen',

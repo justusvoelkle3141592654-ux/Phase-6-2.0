@@ -8,6 +8,13 @@
       "when": 1790491239509,
       "tag": "0000_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790492037338,
+      "tag": "0001_user_settings",
+      "breakpoints": true
     }
   ]
 }

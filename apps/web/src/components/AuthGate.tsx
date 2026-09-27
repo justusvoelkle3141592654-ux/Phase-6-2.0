@@ -3,8 +3,9 @@ import { useI18n } from '../i18n';
 import { useMe } from '../lib/auth';
 import { errorMessage } from '../lib/errors';
 import { AuthPage } from '../pages/AuthPage';
+import { SetupWizard } from '../pages/SetupWizard';
 
-/** Shows the sign-in page until a user is signed in. */
+/** Shows the sign-in page until a user is signed in, then the setup until it is completed. */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { m, setLang } = useI18n();
   const me = useMe();
@@ -41,5 +42,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
   if (!me.data) return <AuthPage />;
+  if (!me.data.setupCompleted) return <SetupWizard user={me.data} />;
   return <>{children}</>;
 }

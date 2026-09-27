@@ -4,6 +4,7 @@ export const en: Messages = {
   appName: 'Gero',
   tagline: 'Vocabulary trainer',
   nav: {
+    label: 'Main navigation',
     home: 'Home',
     upload: 'Upload',
     packages: 'Decks',
@@ -28,6 +29,7 @@ export const en: Messages = {
     empty: 'Nothing is due today.',
   },
   settings: {
+    learningTitle: 'Learning',
     title: 'Settings',
     language: 'Interface language',
   },
@@ -66,6 +68,81 @@ export const en: Messages = {
     currentPassword: 'Current password',
     newPassword: 'New password',
     passwordChanged: 'Password changed. Other devices were signed out.',
+  },
+  setup: {
+    stepOf: 'Step {n} of {total}',
+    back: 'Back',
+    next: 'Next',
+    finish: 'Finish',
+    later: 'Will be enabled in a later update.',
+    language: {
+      title: 'Language',
+      text: 'Which language should Gero use? You can change this at any time.',
+    },
+    name: {
+      title: 'Name',
+      text: 'What should we call you? You can also leave this empty.',
+      placeholder: 'e.g. Anna',
+    },
+    timezone: {
+      title: 'Time zone',
+      text: 'The time zone decides when a new day starts for you – this matters for due words and the daily summary.',
+    },
+    checkProvider: {
+      title: 'AI for answer checking',
+      text: 'A fast AI model checks your typed answers, for example for synonyms. The preset is a provider that needs no API key.',
+      preset: 'Preset',
+      others:
+        'More providers: Anthropic (Claude), OpenAI, OpenRouter, Ollama (local or online) and your own servers.',
+    },
+    checkModel: {
+      title: 'Model for answer checking',
+      text: 'This model decides whether an answer is correct. “Test connection” measures how fast it responds.',
+      model: 'Model',
+      test: 'Test connection',
+    },
+    summary: {
+      title: 'AI for the daily summary',
+      text: 'On the home page, an AI summarises what you learned today and gives short tips. The preset is the same model as for answer checking.',
+    },
+    vision: {
+      title: 'Image recognition',
+      text: 'To read photos of your vocabulary notebook, Gero needs a model that understands images. You pick it from your provider’s list of image-capable models.',
+      none: 'No image model selected yet.',
+    },
+    timeout: {
+      title: 'AI check time limit',
+      text: 'If the AI does not answer in time, Gero decides on its own. You can then correct the decision with “I was right”.',
+    },
+    learning: {
+      title: 'Learning',
+      text: 'After how many days should a word on each stage be asked again? The defaults are already filled in.',
+    },
+    done: {
+      title: 'Done',
+      text: 'These are your settings. You can change everything later in the settings.',
+    },
+  },
+  fields: {
+    timezone: 'Time zone',
+    provider: 'Provider',
+    seconds: 'seconds',
+    timeout: 'Time limit',
+    timeoutHint: 'Between 0.5 and 30 seconds. Default: 2 seconds.',
+    intervals: 'Intervals',
+    intervalsLegend: 'Intervals (in days)',
+    stage: 'Stage {n}',
+    days: 'days',
+    intervalsHint:
+      'Stage 1 is due immediately. Answering stage 6 correctly means the word is learned.',
+    wrongMode: 'After a wrong answer',
+    wrongReset: 'Back to stage 1',
+    wrongBack: 'One stage down',
+    textModel: 'Answer checking and summary',
+    visionModel: 'Image recognition',
+    name: 'Name',
+    noName: '(no name)',
+    language: 'Language',
   },
   common: {
     retry: 'Try again',

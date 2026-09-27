@@ -38,5 +38,16 @@ export const sessions = sqliteTable(
   (t) => [index('sessions_user_idx').on(t.userId)],
 );
 
+/** Learning and AI preferences, one row per user (created on first access). */
+export const userSettings = sqliteTable('user_settings', {
+  userId: integer('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  intervals: text('intervals', { mode: 'json' }).$type<number[]>().notNull(),
+  wrongMode: text('wrong_mode', { enum: ['reset', 'back'] }).notNull(),
+  aiTimeoutMs: integer('ai_timeout_ms').notNull(),
+  reminderTime: text('reminder_time'),
+});
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;

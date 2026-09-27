@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { eq } from 'drizzle-orm';
-import type { z } from 'zod';
 import {
   changePasswordSchema,
   loginSchema,
@@ -14,6 +13,7 @@ import type { Db } from '../db';
 import { users, type User } from '../db/schema';
 import { burnPasswordCheck, hashPassword, verifyPassword } from '../auth/password';
 import { createSession, deleteOtherSessions, deleteSession } from '../auth/sessions';
+import { parseBody as parse } from './parse';
 
 export function toUserDto(user: User): UserDto {
   return {
@@ -24,20 +24,6 @@ export function toUserDto(user: User): UserDto {
     timezone: user.timezone,
     setupCompleted: user.setupCompleted,
   };
-}
-
-function parse<S extends z.ZodType>(
-  schema: S,
-  body: unknown,
-  reply: FastifyReply,
-): z.output<S> | null {
-  const result = schema.safeParse(body ?? {});
-  if (result.success) return result.data;
-  void reply.code(400).send({
-    error: 'validation_error',
-    fields: result.error.issues.map((issue) => issue.path.join('.')),
-  });
-  return null;
 }
 
 function sameCode(a: string, b: string): boolean {

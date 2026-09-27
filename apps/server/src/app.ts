@@ -12,6 +12,7 @@ import { authPlugin } from './auth/plugin';
 import { deleteExpiredSessions } from './auth/sessions';
 import { authRoutes } from './routes/auth';
 import { healthRoutes } from './routes/health';
+import { settingsRoutes } from './routes/settings';
 
 export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
@@ -65,6 +66,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
     async (api) => {
       await api.register(healthRoutes);
       await api.register(authRoutes, { db, registrationCode: secrets.registrationCode });
+      await api.register(settingsRoutes, { db });
     },
     { prefix: '/api' },
   );

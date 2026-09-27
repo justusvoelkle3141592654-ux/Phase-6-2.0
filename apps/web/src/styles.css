@@ -1,48 +1,49 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/atkinson-hyperlegible-next';
-@import '@fontsource-variable/alegreya';
-@import '@fontsource-variable/atkinson-hyperlegible-mono';
+@import '@fontsource-variable/inter';
 
 /*
- * Design tokens.
- * Paper, ink and highlighter: the materials of a vocabulary notebook and an
- * index-card box. Stage colours run from fresh, light ink (stage 1) to deep,
- * dried ink (stage 6) – the further right, the longer the word has stuck.
+ * Design: black and white, oriented on Apple's "Liquid Glass".
+ * Navigation and controls float above the content as translucent glass;
+ * content itself sits on calm, solid surfaces. The only colours are green
+ * and red for "correct" and "wrong". Stages run from light grey to black.
  */
 @theme {
-  --font-sans: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
-  --font-word: 'Alegreya Variable', Georgia, serif;
-  --font-mono: 'Atkinson Hyperlegible Mono Variable', ui-monospace, monospace;
+  --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  --color-paper: #f2f5fb;
+  --color-paper: #f2f2f4;
   --color-surface: #ffffff;
-  --color-surface-2: #e8edf7;
-  --color-ink: #1b2233;
-  --color-ink-soft: #5a6479;
-  --color-rule: #d6deed;
-  --color-tinte: #3e54d3;
-  --color-tinte-strong: #2c3fa8;
-  --color-tinte-soft: #e3e8fb;
-  --color-on-tinte: #ffffff;
-  --color-marker: #ffd23f;
-  --color-marker-soft: #fff4c7;
-  --color-richtig: #1f9d63;
-  --color-richtig-soft: #dcf3e7;
-  --color-falsch: #e0474c;
-  --color-falsch-soft: #fbe2e3;
-  --color-card-line: #b9c8ec;
-  --color-card-head: #e8797d;
+  --color-surface-2: #ececef;
+  --color-ink: #0a0a0a;
+  --color-ink-soft: #5c5c63;
+  --color-rule: #e2e2e6;
+  --color-rule-strong: #c7c7cc;
+  --color-primary: #0a0a0a;
+  --color-primary-hover: #2e2e2e;
+  --color-on-primary: #ffffff;
+  --color-richtig: #1a7f3c;
+  --color-richtig-soft: #e9f7ee;
+  --color-falsch: #c9302c;
+  --color-falsch-soft: #fcefee;
 
-  --color-stufe-1: #c6d2fb;
-  --color-stufe-2: #9fb2f6;
-  --color-stufe-3: #7a93ee;
-  --color-stufe-4: #5773e2;
-  --color-stufe-5: #3e54d3;
-  --color-stufe-6: #243597;
+  --color-stufe-1: #e2e2e6;
+  --color-stufe-2: #c7c7cc;
+  --color-stufe-3: #9e9ea5;
+  --color-stufe-4: #707076;
+  --color-stufe-5: #3f3f44;
+  --color-stufe-6: #0a0a0a;
 
-  --radius-card: 1.25rem;
-  --shadow-card: 0 1px 0 rgb(27 34 51 / 0.06), 0 8px 24px -8px rgb(27 34 51 / 0.18);
-  --shadow-lift: 0 2px 0 rgb(27 34 51 / 0.08), 0 18px 40px -12px rgb(27 34 51 / 0.3);
+  /* Glass material. */
+  --color-glass: rgb(255 255 255 / 0.62);
+  --color-glass-strong: rgb(255 255 255 / 0.85);
+  --color-glass-edge: rgb(255 255 255 / 0.9);
+  --color-glass-pill: rgb(10 10 10 / 0.07);
+  --shadow-glass:
+    inset 0 1px 0 rgb(255 255 255 / 0.8), inset 0 -1px 0 rgb(0 0 0 / 0.04),
+    0 1px 2px rgb(0 0 0 / 0.06), 0 10px 30px -10px rgb(0 0 0 / 0.18);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px -8px rgb(0 0 0 / 0.08);
+
+  --radius-card: 1.5rem;
 }
 
 @layer base {
@@ -53,41 +54,67 @@
   @media (prefers-color-scheme: dark) {
     :root {
       color-scheme: dark;
-      --color-paper: #11151f;
-      --color-surface: #1a2030;
-      --color-surface-2: #232b3f;
-      --color-ink: #e9edf6;
-      --color-ink-soft: #9aa4ba;
-      --color-rule: #2e374d;
-      --color-tinte: #7f93f5;
-      --color-tinte-strong: #a3b2ff;
-      --color-tinte-soft: #262f52;
-      --color-on-tinte: #11151f;
-      --color-marker: #ffd23f;
-      --color-marker-soft: #3a3319;
-      --color-richtig: #3cc487;
-      --color-richtig-soft: #173828;
-      --color-falsch: #ff6b6f;
-      --color-falsch-soft: #3d1c1f;
-      --color-card-line: #33406a;
-      --color-card-head: #b85a5e;
-      --shadow-card: 0 1px 0 rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.6);
-      --shadow-lift: 0 2px 0 rgb(0 0 0 / 0.3), 0 18px 40px -12px rgb(0 0 0 / 0.7);
+      --color-paper: #000000;
+      --color-surface: #161618;
+      --color-surface-2: #242427;
+      --color-ink: #f5f5f7;
+      --color-ink-soft: #a1a1a8;
+      --color-rule: #2c2c30;
+      --color-rule-strong: #46464c;
+      --color-primary: #f5f5f7;
+      --color-primary-hover: #d8d8dc;
+      --color-on-primary: #0a0a0a;
+      --color-richtig: #4cd07d;
+      --color-richtig-soft: #0f2618;
+      --color-falsch: #ff6961;
+      --color-falsch-soft: #2d1311;
+      --color-stufe-1: #2c2c30;
+      --color-stufe-2: #46464c;
+      --color-stufe-3: #6e6e75;
+      --color-stufe-4: #9e9ea5;
+      --color-stufe-5: #cdcdd2;
+      --color-stufe-6: #f5f5f7;
+      --color-glass: rgb(40 40 44 / 0.55);
+      --color-glass-strong: rgb(40 40 44 / 0.8);
+      --color-glass-edge: rgb(255 255 255 / 0.14);
+      --color-glass-pill: rgb(255 255 255 / 0.12);
+      --shadow-glass:
+        inset 0 1px 0 rgb(255 255 255 / 0.12), 0 1px 2px rgb(0 0 0 / 0.4),
+        0 12px 32px -10px rgb(0 0 0 / 0.7);
+      --shadow-card: none;
     }
   }
 
   html,
   body {
-    background: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Soft grey light behind the glass so the material has something to refract. */
+  body {
+    background:
+      radial-gradient(60rem 40rem at 10% -10%, rgb(255 255 255 / 0.9), transparent 60%),
+      radial-gradient(50rem 40rem at 110% 10%, rgb(0 0 0 / 0.05), transparent 60%),
+      var(--color-paper);
+    background-attachment: fixed;
+  }
+  @media (prefers-color-scheme: dark) {
+    body {
+      background:
+        radial-gradient(60rem 40rem at 10% -10%, rgb(255 255 255 / 0.07), transparent 60%),
+        radial-gradient(50rem 40rem at 110% 10%, rgb(255 255 255 / 0.04), transparent 60%),
+        var(--color-paper);
+      background-attachment: fixed;
+    }
+  }
+
   :focus-visible {
-    outline: 3px solid var(--color-tinte);
+    outline: 2px solid var(--color-ink);
     outline-offset: 2px;
-    border-radius: 0.5rem;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -100,53 +127,54 @@
   }
 }
 
+/* Translucent glass for navigation and floating controls. */
+@utility glass {
+  background: var(--color-glass);
+  border: 1px solid var(--color-glass-edge);
+  box-shadow: var(--shadow-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background: var(--color-glass-strong);
+  }
+}
+
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold transition-[background,transform,box-shadow] duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2 text-[0.95rem] font-semibold transition-[background-color,transform,opacity] duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
   }
   .btn-primary {
-    @apply bg-tinte text-on-tinte shadow-[0_3px_0_var(--color-tinte-strong)] hover:bg-tinte-strong;
+    @apply bg-primary text-on-primary hover:bg-primary-hover;
   }
   .btn-secondary {
-    @apply bg-surface text-ink ring-1 ring-rule hover:bg-surface-2;
+    @apply glass text-ink hover:bg-glass-strong;
   }
   .btn-ghost {
-    @apply text-ink-soft hover:bg-surface-2 hover:text-ink;
+    @apply text-ink-soft hover:bg-glass-pill hover:text-ink;
   }
   .btn-danger {
     @apply bg-falsch text-white hover:brightness-95;
   }
   .field {
-    @apply w-full rounded-xl bg-surface px-3.5 py-2.5 text-ink ring-1 ring-rule outline-none placeholder:text-ink-soft/70 focus:ring-2 focus:ring-tinte;
+    @apply min-h-11 w-full rounded-xl border border-transparent bg-surface-2 px-3.5 py-2 text-ink outline-none transition-colors placeholder:text-ink-soft/70 focus:border-ink focus:bg-surface;
   }
   .label {
-    @apply mb-1.5 block text-sm font-semibold text-ink-soft;
+    @apply mb-1.5 block text-sm font-semibold text-ink;
+  }
+  .hint {
+    @apply mt-1.5 text-sm text-ink-soft;
   }
   .panel {
     @apply rounded-[var(--radius-card)] bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6;
   }
-}
-
-/*
- * Index card: red head rule, blue writing lines below.
- * Used for the sign-in page and (later) the back of the flash cards.
- */
-@layer components {
-  .index-card {
-    @apply overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-lift)];
+  /* Segmented control: glass track, solid pill for the chosen option. */
+  .segmented {
+    @apply glass inline-flex rounded-full p-1;
   }
-  .index-card-head {
-    @apply border-b-2 border-card-head px-6 pt-6 pb-3;
+  .segmented > button {
+    @apply min-h-9 rounded-full px-4 text-sm font-semibold text-ink-soft transition-colors hover:text-ink;
   }
-  .index-card-body {
-    @apply px-6 pt-4 pb-6;
-    background-image: repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent calc(2rem - 1px),
-      var(--color-card-line) calc(2rem - 1px),
-      var(--color-card-line) 2rem
-    );
-    background-position: 0 1rem;
+  .segmented > button[aria-checked='true'] {
+    @apply bg-surface text-ink shadow-sm;
   }
 }

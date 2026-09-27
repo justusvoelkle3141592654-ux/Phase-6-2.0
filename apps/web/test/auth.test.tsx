@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
-import { mockApi, renderApp, USER } from './utils';
+import { mockApi, renderApp, SETTINGS, USER } from './utils';
 
 beforeEach(() => {
   localStorage.clear();
@@ -87,6 +87,7 @@ describe('Einstellungen: Account', () => {
   it('zeigt nach dem Abmelden die Anmeldeseite', async () => {
     const calls = mockApi({
       'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'GET /settings': () => ({ status: 200, body: { settings: SETTINGS } }),
       'POST /auth/logout': () => ({ status: 204 }),
     });
     renderApp('/settings');
@@ -96,6 +97,7 @@ describe('Einstellungen: Account', () => {
     expect(calls.map((c) => c.key)).toContain('POST /auth/logout');
     // The UI must not ask the server again: "signed out" is set locally.
     expect(calls.filter((c) => c.key === 'GET /auth/me')).toHaveLength(1);
+    expect(calls.filter((c) => c.key === 'GET /settings')).toHaveLength(1);
   });
 
   it('ändert das Passwort', async () => {

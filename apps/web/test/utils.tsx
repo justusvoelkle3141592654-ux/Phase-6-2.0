@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import type { UserDto } from '@gero/shared';
+import type { UserDto, UserSettings } from '@gero/shared';
 import { I18nProvider } from '../src/i18n';
 import { routes } from '../src/router';
 
@@ -12,7 +12,14 @@ export const USER: UserDto = {
   name: '',
   uiLanguage: 'de',
   timezone: 'Europe/Berlin',
-  setupCompleted: false,
+  setupCompleted: true,
+};
+
+export const SETTINGS: UserSettings = {
+  intervals: [5, 10, 20, 40, 80],
+  wrongMode: 'reset',
+  aiTimeoutMs: 2000,
+  reminderTime: null,
 };
 
 type Handler = (body: unknown) => { status: number; body?: unknown };
