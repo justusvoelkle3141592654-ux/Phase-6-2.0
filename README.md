@@ -136,6 +136,15 @@ geladen; der Modellname kann auch eingetippt werden.
 - **Latenz:** Jeder KI-Aufruf wird gemessen (erstes Token, Gesamtzeit, Tokens/s). Median und
   langsamste Werte stehen in den Einstellungen.
 
+## Startseite
+
+- Heute fällige Vokabeln (mit Knopf „Jetzt lernen“), Anzahl je Stufe, gelernte und inaktive
+  Vokabeln – funktioniert ohne KI.
+- Heute gelernt: Abfragen, Trefferquote, Zeit pro Karte, schwierige Vokabeln.
+- **KI-Tageszusammenfassung:** entsteht aus zusammengefassten Kennzahlen (keine einzelnen
+  Antworten), wird zwischengespeichert und nur neu erzeugt, wenn neue Abfragen dazugekommen sind.
+- „Heute“ richtet sich nach der Zeitzone des Accounts.
+
 ## Hochladen und Erkennung
 
 1. Unter **Hochladen** Fotos aufnehmen („Foto aufnehmen“) oder mehrere aus der Galerie wählen
@@ -205,6 +214,6 @@ packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 - [x] 5. KI-Anbieter und Einrichtungsassistent: Pollinations, Anthropic, OpenAI, OpenRouter, Ollama (lokal/online), eigener Server
 - [x] 6. KI-Antwortprüfung: Zeitlimit mit lokalem Fallback und „Ich hatte recht“, Cache, Latenzstatistik, Vorwärmen
 - [x] 7. Hochladen und Erkennung: mehrere Fotos, Kamera/Galerie, Verkleinern, Vorschau mit Korrektur, Fotos bleiben beim Paket
-- [ ] 8. Startseite mit Tageszusammenfassung
+- [x] 8. Startseite: fällige Vokabeln, Stufenübersicht, Tageswerte, KI-Tageszusammenfassung
 - [ ] 9. Android-App (APK) mit Erinnerungen
 - [ ] 10. Betrieb (Docker, systemd, HTTPS)

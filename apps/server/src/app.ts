@@ -17,6 +17,7 @@ import { settingsRoutes } from './routes/settings';
 import { packageRoutes } from './routes/packages';
 import { learnRoutes } from './routes/learn';
 import { aiRoutes } from './routes/ai';
+import { overviewRoutes } from './routes/overview';
 import { MAX_PHOTO_BYTES, MAX_PHOTOS, uploadRoutes } from './routes/uploads';
 import { AiService } from './ai/service';
 import { aiCheckFor } from './learn/ai-check';
@@ -88,6 +89,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
         },
       });
       await api.register(aiRoutes, { db, ai });
+      await api.register(overviewRoutes, { db, ai });
       await api.register(uploadRoutes, { db, ai, dataDir: config.dataDir });
     },
     { prefix: '/api' },

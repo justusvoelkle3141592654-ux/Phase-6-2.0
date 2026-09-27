@@ -263,6 +263,22 @@ export const uploadPages = sqliteTable(
   (t) => [index('upload_pages_job_idx').on(t.jobId)],
 );
 
+/** Cached AI summary per user and day; regenerated when new answers were added. */
+export const dailySummaries = sqliteTable(
+  'daily_summaries',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    day: text('day').notNull(),
+    /** Number of answers the text is based on. */
+    attempts: integer('attempts').notNull(),
+    text: text('text').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Package = typeof packages.$inferSelect;
