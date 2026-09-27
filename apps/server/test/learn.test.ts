@@ -23,7 +23,9 @@ function req(method: 'GET' | 'POST' | 'PATCH', url: string, payload?: object) {
 }
 
 async function seed(
-  items = [{ word: 'amicus', extra: 'amici m.', translation: 'Freund; Kamerad' }],
+  items: Array<{ word: string; extra?: string; translation: string }> = [
+    { word: 'amicus', extra: 'amici m.', translation: 'Freund; Kamerad' },
+  ],
   activate = true,
 ) {
   const pkg = (await req('POST', '/packages', { name: 'L1', language: 'la' })).json().package;
