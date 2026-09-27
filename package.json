@@ -15,7 +15,8 @@
     "start": "npm run start -w @gero/server",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "android:sync": "npm run android:sync -w @gero/web"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

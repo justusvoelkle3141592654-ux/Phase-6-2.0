@@ -379,6 +379,27 @@ export const en: Messages = {
     noName: '(no name)',
     language: 'Language',
   },
+  app: {
+    serverTitle: 'Connect to server',
+    serverIntro:
+      'Enter the address of your Gero server – in the home network e.g. http://192.168.1.20:3000, over the internet e.g. https://gero.example.org.',
+    serverUrl: 'Server address',
+    connect: 'Connect',
+    connecting: 'Connecting …',
+    notGero: 'No Gero server answers at this address.',
+    unreachable:
+      'Server not reachable. Is the phone in the same network, are address, port and http/https correct?',
+    server: 'Server: {url}',
+    changeServer: 'Change',
+    reminder: 'Reminder',
+    reminderHint: 'The Android app reminds you at this time when words are due.',
+    reminderOff: 'Off',
+    reminderOn: 'Daily at',
+    reminderAppOnly: 'Only works in the Android app.',
+    reminderDenied: 'Notifications are not allowed for Gero. Allow them in the Android settings.',
+    notificationBody: '{n} words are due.',
+    notificationBodyOne: '1 word is due.',
+  },
   common: {
     retry: 'Try again',
     loading: 'Loading …',

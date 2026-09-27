@@ -1,0 +1,46 @@
+# Builds the Android app (debug APK) and offers it as a download on the run page.
+name: Android-APK
+
+on:
+  push:
+    paths:
+      - 'apps/web/**'
+      - 'packages/shared/**'
+      - 'package-lock.json'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Oberfläche bauen und ins Android-Projekt kopieren
+        run: npm run android:sync
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # ubuntu-latest brings the Android SDK (ANDROID_HOME is set).
+      - name: APK bauen
+        working-directory: apps/web/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gero-android-debug
+          path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

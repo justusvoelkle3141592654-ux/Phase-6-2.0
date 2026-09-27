@@ -1,6 +1,13 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { and, asc, eq, gt, sql } from 'drizzle-orm';
-import { todayIn, type OverviewDto, type SummaryDto, type TodayStats } from '@gero/shared';
+import { and, asc, eq, gt, lte, sql } from 'drizzle-orm';
+import {
+  addDays,
+  todayIn,
+  type DueDayDto,
+  type OverviewDto,
+  type SummaryDto,
+  type TodayStats,
+} from '@gero/shared';
 import type { Db } from '../db';
 import { attempts, dailySummaries, vocab } from '../db/schema';
 import type { AiService } from '../ai/service';
@@ -138,6 +145,39 @@ export const overviewRoutes: FastifyPluginAsync<{ db: Db; ai: AiService }> = asy
   }
 
   app.get('/overview', async (request) => overview(request.user!.id, request.user!.timezone));
+
+  /**
+   * Words due on each of the next 30 days (including overdue ones), for the
+   * reminders of the Android app.
+   */
+  app.get('/overview/due-days', async (request): Promise<{ days: DueDayDto[] }> => {
+    const user = request.user!;
+    const today = todayIn(user.timezone);
+    const last = addDays(today, 29);
+    const rows = db
+      .select({ dueDate: vocab.dueDate, count: sql<number>`count(*)` })
+      .from(vocab)
+      .where(
+        and(
+          eq(vocab.userId, user.id),
+          eq(vocab.active, true),
+          eq(vocab.learned, false),
+          lte(vocab.dueDate, last),
+        ),
+      )
+      .groupBy(vocab.dueDate)
+      .all();
+    const days: DueDayDto[] = [];
+    let running = 0;
+    const byDay = new Map(rows.map((r) => [r.dueDate!, Number(r.count)]));
+    running = rows.filter((r) => r.dueDate! < today).reduce((sum, r) => sum + Number(r.count), 0);
+    for (let i = 0; i < 30; i++) {
+      const day = addDays(today, i);
+      running += byDay.get(day) ?? 0;
+      days.push({ day, count: running });
+    }
+    return { days };
+  });
 
   /** AI summary of today; cached until new answers come in. */
   app.get('/overview/summary', async (request): Promise<SummaryDto> => {

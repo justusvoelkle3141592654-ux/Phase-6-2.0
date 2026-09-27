@@ -4,7 +4,9 @@ import { CenteredLayout } from '../components/CenteredLayout';
 import { Notice } from '../components/Notice';
 import { useI18n } from '../i18n';
 import { useLogin, useRegister } from '../lib/auth';
+import { getServerUrl } from '../lib/platform';
 import { errorMessage } from '../lib/errors';
+import { fill } from '../lib/format';
 
 function browserTimezone(): string | undefined {
   try {
@@ -15,7 +17,7 @@ function browserTimezone(): string | undefined {
 }
 
 /** Sign-in and registration. */
-export function AuthPage() {
+export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {}) {
   const { m, lang } = useI18n();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -124,6 +126,18 @@ export function AuthPage() {
             </button>
           </div>
         </form>
+        {onChangeServer && (
+          <p className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-ink-soft">
+            <span className="break-all">{fill(m.app.server, { url: getServerUrl() ?? '' })}</span>
+            <button
+              type="button"
+              className="font-semibold text-ink underline"
+              onClick={onChangeServer}
+            >
+              {m.app.changeServer}
+            </button>
+          </p>
+        )}
       </div>
     </CenteredLayout>
   );

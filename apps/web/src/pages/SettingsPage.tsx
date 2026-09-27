@@ -17,6 +17,8 @@ import { useI18n } from '../i18n';
 import { useChangePassword, useLogout, useMe, useUpdateProfile } from '../lib/auth';
 import { errorMessage } from '../lib/errors';
 import { useSettings, useUpdateSettings } from '../lib/settings';
+import { isApp } from '../lib/platform';
+import { notificationsAllowed } from '../lib/reminders';
 
 function AccountSection({ user }: { user: UserDto }) {
   const { m } = useI18n();
@@ -129,6 +131,67 @@ function LearningSection({ settings }: { settings: UserSettings }) {
   );
 }
 
+function ReminderSection({ settings }: { settings: UserSettings }) {
+  const { m } = useI18n();
+  const [time, setTime] = useState(settings.reminderTime ?? '18:00');
+  const [denied, setDenied] = useState(false);
+  const update = useUpdateSettings();
+  const on = settings.reminderTime !== null;
+
+  const save = async (value: string | null) => {
+    setDenied(false);
+    if (value && isApp && !(await notificationsAllowed(true))) setDenied(true);
+    update.mutate({ reminderTime: value });
+  };
+
+  return (
+    <section className="panel space-y-4" aria-labelledby="reminder-title">
+      <div>
+        <h2 id="reminder-title" className="text-xl font-bold">
+          {m.app.reminder}
+        </h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          {m.app.reminderHint} {!isApp && m.app.reminderAppOnly}
+        </p>
+      </div>
+      <div role="radiogroup" aria-label={m.app.reminder} className="segmented">
+        <button type="button" role="radio" aria-checked={!on} onClick={() => void save(null)}>
+          {m.app.reminderOff}
+        </button>
+        <button type="button" role="radio" aria-checked={on} onClick={() => void save(time)}>
+          {m.app.reminderOn}
+        </button>
+      </div>
+      {on && (
+        <div className="flex items-center gap-3">
+          <label className="sr-only" htmlFor="reminder-time">
+            {m.app.reminderOn}
+          </label>
+          <input
+            id="reminder-time"
+            type="time"
+            className="field w-36 tabular-nums"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={
+              !/^\d{2}:\d{2}$/.test(time) || time === settings.reminderTime || update.isPending
+            }
+            onClick={() => void save(time)}
+          >
+            {m.account.save}
+          </button>
+        </div>
+      )}
+      {denied && <Notice tone="error">{m.app.reminderDenied}</Notice>}
+      {update.isError && <Notice tone="error">{errorMessage(m, update.error)}</Notice>}
+    </section>
+  );
+}
+
 function PasswordSection() {
   const { m } = useI18n();
   const [currentPassword, setCurrent] = useState('');
@@ -217,6 +280,7 @@ export function SettingsPage() {
         </section>
         <AccountSection user={user} />
         {settings.data && <LearningSection settings={settings.data} />}
+        {settings.data && <ReminderSection settings={settings.data} />}
         <AiSettings />
         <PasswordSection />
       </div>

@@ -117,6 +117,22 @@ describe('Startseite', () => {
   });
 });
 
+describe('Fälligkeiten der nächsten Tage (Erinnerungen)', () => {
+  it('zählt Fällige je Tag für 30 Tage, Überfällige inklusive', async () => {
+    const [a, b] = await seed();
+    await answer(a!, { answer: 'Freund' }); // stage 2, due in 5 days
+    const days = (await get('/overview/due-days')).json().days as Array<{
+      day: string;
+      count: number;
+    }>;
+    expect(days).toHaveLength(30);
+    expect(days[0]!.count).toBe(1); // bellum today
+    expect(days[4]!.count).toBe(1);
+    expect(days[5]!.count).toBe(2); // amicus again after 5 days
+    expect(b).toBeDefined();
+  });
+});
+
 describe('KI-Tageszusammenfassung', () => {
   const chats = () => mock.requests.filter((r) => r.url === '/v1/chat/completions');
 

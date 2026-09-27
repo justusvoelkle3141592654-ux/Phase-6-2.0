@@ -386,6 +386,28 @@ export const de = {
     noName: '(kein Name)',
     language: 'Sprache',
   },
+  app: {
+    serverTitle: 'Server verbinden',
+    serverIntro:
+      'Gib die Adresse deines Gero-Servers ein – im Heimnetz z. B. http://192.168.1.20:3000, über das Internet z. B. https://gero.example.org.',
+    serverUrl: 'Server-Adresse',
+    connect: 'Verbinden',
+    connecting: 'Wird verbunden …',
+    notGero: 'Unter dieser Adresse antwortet kein Gero-Server.',
+    unreachable:
+      'Server nicht erreichbar. Ist das Handy im selben Netz, stimmen Adresse, Port und http/https?',
+    server: 'Server: {url}',
+    changeServer: 'Ändern',
+    reminder: 'Erinnerung',
+    reminderHint: 'Die Android-App erinnert dich zu dieser Uhrzeit, wenn Vokabeln fällig sind.',
+    reminderOff: 'Aus',
+    reminderOn: 'Täglich um',
+    reminderAppOnly: 'Wirkt nur in der Android-App.',
+    reminderDenied:
+      'Benachrichtigungen sind für Gero nicht erlaubt. Erlaube sie in den Android-Einstellungen.',
+    notificationBody: '{n} Vokabeln sind fällig.',
+    notificationBodyOne: '1 Vokabel ist fällig.',
+  },
   common: {
     retry: 'Nochmal versuchen',
     loading: 'Lädt …',

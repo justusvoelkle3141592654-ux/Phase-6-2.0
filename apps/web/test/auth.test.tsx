@@ -38,6 +38,7 @@ describe('Anmeldung', () => {
     expect(calls.find((c) => c.key === 'POST /auth/login')?.body).toEqual({
       email: 'anna@example.org',
       password: 'geheim123',
+      client: 'web',
     });
   });
 

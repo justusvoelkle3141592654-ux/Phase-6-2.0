@@ -1,21 +1,27 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { useMe } from '../lib/auth';
 import { errorMessage } from '../lib/errors';
 import { AuthPage } from '../pages/AuthPage';
 import { SetupWizard } from '../pages/SetupWizard';
+import { ServerSetupPage } from '../pages/ServerSetupPage';
+import { getServerUrl, isApp } from '../lib/platform';
+import { useReminderSync } from '../lib/reminders';
 
 /** Shows the sign-in page until a user is signed in, then the setup until it is completed. */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { m, setLang } = useI18n();
   const me = useMe();
   const uiLanguage = me.data?.uiLanguage;
+  const [serverSetup, setServerSetup] = useState(isApp && !getServerUrl());
+  useReminderSync(Boolean(me.data?.setupCompleted));
 
   // The account's language wins over the one stored in this browser.
   useEffect(() => {
     if (uiLanguage) setLang(uiLanguage);
   }, [uiLanguage, setLang]);
 
+  if (serverSetup) return <ServerSetupPage onDone={() => setServerSetup(false)} />;
   if (me.isPending) {
     return (
       <div className="grid min-h-dvh place-items-center text-ink-soft" role="status">
@@ -41,7 +47,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if (!me.data) return <AuthPage />;
+  if (!me.data) return <AuthPage onChangeServer={isApp ? () => setServerSetup(true) : undefined} />;
   if (!me.data.setupCompleted) return <SetupWizard user={me.data} />;
   return <>{children}</>;
 }

@@ -42,3 +42,9 @@ export interface SummaryDto {
   /** True when the text is older than the latest answers (generation failed). */
   stale?: boolean;
 }
+
+/** Words that will be due on a day if nothing is learned until then. */
+export interface DueDayDto {
+  day: string;
+  count: number;
+}

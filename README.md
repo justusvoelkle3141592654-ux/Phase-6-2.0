@@ -195,12 +195,56 @@ mit ← und →).
 Ziel sind unter 100 ms bis zum ersten Token und 100–300 ms für die ganze Prüfung. Das hängt von
 Modell und Anbieter ab; die gemessenen Werte stehen in den Einstellungen.
 
+## Android-App
+
+Die Android-App ist dieselbe Oberfläche, verpackt mit Capacitor (`apps/web/android`). Sie spricht
+mit deinem Gero-Server; iOS gibt es nicht.
+
+### APK herunterladen (GitHub Actions)
+
+Bei jedem Push, der die Oberfläche ändert, baut der Workflow **Android-APK**
+(`.github/workflows/android.yml`) ein Debug-APK. Auf GitHub unter **Actions → Android-APK →
+letzter Lauf → Artifacts → `gero-android-debug`** herunterladen, entpacken und `app-debug.apk`
+auf dem Handy öffnen (Installation aus „unbekannten Quellen“ erlauben). Den Workflow kann man
+unter Actions auch von Hand starten („Run workflow“).
+
+### Erste Schritte in der App
+
+1. Server-Adresse eingeben:
+   - im Heimnetz z. B. `http://192.168.1.20:3000` (Klartext-HTTP ist in der App erlaubt),
+   - über das Internet z. B. `https://gero.example.org` (hinter einem Reverse-Proxy mit HTTPS).
+2. Anmelden oder registrieren (Registrierungscode wie im Browser). Die App bekommt einen Token,
+   der in den Capacitor Preferences gespeichert wird; Cookies werden nicht verwendet.
+3. Unter **Einstellungen → Erinnerung** eine Uhrzeit wählen. Die App plant lokale
+   Benachrichtigungen für die nächsten 30 Tage, an denen Vokabeln fällig sind, und plant sie bei
+   jedem Öffnen neu.
+
+„Foto aufnehmen“ öffnet direkt die Kamera, „Aus Galerie“ die Bildauswahl.
+
+### Selbst bauen mit Android Studio
+
+Voraussetzungen: Node.js 22.12+, JDK 21, Android Studio mit Android SDK (API 36).
+
+```bash
+npm install
+npm run android:sync          # Oberfläche bauen und nach apps/web/android kopieren
+npm run android:open -w @gero/web   # öffnet das Projekt in Android Studio
+```
+
+In Android Studio mit **Run ▶** auf ein angeschlossenes Handy oder einen Emulator installieren,
+oder über **Build → Build App Bundle(s) / APK(s) → Build APK(s)** ein APK erzeugen. Ohne Android
+Studio geht es auch auf der Kommandozeile: `cd apps/web/android && ./gradlew assembleDebug`
+(Ergebnis: `app/build/outputs/apk/debug/app-debug.apk`).
+
+Nach jeder Änderung an der Oberfläche erneut `npm run android:sync` ausführen.
+
 ## Projektstruktur
 
 ```
 apps/server       Fastify-Server: API, Datenbank (SQLite), Stufenlogik, KI-Anbieter
 apps/server/drizzle  Datenbank-Migrationen (werden beim Start automatisch ausgeführt)
-apps/web          React-Oberfläche (Vite), später auch Grundlage der Android-App
+apps/web          React-Oberfläche (Vite), zugleich Grundlage der Android-App
+apps/web/android  Android-Projekt (Capacitor)
 packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 ```
 
@@ -215,5 +259,5 @@ packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 - [x] 6. KI-Antwortprüfung: Zeitlimit mit lokalem Fallback und „Ich hatte recht“, Cache, Latenzstatistik, Vorwärmen
 - [x] 7. Hochladen und Erkennung: mehrere Fotos, Kamera/Galerie, Verkleinern, Vorschau mit Korrektur, Fotos bleiben beim Paket
 - [x] 8. Startseite: fällige Vokabeln, Stufenübersicht, Tageswerte, KI-Tageszusammenfassung
-- [ ] 9. Android-App (APK) mit Erinnerungen
+- [x] 9. Android-App (APK): Server-Adresse, Token-Anmeldung, Erinnerungen, GitHub-Actions-Build
 - [ ] 10. Betrieb (Docker, systemd, HTTPS)

@@ -1,4 +1,5 @@
 import type { ApiErrorCode } from '@gero/shared';
+import { getServerUrl, getToken, isApp } from './platform';
 
 export class ApiError extends Error {
   constructor(
@@ -11,10 +12,18 @@ export class ApiError extends Error {
   }
 }
 
-/** Raw request against the Gero API (path starting with "/api"). */
+/**
+ * Raw request against the Gero API (path starting with "/api"). The browser
+ * uses the session cookie; the Android app calls the configured server with
+ * its bearer token.
+ */
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   try {
-    return await fetch(path, { credentials: 'same-origin', ...init });
+    if (!isApp) return await fetch(path, { credentials: 'same-origin', ...init });
+    const headers = new Headers(init.headers);
+    const token = getToken();
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    return await fetch(`${getServerUrl() ?? ''}${path}`, { ...init, headers, credentials: 'omit' });
   } catch {
     throw new ApiError(0, 'network_error');
   }
