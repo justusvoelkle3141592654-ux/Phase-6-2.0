@@ -3,6 +3,7 @@ import path from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
+import fastifyMultipart from '@fastify/multipart';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import type { AppConfig } from './config';
@@ -16,6 +17,7 @@ import { settingsRoutes } from './routes/settings';
 import { packageRoutes } from './routes/packages';
 import { learnRoutes } from './routes/learn';
 import { aiRoutes } from './routes/ai';
+import { MAX_PHOTO_BYTES, MAX_PHOTOS, uploadRoutes } from './routes/uploads';
 import { AiService } from './ai/service';
 import { aiCheckFor } from './learn/ai-check';
 
@@ -66,6 +68,9 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
     global: false,
     errorResponseBuilder: (_request, context) => ({ statusCode: context.statusCode }),
   });
+  await app.register(fastifyMultipart, {
+    limits: { fileSize: MAX_PHOTO_BYTES, files: MAX_PHOTOS },
+  });
   await app.register(authPlugin, { db, corsOrigins: config.corsOrigins });
 
   await app.register(
@@ -83,6 +88,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
         },
       });
       await api.register(aiRoutes, { db, ai });
+      await api.register(uploadRoutes, { db, ai, dataDir: config.dataDir });
     },
     { prefix: '/api' },
   );

@@ -30,7 +30,7 @@ export function mockApi(handlers: Record<string, Handler>) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input).replace(/^\/api/, '');
     const key = `${init?.method ?? 'GET'} ${url}`;
-    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    const body = typeof init?.body === 'string' ? JSON.parse(init.body) : init?.body;
     calls.push({ key, body });
     const handler = handlers[key];
     const res = handler ? handler(body) : { status: 404, body: { error: 'not_found' } };

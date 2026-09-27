@@ -7,6 +7,7 @@ import { PackageDetailPage } from './pages/PackageDetailPage';
 import { PackagesPage } from './pages/PackagesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { UploadPage } from './pages/UploadPage';
+import { UploadReviewPage } from './pages/UploadReviewPage';
 
 export const routes = [
   {
@@ -19,6 +20,7 @@ export const routes = [
     children: [
       { index: true, element: <HomePage /> },
       { path: 'upload', element: <UploadPage /> },
+      { path: 'upload/:id', element: <UploadReviewPage /> },
       { path: 'packages', element: <PackagesPage /> },
       { path: 'packages/:id', element: <PackageDetailPage /> },
       { path: 'learn', element: <LearnPage /> },

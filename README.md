@@ -136,6 +136,22 @@ geladen; der Modellname kann auch eingetippt werden.
 - **Latenz:** Jeder KI-Aufruf wird gemessen (erstes Token, Gesamtzeit, Tokens/s). Median und
   langsamste Werte stehen in den Einstellungen.
 
+## Hochladen und Erkennung
+
+1. Unter **Hochladen** Fotos aufnehmen („Foto aufnehmen“) oder mehrere aus der Galerie wählen
+   (bis zu 20 auf einmal). Die Fotos werden vor dem Hochladen im Browser auf höchstens
+   2000 Pixel lange Kante verkleinert (JPEG).
+2. Der Server liest jedes Foto mit dem eingestellten **Bildmodell** (Einstellungen → KI →
+   Bilderkennung). Ergebnis je Eintrag: Wort, Zusatz (z. B. Stammformen, Genus), Übersetzung(en),
+   Sprache. Die Antwort wird mit zod geprüft; bei falschem Format gibt es genau einen zweiten Versuch.
+3. In der **Vorschau** steht das Foto neben den Einträgen. Einträge korrigieren, löschen,
+   ergänzen, dann als neues Paket oder in ein bestehendes speichern. Die Vokabeln sind danach
+   inaktiv.
+4. Die Fotos werden gespeichert (`data/uploads/<Account>/`) und sind beim Paket einsehbar.
+   Nicht gespeicherte Uploads erscheinen unter „Noch nicht gespeichert“.
+
+Komplett lokal geht das mit Ollama und einem Bildmodell (Anbieter „Ollama (lokal)“).
+
 ## Lernen und Stufen
 
 - 6 Stufen. Aktivierte Vokabeln starten auf Stufe 1 und sind sofort fällig.
@@ -188,7 +204,7 @@ packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 - [x] 4. Stufensystem und Lernen (ohne KI): Karteikarten, Tippen optional, Umdrehen, Wischen, lokale Prüfung, Wiederholung
 - [x] 5. KI-Anbieter und Einrichtungsassistent: Pollinations, Anthropic, OpenAI, OpenRouter, Ollama (lokal/online), eigener Server
 - [x] 6. KI-Antwortprüfung: Zeitlimit mit lokalem Fallback und „Ich hatte recht“, Cache, Latenzstatistik, Vorwärmen
-- [ ] 7. Hochladen und Erkennung
+- [x] 7. Hochladen und Erkennung: mehrere Fotos, Kamera/Galerie, Verkleinern, Vorschau mit Korrektur, Fotos bleiben beim Paket
 - [ ] 8. Startseite mit Tageszusammenfassung
 - [ ] 9. Android-App (APK) mit Erinnerungen
 - [ ] 10. Betrieb (Docker, systemd, HTTPS)

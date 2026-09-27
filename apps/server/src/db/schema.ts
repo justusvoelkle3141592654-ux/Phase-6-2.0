@@ -1,3 +1,4 @@
+import type { RecognizedEntry } from '@gero/shared';
 import { sql } from 'drizzle-orm';
 import {
   index,
@@ -219,9 +220,53 @@ export const latencySamples = sqliteTable(
   (t) => [index('latency_user_task_idx').on(t.userId, t.task)],
 );
 
+/** One upload of one or more notebook photos. */
+export const uploadJobs = sqliteTable(
+  'upload_jobs',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Package the words were saved into; null while not saved. */
+    packageId: integer('package_id').references(() => packages.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('upload_jobs_user_idx').on(t.userId)],
+);
+
+/** One photo with its recognition result. The photo file is kept. */
+export const uploadPages = sqliteTable(
+  'upload_pages',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    jobId: integer('job_id')
+      .notNull()
+      .references(() => uploadJobs.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** File name inside <DATA_DIR>/uploads/<userId>/. */
+    fileName: text('file_name').notNull(),
+    mediaType: text('media_type').notNull(),
+    status: text('status', { enum: ['pending', 'processing', 'done', 'failed'] })
+      .notNull()
+      .default('pending'),
+    error: text('error'),
+    errorMessage: text('error_message'),
+    entries: text('entries', { mode: 'json' })
+      .$type<RecognizedEntry[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    createdAt: createdAt(),
+  },
+  (t) => [index('upload_pages_job_idx').on(t.jobId)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Package = typeof packages.$inferSelect;
 export type Vocab = typeof vocab.$inferSelect;
 export type Attempt = typeof attempts.$inferSelect;
 export type ProviderConfig = typeof providerConfigs.$inferSelect;
+export type UploadPage = typeof uploadPages.$inferSelect;
