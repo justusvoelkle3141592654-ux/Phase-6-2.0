@@ -1,0 +1,48 @@
+# Gero mit Docker Compose.
+#   docker compose up -d                       – nur Gero auf Port 3000
+#   docker compose --profile ollama up -d      – zusätzlich Ollama (lokale KI)
+#   docker compose --profile https up -d       – zusätzlich Caddy mit HTTPS (deploy/Caddyfile anpassen)
+# Einstellungen stehen in .env (Vorlage: .env.example).
+
+services:
+  gero:
+    build: .
+    image: gero
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      REGISTRATION_CODE: ${REGISTRATION_CODE:-}
+      APP_SECRET: ${APP_SECRET:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - gero-data:/data
+
+  # Lokale KI. In Gero als „Eigener Server“ mit Adresse http://ollama:11434 und Format „Ollama“ eintragen.
+  ollama:
+    image: ollama/ollama
+    profiles: ['ollama']
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+
+  # HTTPS über das Internet (automatische Zertifikate von Let's Encrypt).
+  caddy:
+    image: caddy:2
+    profiles: ['https']
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  gero-data:
+  ollama:
+  caddy-data:
+  caddy-config:

@@ -1,29 +1,111 @@
 # Gero – KI-gestützter Vokabeltrainer
 
-Selbst gehosteter Vokabeltrainer mit Karteikarten-Prinzip (6 Stufen bis ins Langzeitgedächtnis).
-Vokabeln werden per Foto aus dem Vokabelheft erkannt, Antworten prüft ein schnelles KI-Modell.
+Selbst gehosteter Vokabeltrainer für den Browser und als Android-App. Fotos aus dem
+handgeschriebenen Vokabelheft werden per KI in Vokabelpakete umgewandelt und nach dem
+Karteikasten-Prinzip (6 Stufen) als umdrehbare Karteikarten abgefragt. Ein schnelles KI-Modell
+prüft getippte Antworten. Mehrere Accounts auf einem Server, die Daten sind getrennt.
 
-> **Stand:** Das Projekt wird in Schritten aufgebaut. Siehe [Umsetzungsstand](#umsetzungsstand).
-
-## Voraussetzungen
-
-- Node.js **22.12 oder neuer** (empfohlen: aktuelle LTS-Version)
-- npm (kommt mit Node.js)
-
-## Installation
+## Schnellstart mit Docker
 
 ```bash
-git clone https://github.com/justusvoelkle3141592654-ux/Gero.git
-cd Gero
-npm install
-cp .env.example .env   # optional, Standardwerte funktionieren
+git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git gero
+cd gero
+docker compose up -d
+docker compose logs gero | grep Registrierungscode
 ```
 
-## Starten
+Dann <http://localhost:3000> öffnen (im Heimnetz `http://<IP-des-Servers>:3000`), mit dem
+Registrierungscode einen Account anlegen und dem Einrichtungsassistenten folgen.
 
-### Entwicklung
+## Betrieb
+
+### Docker Compose
+
+`docker-compose.yml` startet Gero auf Port 3000. Daten (Datenbank, Fotos, `secrets.json`) liegen
+im Volume `gero-data`. Einstellungen kommen aus einer `.env` neben der Compose-Datei
+(Vorlage `.env.example`, siehe [Konfiguration](#konfiguration)).
 
 ```bash
+docker compose up -d                        # Gero
+docker compose --profile ollama up -d       # zusätzlich Ollama für lokale KI
+docker compose --profile https up -d        # zusätzlich Caddy mit HTTPS
+```
+
+- **Ollama im Compose-Netz:** Modelle laden mit
+  `docker compose exec ollama ollama pull <modell>`, in Gero unter Einstellungen → KI einen
+  Anbieter „Eigener Server“ mit Adresse `http://ollama:11434` und Format „Ollama“ anlegen.
+- **HTTPS:** In `deploy/Caddyfile` die eigene Domain eintragen (DNS muss auf den Server zeigen,
+  Ports 80 und 443 erreichbar), in `.env` `TRUST_PROXY=true` setzen. Caddy holt die Zertifikate
+  automatisch.
+
+### Direkt mit Node.js
+
+Voraussetzungen: Node.js **22.12 oder neuer** mit npm. Für die nativen Module (SQLite, Argon2)
+werden normalerweise fertige Binärdateien geladen; passt keine, braucht npm Python, make und einen
+C++-Compiler.
+
+```bash
+git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git gero
+cd gero
+npm ci
+npm run build
+cp .env.example .env   # optional, die Standardwerte funktionieren
+npm start
+```
+
+Der Server liefert Oberfläche und API gemeinsam auf <http://localhost:3000> aus und liest die
+`.env` im Projektordner selbst.
+
+### Als systemd-Dienst
+
+Vorlage: `deploy/gero.service` (erwartet das Projekt unter `/opt/gero` und einen
+Systembenutzer `gero`).
+
+```bash
+sudo useradd --system --home /opt/gero --shell /usr/sbin/nologin gero
+sudo git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git /opt/gero
+cd /opt/gero && sudo npm ci && sudo npm run build
+sudo mkdir -p /opt/gero/data && sudo chown -R gero:gero /opt/gero/data
+sudo cp deploy/gero.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now gero
+journalctl -u gero | grep Registrierungscode
+```
+
+### HTTPS über einen Reverse-Proxy
+
+Für den Zugriff aus dem Internet gehört ein Reverse-Proxy mit HTTPS davor, z. B. Caddy:
+
+```
+gero.example.org {
+	reverse_proxy localhost:3000
+}
+```
+
+Dazu `TRUST_PROXY=true` setzen, damit Gero HTTPS erkennt (das Sitzungs-Cookie wird dann mit
+`Secure` gesetzt). Im Heimnetz geht es auch ohne HTTPS; die Android-App erlaubt dort Klartext-HTTP.
+
+### Aktualisieren
+
+```bash
+git pull
+docker compose up -d --build                 # Docker
+npm ci && npm run build && sudo systemctl restart gero   # direkte Installation
+```
+
+Datenbank-Migrationen laufen beim Start automatisch.
+
+### Sichern
+
+Alles Wichtige liegt im Datenordner (`data/` bzw. Volume `gero-data`): `gero.db` (Datenbank),
+`uploads/` (Fotos) und `secrets.json` (Registrierungscode und Hauptschlüssel). Für eine konsistente
+Sicherung den Dienst kurz stoppen oder mit `sqlite3 data/gero.db ".backup sicherung.db"` sichern.
+**Ohne `secrets.json` (bzw. `APP_SECRET`) lassen sich gespeicherte API-Schlüssel nicht mehr
+entschlüsseln.**
+
+## Entwicklung
+
+```bash
+npm install
 npm run dev
 ```
 
@@ -32,15 +114,6 @@ npm run dev
 
 Die Entwicklungs-Oberfläche leitet alle `/api`-Aufrufe an den Server weiter. Sie ist auch vom
 Handy im selben WLAN erreichbar: `http://<IP-des-Rechners>:5173`.
-
-### Produktion
-
-```bash
-npm run build
-npm start
-```
-
-Der Server liefert dann Oberfläche und API gemeinsam auf <http://localhost:3000> aus.
 
 ## Tests
 
@@ -80,7 +153,7 @@ E-Mails verschickt.
 - Ist `REGISTRATION_CODE` nicht gesetzt, erzeugt der Server beim ersten Start einen Code
   (z. B. `U4JM-E3E5-KVHH`), speichert ihn in `data/secrets.json` und schreibt ihn bei jedem Start
   ins Log (`Registrierungscode: …`). Groß-/Kleinschreibung spielt bei der Eingabe keine Rolle.
-- Dasselbe gilt für `APP_SECRET`. Mit diesem Schlüssel werden später die API-Schlüssel der
+- Dasselbe gilt für `APP_SECRET`. Mit diesem Schlüssel werden die API-Schlüssel der
   KI-Anbieter verschlüsselt. **`data/secrets.json` sichern und nicht verlieren**, sonst müssen
   alle API-Schlüssel neu eingegeben werden. Die Datei ist nur für den Besitzer lesbar (Rechte 600).
 - Anmeldung im Browser über ein Cookie (`gero_session`, HttpOnly). Die Android-App bekommt
@@ -245,7 +318,8 @@ apps/server       Fastify-Server: API, Datenbank (SQLite), Stufenlogik, KI-Anbie
 apps/server/drizzle  Datenbank-Migrationen (werden beim Start automatisch ausgeführt)
 apps/web          React-Oberfläche (Vite), zugleich Grundlage der Android-App
 apps/web/android  Android-Projekt (Capacitor)
-packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
+packages/shared   Gemeinsame Typen, Konstanten, zod-Schemas, Stufen- und Prüflogik
+deploy            systemd-Dienst und Caddyfile
 ```
 
 ## Umsetzungsstand
@@ -260,4 +334,4 @@ packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 - [x] 7. Hochladen und Erkennung: mehrere Fotos, Kamera/Galerie, Verkleinern, Vorschau mit Korrektur, Fotos bleiben beim Paket
 - [x] 8. Startseite: fällige Vokabeln, Stufenübersicht, Tageswerte, KI-Tageszusammenfassung
 - [x] 9. Android-App (APK): Server-Adresse, Token-Anmeldung, Erinnerungen, GitHub-Actions-Build
-- [ ] 10. Betrieb (Docker, systemd, HTTPS)
+- [x] 10. Betrieb: Dockerfile, Docker Compose (Ollama und Caddy optional), systemd, HTTPS, README
