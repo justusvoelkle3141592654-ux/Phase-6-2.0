@@ -1,0 +1,126 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/atkinson-hyperlegible-next';
+@import '@fontsource-variable/alegreya';
+@import '@fontsource-variable/atkinson-hyperlegible-mono';
+
+/*
+ * Design tokens.
+ * Paper, ink and highlighter: the materials of a vocabulary notebook and an
+ * index-card box. Stage colours run from fresh, light ink (stage 1) to deep,
+ * dried ink (stage 6) – the further right, the longer the word has stuck.
+ */
+@theme {
+  --font-sans: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
+  --font-word: 'Alegreya Variable', Georgia, serif;
+  --font-mono: 'Atkinson Hyperlegible Mono Variable', ui-monospace, monospace;
+
+  --color-paper: #f2f5fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #e8edf7;
+  --color-ink: #1b2233;
+  --color-ink-soft: #5a6479;
+  --color-rule: #d6deed;
+  --color-tinte: #3e54d3;
+  --color-tinte-strong: #2c3fa8;
+  --color-tinte-soft: #e3e8fb;
+  --color-marker: #ffd23f;
+  --color-marker-soft: #fff4c7;
+  --color-richtig: #1f9d63;
+  --color-richtig-soft: #dcf3e7;
+  --color-falsch: #e0474c;
+  --color-falsch-soft: #fbe2e3;
+  --color-card-line: #b9c8ec;
+  --color-card-head: #e8797d;
+
+  --color-stufe-1: #c6d2fb;
+  --color-stufe-2: #9fb2f6;
+  --color-stufe-3: #7a93ee;
+  --color-stufe-4: #5773e2;
+  --color-stufe-5: #3e54d3;
+  --color-stufe-6: #243597;
+
+  --radius-card: 1.25rem;
+  --shadow-card: 0 1px 0 rgb(27 34 51 / 0.06), 0 8px 24px -8px rgb(27 34 51 / 0.18);
+  --shadow-lift: 0 2px 0 rgb(27 34 51 / 0.08), 0 18px 40px -12px rgb(27 34 51 / 0.3);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --color-paper: #11151f;
+      --color-surface: #1a2030;
+      --color-surface-2: #232b3f;
+      --color-ink: #e9edf6;
+      --color-ink-soft: #9aa4ba;
+      --color-rule: #2e374d;
+      --color-tinte: #7f93f5;
+      --color-tinte-strong: #a3b2ff;
+      --color-tinte-soft: #262f52;
+      --color-marker: #ffd23f;
+      --color-marker-soft: #3a3319;
+      --color-richtig: #3cc487;
+      --color-richtig-soft: #173828;
+      --color-falsch: #ff6b6f;
+      --color-falsch-soft: #3d1c1f;
+      --color-card-line: #33406a;
+      --color-card-head: #b85a5e;
+      --shadow-card: 0 1px 0 rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.6);
+      --shadow-lift: 0 2px 0 rgb(0 0 0 / 0.3), 0 18px 40px -12px rgb(0 0 0 / 0.7);
+    }
+  }
+
+  html,
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-tinte);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold transition-[background,transform,box-shadow] duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-tinte text-white shadow-[0_3px_0_var(--color-tinte-strong)] hover:bg-tinte-strong;
+  }
+  .btn-secondary {
+    @apply bg-surface text-ink ring-1 ring-rule hover:bg-surface-2;
+  }
+  .btn-ghost {
+    @apply text-ink-soft hover:bg-surface-2 hover:text-ink;
+  }
+  .btn-danger {
+    @apply bg-falsch text-white hover:brightness-95;
+  }
+  .field {
+    @apply w-full rounded-xl bg-surface px-3.5 py-2.5 text-ink ring-1 ring-rule outline-none placeholder:text-ink-soft/70 focus:ring-2 focus:ring-tinte;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-semibold text-ink-soft;
+  }
+  .panel {
+    @apply rounded-[var(--radius-card)] bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6;
+  }
+}
