@@ -121,7 +121,7 @@ packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 - [x] 1. Grundgerüst: Server, Oberfläche mit 5 Tabs (Desktop + Handy), Deutsch/Englisch, Tests
 - [x] 2. Accounts: Registrierung mit Code, Anmelden, Abmelden, Passwort ändern,
       Einrichtungsassistent (10 Schritte), schlichtes Schwarz-Weiß-Design
-- [ ] 3. Vokabelpakete
+- [x] 3. Vokabelpakete: anlegen, bearbeiten, löschen, Sprache (Vorlagen oder frei), Richtung, Aktivieren
 - [ ] 4. Stufensystem und Lernen (ohne KI)
 - [ ] 5. KI-Anbieter und Einrichtungsassistent
 - [ ] 6. KI-Antwortprüfung

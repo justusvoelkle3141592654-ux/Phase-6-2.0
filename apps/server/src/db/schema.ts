@@ -49,5 +49,51 @@ export const userSettings = sqliteTable('user_settings', {
   reminderTime: text('reminder_time'),
 });
 
+export const packages = sqliteTable(
+  'packages',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    /** Preset code (en, fr, la) or free text. */
+    language: text('language').notNull(),
+    direction: text('direction', { enum: ['foreign_native', 'native_foreign', 'random'] })
+      .notNull()
+      .default('foreign_native'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('packages_user_idx').on(t.userId)],
+);
+
+export const vocab = sqliteTable(
+  'vocab',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    packageId: integer('package_id')
+      .notNull()
+      .references(() => packages.id, { onDelete: 'cascade' }),
+    word: text('word').notNull(),
+    extra: text('extra').notNull().default(''),
+    translation: text('translation').notNull(),
+    active: integer('active', { mode: 'boolean' }).notNull().default(false),
+    stage: integer('stage').notNull().default(1),
+    /** YYYY-MM-DD in the account's time zone; null while inactive or learned. */
+    dueDate: text('due_date'),
+    learned: integer('learned', { mode: 'boolean' }).notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('vocab_package_idx').on(t.packageId),
+    index('vocab_user_due_idx').on(t.userId, t.dueDate),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
+export type Package = typeof packages.$inferSelect;
+export type Vocab = typeof vocab.$inferSelect;

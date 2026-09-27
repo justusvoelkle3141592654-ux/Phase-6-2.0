@@ -3,6 +3,7 @@ import { AppShell } from './components/AppShell';
 import { AuthGate } from './components/AuthGate';
 import { HomePage } from './pages/HomePage';
 import { LearnPage } from './pages/LearnPage';
+import { PackageDetailPage } from './pages/PackageDetailPage';
 import { PackagesPage } from './pages/PackagesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { UploadPage } from './pages/UploadPage';
@@ -19,6 +20,7 @@ export const routes = [
       { index: true, element: <HomePage /> },
       { path: 'upload', element: <UploadPage /> },
       { path: 'packages', element: <PackagesPage /> },
+      { path: 'packages/:id', element: <PackageDetailPage /> },
       { path: 'learn', element: <LearnPage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
