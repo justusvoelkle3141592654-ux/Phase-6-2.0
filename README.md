@@ -17,6 +17,9 @@ docker compose logs gero | grep Registrierungscode
 Dann <http://localhost:3000> öffnen (im Heimnetz `http://<IP-des-Servers>:3000`), mit dem
 Registrierungscode einen Account anlegen und dem Einrichtungsassistenten folgen.
 
+Die **Android-App** liegt fertig unter [`release/`](release/) bzw. bei den GitHub-Releases
+(siehe [Android-App](#android-app)).
+
 ## Betrieb
 
 ### Docker Compose
@@ -273,13 +276,19 @@ Modell und Anbieter ab; die gemessenen Werte stehen in den Einstellungen.
 Die Android-App ist dieselbe Oberfläche, verpackt mit Capacitor (`apps/web/android`). Sie spricht
 mit deinem Gero-Server; iOS gibt es nicht.
 
-### APK herunterladen (GitHub Actions)
+### APK herunterladen
 
-Bei jedem Push, der die Oberfläche ändert, baut der Workflow **Android-APK**
-(`.github/workflows/android.yml`) ein Debug-APK. Auf GitHub unter **Actions → Android-APK →
-letzter Lauf → Artifacts → `gero-android-debug`** herunterladen, entpacken und `app-debug.apk`
-auf dem Handy öffnen (Installation aus „unbekannten Quellen“ erlauben). Den Workflow kann man
-unter Actions auch von Hand starten („Run workflow“).
+- **Fertiges APK:** im Repository unter [`release/`](release/) (z. B. `release/Gero-1.0.0.apk`) und
+  auf GitHub unter **Releases** (Tag `v1.0.0`). Herunterladen, auf dem Handy öffnen und die
+  Installation aus „unbekannten Quellen“ erlauben.
+- **Automatisch gebaut:** Bei jedem Push, der die Oberfläche ändert, baut der Workflow
+  **Android-APK** (`.github/workflows/android.yml`) ein signiertes APK (Actions → Android-APK →
+  Lauf → Artifacts). Von Hand gestartet („Run workflow“ mit _publish_) legt er das APK zusätzlich
+  unter `release/` ab und aktualisiert das Release.
+- **Updates:** Alle APKs sind mit demselben Schlüssel signiert (`apps/web/android/app/gero-release.keystore`),
+  deshalb installiert sich eine neuere Version über die alte, die Daten bleiben erhalten. Der
+  Schlüssel liegt im Repository – für den privaten Gebrauch in Ordnung, für eine
+  Veröffentlichung im Play Store einen eigenen, geheimen Schlüssel verwenden.
 
 ### Erste Schritte in der App
 
@@ -307,7 +316,8 @@ npm run android:open -w @gero/web   # öffnet das Projekt in Android Studio
 In Android Studio mit **Run ▶** auf ein angeschlossenes Handy oder einen Emulator installieren,
 oder über **Build → Build App Bundle(s) / APK(s) → Build APK(s)** ein APK erzeugen. Ohne Android
 Studio geht es auch auf der Kommandozeile: `cd apps/web/android && ./gradlew assembleDebug`
-(Ergebnis: `app/build/outputs/apk/debug/app-debug.apk`).
+(Ergebnis: `app/build/outputs/apk/debug/app-debug.apk`) bzw. `./gradlew assembleRelease` für das
+signierte Release-APK (`app/build/outputs/apk/release/app-release.apk`).
 
 Nach jeder Änderung an der Oberfläche erneut `npm run android:sync` ausführen.
 

@@ -8,7 +8,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +16,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Fixed signing key so a newer APK installs over an older one (updates keep the data).
+    // The key is part of the repository: fine for private use, not for publishing in a store.
+    signingConfigs {
+        gero {
+            storeFile file('gero-release.keystore')
+            storePassword 'gero-app-key'
+            keyAlias 'gero'
+            keyPassword 'gero-app-key'
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.gero
+        }
         release {
+            signingConfig signingConfigs.gero
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
