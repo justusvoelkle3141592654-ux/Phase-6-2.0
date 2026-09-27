@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ChevronLeft, Pencil, Trash2 } from 'lucide-react';
+import { ChevronLeft, GraduationCap, Pencil, Trash2 } from 'lucide-react';
 import type { PackageDto, VocabDto } from '@gero/shared';
 import { Notice } from '../components/Notice';
 import { PackageForm } from '../components/PackageForm';
@@ -225,7 +225,13 @@ function PackageHeader({ pkg }: { pkg: PackageDto }) {
             ` · ${fill(m.packages.learnedCount, { n: pkg.counts.learned })}`}
         </p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
+        {pkg.counts.due > 0 && (
+          <Link to={`/learn?package=${pkg.id}`} className="btn btn-primary">
+            <GraduationCap className="size-4.5" aria-hidden="true" />
+            {m.learn.start} ({pkg.counts.due})
+          </Link>
+        )}
         <button type="button" className="btn btn-secondary" onClick={() => setEditing(true)}>
           <Pencil className="size-4" aria-hidden="true" />
           {m.packages.edit}

@@ -107,6 +107,30 @@ Die Schritte 4–7 zeigen vorerst nur die Voreinstellung. Anbieterwahl, „Verbi
 und die Auswahl des Bildmodells kommen mit Schritt 5 des Umsetzungsplans. Alle Werte lassen sich
 später in den Einstellungen ändern.
 
+## Lernen und Stufen
+
+- 6 Stufen. Aktivierte Vokabeln starten auf Stufe 1 und sind sofort fällig.
+- Richtig: eine Stufe höher, fällig nach dem Intervall der neuen Stufe (Standard 5 / 10 / 20 / 40 / 80 Tage).
+  Richtig auf Stufe 6: gelernt, wird nicht mehr abgefragt.
+- Falsch: zurück auf Stufe 1 (oder eine Stufe zurück, einstellbar). Die Vokabel ist danach sofort
+  wieder fällig und kommt am Ende derselben Sitzung noch einmal dran.
+- „Heute“ richtet sich nach der Zeitzone des Accounts.
+
+**Karteikarten:** Antwort eintippen und mit Enter prüfen lassen, oder die Karte antippen, umdrehen
+und selbst bewerten: nach rechts wischen = gewusst, nach links = nicht gewusst (am Computer auch
+mit ← und →).
+
+**Antwortprüfung:**
+
+1. Groß-/Kleinschreibung, Leerzeichen, Satzzeichen am Rand und Unicode-Form spielen keine Rolle.
+   Alternativen in der Lösung (getrennt mit `,` `;` `/`) zählen einzeln, Teile in Klammern sind optional.
+2. Exakter Treffer → richtig.
+3. Kleiner Tippfehler → richtig mit Hinweis. Schwellen (Damerau-Levenshtein): bis 4 Zeichen exakt,
+   5–8 Zeichen 1 Fehler, ab 9 Zeichen 2 Fehler.
+4. Leere Antwort → falsch.
+5. Alles andere entscheidet die KI. Ohne KI-Urteil zählt es als falsch, dann gibt es den Button
+   „Ich hatte recht“. So korrigierte Antworten werden für diese Vokabel gemerkt.
+
 ## Projektstruktur
 
 ```
@@ -122,7 +146,7 @@ packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 - [x] 2. Accounts: Registrierung mit Code, Anmelden, Abmelden, Passwort ändern,
       Einrichtungsassistent (10 Schritte), schlichtes Schwarz-Weiß-Design
 - [x] 3. Vokabelpakete: anlegen, bearbeiten, löschen, Sprache (Vorlagen oder frei), Richtung, Aktivieren
-- [ ] 4. Stufensystem und Lernen (ohne KI)
+- [x] 4. Stufensystem und Lernen (ohne KI): Karteikarten, Tippen optional, Umdrehen, Wischen, lokale Prüfung, Wiederholung
 - [ ] 5. KI-Anbieter und Einrichtungsassistent
 - [ ] 6. KI-Antwortprüfung
 - [ ] 7. Hochladen und Erkennung

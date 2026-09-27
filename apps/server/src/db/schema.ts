@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 const createdAt = () =>
   integer('created_at', { mode: 'timestamp_ms' })
@@ -93,7 +93,60 @@ export const vocab = sqliteTable(
   ],
 );
 
+const CARD_DIRECTIONS = ['foreign_native', 'native_foreign'] as const;
+
+/** Every answer, for the daily summary and statistics. */
+export const attempts = sqliteTable(
+  'attempts',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    vocabId: integer('vocab_id')
+      .notNull()
+      .references(() => vocab.id, { onDelete: 'cascade' }),
+    direction: text('direction', { enum: CARD_DIRECTIONS }).notNull(),
+    /** Typed answer; null for self-assessment without typing. */
+    answer: text('answer'),
+    correct: integer('correct', { mode: 'boolean' }).notNull(),
+    decidedBy: text('decided_by', {
+      enum: ['exact', 'typo', 'ai', 'local', 'correction', 'self'],
+    }).notNull(),
+    msToFirstKey: integer('ms_to_first_key'),
+    msTotal: integer('ms_total'),
+    stageBefore: integer('stage_before').notNull(),
+    stageAfter: integer('stage_after').notNull(),
+    repeat: integer('repeat', { mode: 'boolean' }).notNull().default(false),
+    /** Calendar day in the account's time zone, for "today" statistics. */
+    day: text('day').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('attempts_user_day_idx').on(t.userId, t.day),
+    index('attempts_vocab_idx').on(t.vocabId),
+  ],
+);
+
+/** Cached AI verdicts and answers accepted via "I was right", per word and normalized answer. */
+export const acceptedAnswers = sqliteTable(
+  'accepted_answers',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    vocabId: integer('vocab_id')
+      .notNull()
+      .references(() => vocab.id, { onDelete: 'cascade' }),
+    direction: text('direction', { enum: CARD_DIRECTIONS }).notNull(),
+    answer: text('answer').notNull(),
+    verdict: text('verdict', { enum: ['correct', 'typo', 'wrong'] }).notNull(),
+    source: text('source', { enum: ['ai', 'correction'] }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('accepted_unique').on(t.vocabId, t.direction, t.answer)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Package = typeof packages.$inferSelect;
 export type Vocab = typeof vocab.$inferSelect;
+export type Attempt = typeof attempts.$inferSelect;
