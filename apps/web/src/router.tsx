@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router';
 import { AppShell } from './components/AppShell';
+import { AuthGate } from './components/AuthGate';
 import { HomePage } from './pages/HomePage';
 import { LearnPage } from './pages/LearnPage';
 import { PackagesPage } from './pages/PackagesPage';
@@ -9,7 +10,11 @@ import { UploadPage } from './pages/UploadPage';
 export const routes = [
   {
     path: '/',
-    element: <AppShell />,
+    element: (
+      <AuthGate>
+        <AppShell />
+      </AuthGate>
+    ),
     children: [
       { index: true, element: <HomePage /> },
       { path: 'upload', element: <UploadPage /> },

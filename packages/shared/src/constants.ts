@@ -7,3 +7,9 @@ export type UiLanguage = (typeof UI_LANGUAGES)[number];
 
 /** Number of learning stages until a vocabulary item counts as learned. */
 export const STAGE_COUNT = 6;
+
+/** Name of the browser session cookie. */
+export const SESSION_COOKIE = 'gero_session';
+
+/** Sessions expire after this many days without use. */
+export const SESSION_DAYS = 90;

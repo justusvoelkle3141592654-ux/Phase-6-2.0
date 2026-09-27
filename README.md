@@ -49,24 +49,50 @@ npm test          # alle Tests (Server, Web, Shared)
 npm run typecheck # TypeScript-Prüfung aller Pakete
 ```
 
+Nach einer Änderung an `apps/server/src/db/schema.ts` eine neue Migration erzeugen:
+
+```bash
+npm run db:generate -w @gero/server
+```
+
 ## Konfiguration
 
 Alle Einstellungen laufen über Umgebungsvariablen oder eine `.env`-Datei im Projektordner
 (Vorlage: `.env.example`).
 
-| Variable       | Standard  | Bedeutung                                                            |
-| -------------- | --------- | -------------------------------------------------------------------- |
-| `PORT`         | `3000`    | Port des Servers                                                     |
-| `HOST`         | `0.0.0.0` | Netzwerkadresse, auf der der Server lauscht                          |
-| `DATA_DIR`     | `data`    | Ordner für Datenbank, Fotos und erzeugte Schlüssel                   |
-| `TRUST_PROXY`  | `false`   | `true`, wenn ein Reverse-Proxy davor HTTPS übernimmt                 |
-| `CORS_ORIGINS` | –         | Zusätzlich erlaubte Origins, kommagetrennt (Android-App ist erlaubt) |
-| `LOG_LEVEL`    | `info`    | `fatal`, `error`, `warn`, `info`, `debug`, `trace` oder `silent`     |
+| Variable            | Standard     | Bedeutung                                                            |
+| ------------------- | ------------ | -------------------------------------------------------------------- |
+| `PORT`              | `3000`       | Port des Servers                                                     |
+| `HOST`              | `0.0.0.0`    | Netzwerkadresse, auf der der Server lauscht                          |
+| `DATA_DIR`          | `data`       | Ordner für Datenbank, Fotos und erzeugte Schlüssel                   |
+| `TRUST_PROXY`       | `false`      | `true`, wenn ein Reverse-Proxy davor HTTPS übernimmt                 |
+| `CORS_ORIGINS`      | –            | Zusätzlich erlaubte Origins, kommagetrennt (Android-App ist erlaubt) |
+| `LOG_LEVEL`         | `info`       | `fatal`, `error`, `warn`, `info`, `debug`, `trace` oder `silent`     |
+| `REGISTRATION_CODE` | wird erzeugt | Code, den man zum Registrieren braucht (siehe unten)                 |
+| `APP_SECRET`        | wird erzeugt | Hauptschlüssel für die Verschlüsselung gespeicherter API-Schlüssel   |
+
+## Accounts
+
+Jede Person legt sich selbst einen Account an (E-Mail + Passwort). Damit sich nicht jeder
+registrieren kann, braucht man dafür den **Registrierungscode** des Servers. Es werden keine
+E-Mails verschickt.
+
+- Ist `REGISTRATION_CODE` nicht gesetzt, erzeugt der Server beim ersten Start einen Code
+  (z. B. `U4JM-E3E5-KVHH`), speichert ihn in `data/secrets.json` und schreibt ihn bei jedem Start
+  ins Log (`Registrierungscode: …`). Groß-/Kleinschreibung spielt bei der Eingabe keine Rolle.
+- Dasselbe gilt für `APP_SECRET`. Mit diesem Schlüssel werden später die API-Schlüssel der
+  KI-Anbieter verschlüsselt. **`data/secrets.json` sichern und nicht verlieren**, sonst müssen
+  alle API-Schlüssel neu eingegeben werden. Die Datei ist nur für den Besitzer lesbar (Rechte 600).
+- Anmeldung im Browser über ein Cookie (`gero_session`, HttpOnly). Die Android-App bekommt
+  stattdessen einen Token. Sitzungen laufen nach 90 Tagen ohne Nutzung ab.
+- Anmelden, Registrieren und Passwort ändern sind auf 10 Versuche pro Minute begrenzt.
+- Wer das Passwort ändert, wird auf allen anderen Geräten abgemeldet.
 
 ## Projektstruktur
 
 ```
-apps/server       Fastify-Server: API, Datenbank, Stufenlogik, KI-Anbieter
+apps/server       Fastify-Server: API, Datenbank (SQLite), Stufenlogik, KI-Anbieter
+apps/server/drizzle  Datenbank-Migrationen (werden beim Start automatisch ausgeführt)
 apps/web          React-Oberfläche (Vite), später auch Grundlage der Android-App
 packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 ```
@@ -74,7 +100,7 @@ packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
 ## Umsetzungsstand
 
 - [x] 1. Grundgerüst: Server, Oberfläche mit 5 Tabs (Desktop + Handy), Deutsch/Englisch, Tests
-- [ ] 2. Accounts
+- [x] 2. Accounts: Registrierung mit Code, Anmelden, Abmelden, Passwort ändern
 - [ ] 3. Vokabelpakete
 - [ ] 4. Stufensystem und Lernen (ohne KI)
 - [ ] 5. KI-Anbieter und Einrichtungsassistent
