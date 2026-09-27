@@ -15,6 +15,8 @@ import { healthRoutes } from './routes/health';
 import { settingsRoutes } from './routes/settings';
 import { packageRoutes } from './routes/packages';
 import { learnRoutes } from './routes/learn';
+import { aiRoutes } from './routes/ai';
+import { AiService } from './ai/service';
 
 export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
@@ -38,6 +40,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
 
   const db = openDatabase(config.dbFile ?? path.join(config.dataDir, 'gero.db'));
   deleteExpiredSessions(db);
+  const ai = new AiService(db, secrets.appSecret);
   app.addHook('onClose', async () => db.$client.close());
 
   app.setErrorHandler((error: { statusCode?: number }, request, reply) => {
@@ -71,6 +74,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
       await api.register(settingsRoutes, { db });
       await api.register(packageRoutes, { db });
       await api.register(learnRoutes, { db });
+      await api.register(aiRoutes, { db, ai });
     },
     { prefix: '/api' },
   );

@@ -103,9 +103,38 @@ Nach der Registrierung führt ein Assistent in zehn Schritten durch die Einricht
 9. Lernen: Intervalle der Stufen 2–6 (Standard: 5 / 10 / 20 / 40 / 80 Tage) und Verhalten bei falschen Antworten
 10. Übersicht und Fertig
 
-Die Schritte 4–7 zeigen vorerst nur die Voreinstellung. Anbieterwahl, „Verbindung testen“
-und die Auswahl des Bildmodells kommen mit Schritt 5 des Umsetzungsplans. Alle Werte lassen sich
-später in den Einstellungen ändern.
+Alle Werte lassen sich später in den Einstellungen ändern.
+
+## KI-Anbieter
+
+Jeder Account richtet seine KI selbst ein (Assistent nach der Registrierung, später unter
+Einstellungen → KI). Pro Aufgabe – **Antwortprüfung**, **Tageszusammenfassung**, **Bilderkennung** –
+gibt es einen eigenen Anbieter und ein eigenes Modell. Die Modelllisten werden live vom Anbieter
+geladen; der Modellname kann auch eingetippt werden.
+
+| Anbieter                   | Protokoll                     | Adresse                                 | Schlüssel |
+| -------------------------- | ----------------------------- | --------------------------------------- | --------- |
+| Pollinations.ai (Standard) | OpenAI-kompatibel             | `https://gen.pollinations.ai/v1`        | optional  |
+| Anthropic (Claude)         | Anthropic Messages API        | `https://api.anthropic.com/v1`          | nötig     |
+| OpenAI                     | OpenAI                        | `https://api.openai.com/v1`             | nötig     |
+| OpenRouter                 | OpenAI-kompatibel             | `https://openrouter.ai/api/v1`          | nötig     |
+| Ollama (lokal)             | Ollama                        | `http://localhost:11434`                | –         |
+| Ollama (online)            | Ollama                        | `https://ollama.com`                    | nötig     |
+| Eigener Server             | OpenAI-kompatibel oder Ollama | frei, z. B. `http://192.168.1.50:11434` | optional  |
+
+- **Standard für neue Accounts:** Pollinations.ai mit `openai/gpt-oss-20b` für Antwortprüfung und
+  Zusammenfassung, ohne API-Schlüssel. Laut Pollinations-Doku brauchen Anfragen einen Schlüssel
+  (`sk_…` von enter.pollinations.ai); meldet „Verbindung testen“ Fehler 401 oder 402, den Schlüssel
+  beim Anbieter eintragen.
+- **Bilderkennung:** `openai/gpt-oss-20b` kann keine Bilder lesen. Das Bildmodell wird aus den
+  bildfähigen Modellen gewählt (Pollinations/OpenRouter: `input_modalities`, Anthropic:
+  `capabilities.image_input`, Ollama: `capabilities` enthält `vision`). Wie gut ein Modell
+  Handschrift liest, ist nicht geprüft.
+- **Komplett lokal:** Ollama mit einem Text- und einem Bildmodell.
+- **API-Schlüssel** liegen nur auf dem Server, verschlüsselt mit AES-256-GCM (Schlüssel aus
+  `APP_SECRET`). Die Oberfläche zeigt nur „Gesetzt · …abcd“.
+- **Latenz:** Jeder KI-Aufruf wird gemessen (erstes Token, Gesamtzeit, Tokens/s). Median und
+  langsamste Werte stehen in den Einstellungen.
 
 ## Lernen und Stufen
 
@@ -147,7 +176,7 @@ packages/shared   Gemeinsame Typen und Konstanten für Server und Oberfläche
       Einrichtungsassistent (10 Schritte), schlichtes Schwarz-Weiß-Design
 - [x] 3. Vokabelpakete: anlegen, bearbeiten, löschen, Sprache (Vorlagen oder frei), Richtung, Aktivieren
 - [x] 4. Stufensystem und Lernen (ohne KI): Karteikarten, Tippen optional, Umdrehen, Wischen, lokale Prüfung, Wiederholung
-- [ ] 5. KI-Anbieter und Einrichtungsassistent
+- [x] 5. KI-Anbieter und Einrichtungsassistent: Pollinations, Anthropic, OpenAI, OpenRouter, Ollama (lokal/online), eigener Server
 - [ ] 6. KI-Antwortprüfung
 - [ ] 7. Hochladen und Erkennung
 - [ ] 8. Startseite mit Tageszusammenfassung

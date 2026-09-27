@@ -1,14 +1,16 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Check, Info } from 'lucide-react';
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { Plus } from 'lucide-react';
 import {
-  DEFAULT_AI_PROVIDER,
-  DEFAULT_TEXT_MODEL,
   UI_LANGUAGES,
+  type AiConfigDto,
   type UserDto,
   type UserSettings,
   type WrongMode,
 } from '@gero/shared';
 import { CenteredLayout } from '../components/CenteredLayout';
+import { ProviderForm } from '../components/ai/ProviderForm';
+import { TaskModelPicker, type TaskModelValue } from '../components/ai/TaskModelPicker';
+import { TestButton } from '../components/ai/TestButton';
 import { Notice } from '../components/Notice';
 import {
   ChoiceList,
@@ -20,6 +22,7 @@ import {
   WrongModeField,
 } from '../components/SettingsFields';
 import { useI18n } from '../i18n';
+import { useAiConfig, useSetTaskModel } from '../lib/ai';
 import { useUpdateProfile } from '../lib/auth';
 import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';
@@ -33,6 +36,10 @@ interface Draft {
   timeout: string;
   intervals: string[];
   wrongMode: WrongMode;
+  check: TaskModelValue | null;
+  summarySame: boolean;
+  summary: TaskModelValue | null;
+  vision: TaskModelValue | null;
 }
 
 function stepKey(userId: number) {
@@ -73,19 +80,6 @@ function ValueList({ children }: { children: ReactNode }) {
   );
 }
 
-function LaterNote({ children }: { children?: ReactNode }) {
-  const { m } = useI18n();
-  return (
-    <div className="flex gap-3 rounded-2xl border border-rule px-4 py-3 text-sm text-ink-soft">
-      <Info className="mt-0.5 size-4.5 shrink-0" aria-hidden="true" />
-      <div className="space-y-1">
-        {children && <p>{children}</p>}
-        <p>{m.setup.later}</p>
-      </div>
-    </div>
-  );
-}
-
 interface Step {
   title: string;
   text: string;
@@ -95,11 +89,21 @@ interface Step {
   valid?: boolean;
 }
 
-function WizardSteps({ user, settings }: { user: UserDto; settings: UserSettings }) {
+function WizardSteps({
+  user,
+  settings,
+  ai,
+}: {
+  user: UserDto;
+  settings: UserSettings;
+  ai: AiConfigDto;
+}) {
   const { m, lang, setLang } = useI18n();
   const updateProfile = useUpdateProfile();
   const updateSettings = useUpdateSettings();
+  const setTask = useSetTaskModel();
   const complete = useCompleteSetup();
+  const [addingProvider, setAddingProvider] = useState(false);
 
   const [draft, setDraft] = useState<Draft>(() => ({
     name: user.name,
@@ -107,9 +111,25 @@ function WizardSteps({ user, settings }: { user: UserDto; settings: UserSettings
     timeout: String(settings.aiTimeoutMs / 1000),
     intervals: settings.intervals.map(String),
     wrongMode: settings.wrongMode,
+    check: ai.tasks.check,
+    summarySame:
+      !ai.tasks.summary ||
+      (ai.tasks.summary.providerId === ai.tasks.check?.providerId &&
+        ai.tasks.summary.model === ai.tasks.check?.model),
+    summary: ai.tasks.summary,
+    vision: ai.tasks.vision,
   }));
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
+  const setCheck = useCallback((v: TaskModelValue) => setDraft((d) => ({ ...d, check: v })), []);
+  const setSummary = useCallback(
+    (v: TaskModelValue) => setDraft((d) => ({ ...d, summary: v })),
+    [],
+  );
+  const setVision = useCallback((v: TaskModelValue) => setDraft((d) => ({ ...d, vision: v })), []);
+  const providerName = (id?: number) => ai.providers.find((p) => p.id === id)?.name ?? '';
+  const checkProvider = ai.providers.find((p) => p.id === draft.check?.providerId);
+  const summary = draft.summarySame ? draft.check : draft.summary;
 
   const timeoutMs = parseTimeout(draft.timeout);
   const intervals = parseIntervals(draft.intervals);
@@ -171,59 +191,119 @@ function WizardSteps({ user, settings }: { user: UserDto; settings: UserSettings
       text: m.setup.checkProvider.text,
       body: (
         <div className="space-y-4">
-          <ValueList>
-            <div className="flex min-h-12 items-center justify-between px-4">
-              <span className="font-semibold">{DEFAULT_AI_PROVIDER}</span>
-              <span className="flex items-center gap-1.5 text-sm text-ink-soft">
-                <Check className="size-4.5" aria-hidden="true" />
-                {m.setup.checkProvider.preset}
-              </span>
+          <ChoiceList
+            label={m.ai.provider}
+            options={ai.providers.map((p) => ({
+              value: String(p.id),
+              label:
+                p.kind === 'pollinations' ? `${p.name} · ${m.setup.checkProvider.preset}` : p.name,
+            }))}
+            value={String(draft.check?.providerId ?? '')}
+            onChange={(id) =>
+              set(
+                'check',
+                Number(id) === draft.check?.providerId
+                  ? draft.check
+                  : { providerId: Number(id), model: '', reasoning: null },
+              )
+            }
+          />
+          {addingProvider ? (
+            <div className="rounded-2xl border border-rule p-4">
+              <ProviderForm
+                embedded
+                onCancel={() => setAddingProvider(false)}
+                onDone={(p) => {
+                  setAddingProvider(false);
+                  set('check', { providerId: p.id, model: '', reasoning: null });
+                }}
+              />
             </div>
-          </ValueList>
-          <LaterNote>{m.setup.checkProvider.others}</LaterNote>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setAddingProvider(true)}
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              {m.ai.addProvider}
+            </button>
+          )}
+          <p className="hint">{m.setup.checkProvider.others}</p>
         </div>
       ),
+      valid: Boolean(draft.check?.providerId),
     },
     {
       title: m.setup.checkModel.title,
       text: m.setup.checkModel.text,
       body: (
         <div className="space-y-4">
-          <ValueList>
-            <ValueRow label={m.fields.provider} value={DEFAULT_AI_PROVIDER} />
-            <ValueRow label={m.setup.checkModel.model} value={DEFAULT_TEXT_MODEL} />
-          </ValueList>
-          <button type="button" className="btn btn-secondary" disabled>
-            {m.setup.checkModel.test}
-          </button>
-          <LaterNote />
+          <TaskModelPicker
+            task="check"
+            providers={ai.providers}
+            value={draft.check}
+            onChange={setCheck}
+            fixedProvider
+          />
+          {checkProvider && draft.check?.model && (
+            <TestButton provider={checkProvider} model={draft.check.model} />
+          )}
         </div>
       ),
+      valid: Boolean(draft.check?.model),
+      save: () => setTask.mutateAsync({ task: 'check', ...draft.check! }),
     },
     {
       title: m.setup.summary.title,
       text: m.setup.summary.text,
       body: (
         <div className="space-y-4">
-          <ValueList>
-            <ValueRow label={m.fields.provider} value={DEFAULT_AI_PROVIDER} />
-            <ValueRow label={m.setup.checkModel.model} value={DEFAULT_TEXT_MODEL} />
-          </ValueList>
-          <LaterNote />
+          <ChoiceList
+            label={m.ai.taskNames.summary}
+            options={[
+              { value: 'same', label: `${m.ai.sameAsCheck} (${draft.check?.model ?? ''})` },
+              { value: 'other', label: m.setup.summary.other },
+            ]}
+            value={draft.summarySame ? 'same' : 'other'}
+            onChange={(v) => set('summarySame', v === 'same')}
+          />
+          {!draft.summarySame && (
+            <TaskModelPicker
+              task="summary"
+              providers={ai.providers}
+              value={draft.summary}
+              onChange={setSummary}
+            />
+          )}
         </div>
       ),
+      valid: Boolean(summary?.model),
+      save: () => setTask.mutateAsync({ task: 'summary', ...summary! }),
     },
     {
       title: m.setup.vision.title,
       text: m.setup.vision.text,
       body: (
         <div className="space-y-4">
-          <ValueList>
-            <ValueRow label={m.fields.visionModel} value={m.setup.vision.none} />
-          </ValueList>
-          <LaterNote />
+          <TaskModelPicker
+            task="vision"
+            providers={ai.providers}
+            value={
+              draft.vision ??
+              (draft.check
+                ? { providerId: draft.check.providerId, model: '', reasoning: null }
+                : null)
+            }
+            onChange={setVision}
+          />
+          <p className="hint">{m.setup.optional}</p>
         </div>
       ),
+      save: () =>
+        draft.vision?.model
+          ? setTask.mutateAsync({ task: 'vision', ...draft.vision })
+          : Promise.resolve(),
     },
     {
       ...m.setup.timeout,
@@ -249,8 +329,22 @@ function WizardSteps({ user, settings }: { user: UserDto; settings: UserSettings
           <ValueRow label={m.fields.language} value={LANGUAGE_NAMES[lang]} />
           <ValueRow label={m.fields.name} value={draft.name.trim() || m.fields.noName} />
           <ValueRow label={m.fields.timezone} value={draft.timezone.replaceAll('_', ' ')} />
-          <ValueRow label={m.fields.textModel} value={DEFAULT_TEXT_MODEL} />
-          <ValueRow label={m.fields.visionModel} value={m.setup.vision.none} />
+          <ValueRow
+            label={m.ai.taskNames.check}
+            value={`${providerName(draft.check?.providerId)} · ${draft.check?.model ?? ''}`}
+          />
+          <ValueRow
+            label={m.ai.taskNames.summary}
+            value={`${providerName(summary?.providerId)} · ${summary?.model ?? ''}`}
+          />
+          <ValueRow
+            label={m.fields.visionModel}
+            value={
+              draft.vision?.model
+                ? `${providerName(draft.vision.providerId)} · ${draft.vision.model}`
+                : m.setup.vision.none
+            }
+          />
           <ValueRow label={m.fields.timeout} value={`${draft.timeout} ${m.fields.seconds}`} />
           <ValueRow
             label={m.fields.intervals}
@@ -358,12 +452,14 @@ function WizardSteps({ user, settings }: { user: UserDto; settings: UserSettings
 export function SetupWizard({ user }: { user: UserDto }) {
   const { m } = useI18n();
   const settings = useSettings();
+  const ai = useAiConfig();
+  const error = settings.error ?? ai.error;
   return (
     <CenteredLayout width="max-w-xl" showLanguage={false}>
-      {settings.data ? (
-        <WizardSteps user={user} settings={settings.data} />
-      ) : settings.isError ? (
-        <Notice tone="error">{errorMessage(m, settings.error)}</Notice>
+      {settings.data && ai.data ? (
+        <WizardSteps user={user} settings={settings.data} ai={ai.data} />
+      ) : error ? (
+        <Notice tone="error">{errorMessage(m, error)}</Notice>
       ) : (
         <p role="status" className="text-center text-ink-soft">
           {m.common.loading}

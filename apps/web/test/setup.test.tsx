@@ -11,6 +11,27 @@ afterEach(() => {
 });
 
 const NEW_USER = { ...USER, setupCompleted: false };
+const POLLINATIONS = {
+  id: 1,
+  kind: 'pollinations',
+  name: 'Pollinations.ai',
+  baseUrl: 'https://gen.pollinations.ai/v1',
+  protocol: 'openai',
+  hasKey: false,
+  keyHint: null,
+};
+const AI_CONFIG = {
+  providers: [POLLINATIONS],
+  tasks: {
+    check: { providerId: 1, model: 'openai/gpt-oss-20b', reasoning: null },
+    summary: { providerId: 1, model: 'openai/gpt-oss-20b', reasoning: null },
+    vision: null,
+  },
+};
+const MODELS = [
+  { id: 'openai/gpt-oss-20b', vision: false, reasoning: true },
+  { id: 'google/gemini-3.7-flash', vision: true, reasoning: null },
+];
 
 function api() {
   return mockApi({
@@ -28,6 +49,15 @@ function api() {
       status: 200,
       body: { user: { ...NEW_USER, setupCompleted: true } },
     }),
+    'GET /ai/config': () => ({ status: 200, body: AI_CONFIG }),
+    'GET /ai/providers/1/models': () => ({ status: 200, body: { models: MODELS } }),
+    'GET /ai/providers/1/models?vision=1': () => ({
+      status: 200,
+      body: { models: MODELS.filter((m) => m.vision) },
+    }),
+    'PUT /ai/tasks/check': () => ({ status: 200, body: AI_CONFIG }),
+    'PUT /ai/tasks/summary': () => ({ status: 200, body: AI_CONFIG }),
+    'PUT /ai/tasks/vision': () => ({ status: 200, body: AI_CONFIG }),
   });
 }
 
@@ -64,17 +94,34 @@ describe('Einrichtungsassistent', () => {
     await next();
 
     await expectStep(4, 'KI für die Antwortprüfung');
-    expect(screen.getByText('Pollinations.ai')).toBeTruthy();
+    expect(
+      screen
+        .getByRole('radio', { name: 'Pollinations.ai · Voreinstellung' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
     await next();
 
     await expectStep(5, 'Modell für die Antwortprüfung');
-    expect(screen.getByText('openai/gpt-oss-20b')).toBeTruthy();
+    const model = (await screen.findByRole('option', {
+      name: 'openai/gpt-oss-20b',
+    })) as HTMLOptionElement;
+    expect(model.selected).toBe(true);
     await next();
 
     await expectStep(6, 'KI für die Tageszusammenfassung');
+    expect(
+      screen
+        .getByRole('radio', { name: /Wie bei der Antwortprüfung/ })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
     await next();
 
     await expectStep(7, 'Bilderkennung');
+    const vision = (await screen.findByRole('option', {
+      name: 'google/gemini-3.7-flash',
+    })) as HTMLOptionElement;
+    await screen.findByDisplayValue('google/gemini-3.7-flash');
+    expect(vision.selected).toBe(true);
     await next();
 
     await expectStep(8, 'Zeitlimit der KI-Prüfung');
@@ -107,6 +154,15 @@ describe('Einrichtungsassistent', () => {
       { intervals: [3, 10, 20, 40, 80], wrongMode: 'back' },
     ]);
     expect(bodies('POST /setup/complete')).toHaveLength(1);
+    expect(bodies('PUT /ai/tasks/check')).toEqual([
+      { providerId: 1, model: 'openai/gpt-oss-20b', reasoning: null },
+    ]);
+    expect(bodies('PUT /ai/tasks/summary')).toEqual([
+      { providerId: 1, model: 'openai/gpt-oss-20b', reasoning: null },
+    ]);
+    expect(bodies('PUT /ai/tasks/vision')).toEqual([
+      { providerId: 1, model: 'google/gemini-3.7-flash', reasoning: null },
+    ]);
   });
 
   it('lässt ungültige Intervalle nicht zu', async () => {

@@ -3,7 +3,9 @@ import type { ApiErrorCode } from '@gero/shared';
 export class ApiError extends Error {
   constructor(
     readonly status: number,
-    readonly code: ApiErrorCode | 'network_error',
+    readonly code: ApiErrorCode | 'network_error' | 'provider_error',
+    /** Full error body, e.g. `{ provider: { code, message } }`. */
+    readonly body?: Record<string, unknown>,
   ) {
     super(code);
   }
@@ -27,6 +29,6 @@ export async function api<T>(
   }
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new ApiError(res.status, data?.error ?? 'internal_error');
+  if (!res.ok) throw new ApiError(res.status, data?.error ?? 'internal_error', data ?? undefined);
   return data as T;
 }

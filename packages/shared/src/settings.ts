@@ -14,10 +14,6 @@ export const DEFAULT_AI_TIMEOUT_MS = 2000;
 export const AI_TIMEOUT_MIN_MS = 500;
 export const AI_TIMEOUT_MAX_MS = 30000;
 
-/** Preset for answer checking and daily summary (no API key needed). */
-export const DEFAULT_AI_PROVIDER = 'Pollinations.ai';
-export const DEFAULT_TEXT_MODEL = 'openai/gpt-oss-20b';
-
 export const userSettingsSchema = z.object({
   intervals: z.array(z.int().min(1).max(INTERVAL_MAX_DAYS)).length(5),
   wrongMode: z.enum(WRONG_MODES),

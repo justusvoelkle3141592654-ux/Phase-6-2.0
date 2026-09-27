@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 const createdAt = () =>
   integer('created_at', { mode: 'timestamp_ms' })
@@ -145,8 +153,75 @@ export const acceptedAnswers = sqliteTable(
   (t) => [uniqueIndex('accepted_unique').on(t.vocabId, t.direction, t.answer)],
 );
 
+/** AI providers set up by a user. API keys are stored encrypted (AES-256-GCM). */
+export const providerConfigs = sqliteTable(
+  'provider_configs',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind', {
+      enum: [
+        'pollinations',
+        'anthropic',
+        'openai',
+        'openrouter',
+        'ollama_local',
+        'ollama_cloud',
+        'custom',
+      ],
+    }).notNull(),
+    name: text('name').notNull(),
+    baseUrl: text('base_url').notNull(),
+    protocol: text('protocol', { enum: ['openai', 'anthropic', 'ollama'] }).notNull(),
+    apiKeyEnc: text('api_key_enc'),
+    keyHint: text('key_hint'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('provider_configs_user_idx').on(t.userId)],
+);
+
+/** Provider and model per user and task (check, summary, vision). */
+export const taskModels = sqliteTable(
+  'task_models',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    task: text('task', { enum: ['check', 'summary', 'vision'] }).notNull(),
+    providerId: integer('provider_id')
+      .notNull()
+      .references(() => providerConfigs.id, { onDelete: 'cascade' }),
+    model: text('model').notNull(),
+    reasoning: integer('reasoning', { mode: 'boolean' }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.task] })],
+);
+
+/** Measured latency of every AI call. */
+export const latencySamples = sqliteTable(
+  'latency_samples',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    task: text('task', { enum: ['check', 'summary', 'vision', 'test'] }).notNull(),
+    providerKind: text('provider_kind').notNull(),
+    model: text('model').notNull(),
+    ok: integer('ok', { mode: 'boolean' }).notNull(),
+    ttftMs: integer('ttft_ms'),
+    totalMs: integer('total_ms'),
+    tokensPerSec: real('tokens_per_sec'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('latency_user_task_idx').on(t.userId, t.task)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Package = typeof packages.$inferSelect;
 export type Vocab = typeof vocab.$inferSelect;
 export type Attempt = typeof attempts.$inferSelect;
+export type ProviderConfig = typeof providerConfigs.$inferSelect;
