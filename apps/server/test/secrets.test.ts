@@ -6,7 +6,7 @@ import { generateRegistrationCode, loadSecrets } from '../src/secrets';
 
 const dirs: string[] = [];
 function tempDir() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gero-secrets-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vokabeltrainer-secrets-'));
   dirs.push(dir);
   return dir;
 }

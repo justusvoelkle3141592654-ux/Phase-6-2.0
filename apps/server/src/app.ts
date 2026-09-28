@@ -42,7 +42,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
     app.log.info(`Registrierungscode: ${secrets.registrationCode}`);
   }
 
-  const db = openDatabase(config.dbFile ?? path.join(config.dataDir, 'gero.db'));
+  const db = openDatabase(config.dbFile ?? path.join(config.dataDir, 'vokabeltrainer.db'));
   deleteExpiredSessions(db);
   const ai = new AiService(db, secrets.appSecret);
   app.addHook('onClose', async () => db.$client.close());

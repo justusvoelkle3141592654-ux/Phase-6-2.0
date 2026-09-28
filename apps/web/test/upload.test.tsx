@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
-import type { UploadJobDto } from '@gero/shared';
+import type { UploadJobDto } from '@vokabeltrainer/shared';
 import { mockApi, renderApp, USER } from './utils';
 
 beforeEach(() => {

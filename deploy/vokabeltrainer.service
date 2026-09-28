@@ -1,0 +1,30 @@
+# systemd-Dienst für den Vokabeltrainer (direkte Node.js-Installation).
+# Installation:
+#   sudo useradd --system --home /opt/vokabeltrainer --shell /usr/sbin/nologin vokabeltrainer
+#   sudo cp deploy/vokabeltrainer.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now vokabeltrainer
+# Logs (auch der Registrierungscode beim ersten Start): journalctl -u vokabeltrainer
+
+[Unit]
+Description=Vokabeltrainer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=vokabeltrainer
+Group=vokabeltrainer
+WorkingDirectory=/opt/vokabeltrainer
+Environment=NODE_ENV=production
+# Einstellungen aus /opt/vokabeltrainer/.env werden vom Server selbst gelesen.
+ExecStart=/usr/bin/node apps/server/dist/index.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/vokabeltrainer/data
+
+[Install]
+WantedBy=multi-user.target

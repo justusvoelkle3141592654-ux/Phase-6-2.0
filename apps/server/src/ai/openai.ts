@@ -1,4 +1,4 @@
-import type { ModelInfoDto } from '@gero/shared';
+import type { ModelInfoDto } from '@vokabeltrainer/shared';
 import {
   lines,
   readJson,

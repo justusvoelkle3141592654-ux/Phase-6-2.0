@@ -6,7 +6,7 @@ import {
   INTERVAL_MAX_DAYS,
   WRONG_MODES,
   type WrongMode,
-} from '@gero/shared';
+} from '@vokabeltrainer/shared';
 import { useI18n } from '../i18n';
 import { fill } from '../lib/format';
 

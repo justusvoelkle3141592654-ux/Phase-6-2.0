@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
-import { SESSION_COOKIE } from '@gero/shared';
+import { SESSION_COOKIE } from '@vokabeltrainer/shared';
 import type { Db } from '../db';
 import type { Session, User } from '../db/schema';
 import { resolveSession, SESSION_MS } from './sessions';

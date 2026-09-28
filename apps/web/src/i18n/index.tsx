@@ -1,11 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { UI_LANGUAGES, type UiLanguage } from '@gero/shared';
+import { UI_LANGUAGES, type UiLanguage } from '@vokabeltrainer/shared';
 import { de, type Messages } from './de';
 import { en } from './en';
 
 const catalogs: Record<UiLanguage, Messages> = { de, en };
-const STORAGE_KEY = 'gero.lang';
+const STORAGE_KEY = 'vokabeltrainer.lang';
 
 interface I18nValue {
   lang: UiLanguage;

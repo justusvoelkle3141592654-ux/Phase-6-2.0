@@ -1,10 +1,12 @@
-// Bundles the server into dist/index.js. Workspace packages (@gero/shared) are
+// Bundles the server into dist/index.js. Workspace packages (@vokabeltrainer/shared) are
 // inlined; all npm dependencies stay external and are loaded from node_modules.
 import { build } from 'esbuild';
 import { readFileSync, rmSync, cpSync, existsSync } from 'node:fs';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
-const external = Object.keys(pkg.dependencies ?? {}).filter((name) => !name.startsWith('@gero/'));
+const external = Object.keys(pkg.dependencies ?? {}).filter(
+  (name) => !name.startsWith('@vokabeltrainer/'),
+);
 
 rmSync('dist', { recursive: true, force: true });
 await build({

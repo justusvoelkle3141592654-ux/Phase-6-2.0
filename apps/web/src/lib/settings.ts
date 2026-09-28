@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UpdateSettingsInput, UserDto, UserSettings } from '@gero/shared';
+import type { UpdateSettingsInput, UserDto, UserSettings } from '@vokabeltrainer/shared';
 import { api } from './api';
 import { ME_KEY } from './auth';
 

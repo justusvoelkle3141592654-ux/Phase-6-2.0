@@ -8,7 +8,7 @@ import {
   type PackagePhotoDto,
   type UploadJobDto,
   type UploadPageDto,
-} from '@gero/shared';
+} from '@vokabeltrainer/shared';
 import type { Db } from '../db';
 import { packages, uploadJobs, uploadPages, vocab, type UploadPage } from '../db/schema';
 import type { AiService } from '../ai/service';

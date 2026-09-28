@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen } from '@testing-library/react';
-import type { OverviewDto } from '@gero/shared';
+import type { OverviewDto } from '@vokabeltrainer/shared';
 import { mockApi, renderApp, USER } from './utils';
 
 beforeEach(() => localStorage.clear());

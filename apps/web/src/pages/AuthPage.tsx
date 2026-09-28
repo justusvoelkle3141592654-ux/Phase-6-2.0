@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { PASSWORD_MIN_LENGTH } from '@gero/shared';
+import { PASSWORD_MIN_LENGTH } from '@vokabeltrainer/shared';
 import { CenteredLayout } from '../components/CenteredLayout';
 import { Notice } from '../components/Notice';
 import { useI18n } from '../i18n';

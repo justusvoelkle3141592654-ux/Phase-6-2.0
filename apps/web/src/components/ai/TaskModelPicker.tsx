@@ -1,5 +1,5 @@
 import { useEffect, useId } from 'react';
-import type { AiTask, ProviderDto, TaskModelDto } from '@gero/shared';
+import type { AiTask, ProviderDto, TaskModelDto } from '@vokabeltrainer/shared';
 import { useI18n } from '../../i18n';
 import { useModels } from '../../lib/ai';
 import { providerErrorOf, ProviderErrorNotice } from './ProviderError';

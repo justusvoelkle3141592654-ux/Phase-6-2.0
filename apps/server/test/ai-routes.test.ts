@@ -9,7 +9,10 @@ let mock: Awaited<ReturnType<typeof mockServer>>;
 
 beforeEach(async () => {
   app = await testApp();
-  headers = { origin: ORIGIN, cookie: `gero_session=${sessionCookie(await register(app))}` };
+  headers = {
+    origin: ORIGIN,
+    cookie: `vokabeltrainer_session=${sessionCookie(await register(app))}`,
+  };
   mock = await mockServer({
     'GET /v1/models': (req, res) =>
       req.headers.authorization === 'Bearer sk_bad'
@@ -146,7 +149,7 @@ describe('KI-Einrichtung', () => {
     const p = await customProvider();
     headers = {
       origin: ORIGIN,
-      cookie: `gero_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
+      cookie: `vokabeltrainer_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
     };
     expect((await req('GET', `/ai/providers/${p.id}/models`)).statusCode).toBe(404);
     expect((await req('PUT', '/ai/tasks/check', { providerId: p.id, model: 'x' })).statusCode).toBe(

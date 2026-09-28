@@ -6,7 +6,7 @@ import {
   type UserDto,
   type UserSettings,
   type WrongMode,
-} from '@gero/shared';
+} from '@vokabeltrainer/shared';
 import { CenteredLayout } from '../components/CenteredLayout';
 import { ProviderForm } from '../components/ai/ProviderForm';
 import { TaskModelPicker, type TaskModelValue } from '../components/ai/TaskModelPicker';
@@ -43,7 +43,7 @@ interface Draft {
 }
 
 function stepKey(userId: number) {
-  return `gero.setupStep.${userId}`;
+  return `vokabeltrainer.setupStep.${userId}`;
 }
 
 function readStep(userId: number, total: number): number {

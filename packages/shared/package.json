@@ -1,5 +1,5 @@
 {
-  "name": "@gero/shared",
+  "name": "@vokabeltrainer/shared",
   "version": "1.0.0",
   "private": true,
   "type": "module",

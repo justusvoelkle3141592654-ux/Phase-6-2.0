@@ -1,4 +1,4 @@
-import type { LatencyDto, ModelInfoDto, ProviderErrorCode } from '@gero/shared';
+import type { LatencyDto, ModelInfoDto, ProviderErrorCode } from '@vokabeltrainer/shared';
 
 export interface ChatImage {
   mediaType: string;

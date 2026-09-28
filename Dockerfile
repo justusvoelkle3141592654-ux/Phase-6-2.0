@@ -1,6 +1,6 @@
-# Gero – Server und Oberfläche in einem Image.
-# Build:  docker build -t gero .
-# Start:  docker run -p 3000:3000 -v gero-data:/data gero
+# Vokabeltrainer – Server und Oberfläche in einem Image.
+# Build:  docker build -t vokabeltrainer .
+# Start:  docker run -p 3000:3000 -v vokabeltrainer-data:/data vokabeltrainer
 
 # The full image brings python3, make and g++ for native modules
 # (better-sqlite3, @node-rs/argon2) in case no prebuilt binary fits.

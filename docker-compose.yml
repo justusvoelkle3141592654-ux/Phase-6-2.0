@@ -1,13 +1,13 @@
-# Gero mit Docker Compose.
-#   docker compose up -d                       – nur Gero auf Port 3000
+# Vokabeltrainer mit Docker Compose.
+#   docker compose up -d                       – nur Vokabeltrainer auf Port 3000
 #   docker compose --profile ollama up -d      – zusätzlich Ollama (lokale KI)
 #   docker compose --profile https up -d       – zusätzlich Caddy mit HTTPS (deploy/Caddyfile anpassen)
 # Einstellungen stehen in .env (Vorlage: .env.example).
 
 services:
-  gero:
+  vokabeltrainer:
     build: .
-    image: gero
+    image: vokabeltrainer
     restart: unless-stopped
     ports:
       - '3000:3000'
@@ -18,9 +18,9 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
-      - gero-data:/data
+      - vokabeltrainer-data:/data
 
-  # Lokale KI. In Gero als „Eigener Server“ mit Adresse http://ollama:11434 und Format „Ollama“ eintragen.
+  # Lokale KI. Im Vokabeltrainer als „Eigener Server“ mit Adresse http://ollama:11434 und Format „Ollama“ eintragen.
   ollama:
     image: ollama/ollama
     profiles: ['ollama']
@@ -42,7 +42,7 @@ services:
       - caddy-config:/config
 
 volumes:
-  gero-data:
+  vokabeltrainer-data:
   ollama:
   caddy-data:
   caddy-config:

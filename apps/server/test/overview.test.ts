@@ -19,7 +19,10 @@ beforeEach(async () => {
         : stream(res, 'text/event-stream', openAiStream('Gut gemacht heute!', 3)),
   });
   app = await testApp();
-  headers = { origin: ORIGIN, cookie: `gero_session=${sessionCookie(await register(app))}` };
+  headers = {
+    origin: ORIGIN,
+    cookie: `vokabeltrainer_session=${sessionCookie(await register(app))}`,
+  };
   const provider = (
     await app.inject({
       method: 'POST',

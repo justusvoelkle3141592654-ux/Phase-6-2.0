@@ -1,5 +1,10 @@
 import { and, eq } from 'drizzle-orm';
-import { checkLocally, normalize, type CardDirection, type DecidedBy } from '@gero/shared';
+import {
+  checkLocally,
+  normalize,
+  type CardDirection,
+  type DecidedBy,
+} from '@vokabeltrainer/shared';
 import type { Db } from '../db';
 import { acceptedAnswers, type Vocab } from '../db/schema';
 

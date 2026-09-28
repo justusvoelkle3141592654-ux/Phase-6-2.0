@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AnswerInput, AnswerResult, LearnCard } from '@gero/shared';
+import type { AnswerInput, AnswerResult, LearnCard } from '@vokabeltrainer/shared';
 import { api } from './api';
 import { PACKAGES_KEY } from './packages';
 

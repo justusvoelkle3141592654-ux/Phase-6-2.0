@@ -1,4 +1,4 @@
-import type { RecognizedEntry } from '@gero/shared';
+import type { RecognizedEntry } from '@vokabeltrainer/shared';
 import { sql } from 'drizzle-orm';
 import {
   index,

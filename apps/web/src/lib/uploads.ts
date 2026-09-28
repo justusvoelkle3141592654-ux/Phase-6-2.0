@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { PackagePhotoDto, SaveUploadInput, UploadJobDto } from '@gero/shared';
+import type { PackagePhotoDto, SaveUploadInput, UploadJobDto } from '@vokabeltrainer/shared';
 import { api } from './api';
 import { PACKAGES_KEY } from './packages';
 import { resizePhoto } from './resize';

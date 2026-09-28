@@ -1,4 +1,4 @@
-import type { Protocol } from '@gero/shared';
+import type { Protocol } from '@vokabeltrainer/shared';
 import { AnthropicProvider } from './anthropic';
 import { OllamaProvider } from './ollama';
 import { OpenAiProvider } from './openai';

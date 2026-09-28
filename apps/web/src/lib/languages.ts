@@ -1,4 +1,4 @@
-import { LANGUAGE_PRESETS, type LanguagePreset } from '@gero/shared';
+import { LANGUAGE_PRESETS, type LanguagePreset } from '@vokabeltrainer/shared';
 import type { Messages } from '../i18n/de';
 
 export function isPreset(language: string): language is LanguagePreset {

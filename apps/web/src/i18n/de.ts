@@ -1,5 +1,5 @@
 export const de = {
-  appName: 'Gero',
+  appName: 'Vokabeltrainer',
   tagline: 'Vokabeltrainer',
   nav: {
     label: 'Hauptnavigation',
@@ -163,11 +163,11 @@ export const de = {
     checking: 'Wird geprüft …',
     next: 'Weiter',
     aiFailed:
-      'Die KI hat nicht rechtzeitig geantwortet, deshalb hat Gero selbst entschieden. Unklare Antworten zählen dann als falsch.',
+      'Die KI hat nicht rechtzeitig geantwortet, deshalb hat der Vokabeltrainer selbst entschieden. Unklare Antworten zählen dann als falsch.',
     byAi: 'Von der KI geprüft',
     iWasRight: 'Ich hatte recht',
     localDecision:
-      'Es liegt kein KI-Urteil vor, deshalb hat Gero selbst entschieden. Unklare Antworten zählen dann als falsch.',
+      'Es liegt kein KI-Urteil vor, deshalb hat der Vokabeltrainer selbst entschieden. Unklare Antworten zählen dann als falsch.',
     knew: 'Gewusst',
     didntKnow: 'Nicht gewusst',
     swipeHint: 'Wischen: rechts = gewusst, links = nicht gewusst. Am Computer auch mit ← und →.',
@@ -318,7 +318,7 @@ export const de = {
     optional: 'Optional – du kannst das auch später in den Einstellungen festlegen.',
     language: {
       title: 'Sprache',
-      text: 'In welcher Sprache soll Gero angezeigt werden? Das kannst du später jederzeit ändern.',
+      text: 'In welcher Sprache soll der Vokabeltrainer angezeigt werden? Das kannst du später jederzeit ändern.',
     },
     name: {
       title: 'Name',
@@ -349,12 +349,12 @@ export const de = {
     },
     vision: {
       title: 'Bilderkennung',
-      text: 'Für Fotos aus dem Vokabelheft braucht Gero ein Modell, das Bilder lesen kann. Die Liste zeigt die bildfähigen Modelle des Anbieters. Wie gut ein Modell Handschrift liest, ist nicht geprüft – probiere es aus.',
+      text: 'Für Fotos aus dem Vokabelheft braucht der Vokabeltrainer ein Modell, das Bilder lesen kann. Die Liste zeigt die bildfähigen Modelle des Anbieters. Wie gut ein Modell Handschrift liest, ist nicht geprüft – probiere es aus.',
       none: 'Noch kein Bildmodell gewählt.',
     },
     timeout: {
       title: 'Zeitlimit der KI-Prüfung',
-      text: 'Antwortet die KI nicht rechtzeitig, entscheidet Gero selbst. Du kannst die Entscheidung dann mit „Ich hatte recht“ korrigieren.',
+      text: 'Antwortet die KI nicht rechtzeitig, entscheidet der Vokabeltrainer selbst. Du kannst die Entscheidung dann mit „Ich hatte recht“ korrigieren.',
     },
     learning: {
       title: 'Lernen',
@@ -389,11 +389,11 @@ export const de = {
   app: {
     serverTitle: 'Server verbinden',
     serverIntro:
-      'Gib die Adresse deines Gero-Servers ein – im Heimnetz z. B. http://192.168.1.20:3000, über das Internet z. B. https://gero.example.org.',
+      'Gib die Adresse deines Vokabeltrainer-Servers ein – im Heimnetz z. B. http://192.168.1.20:3000, über das Internet z. B. https://vokabeltrainer.example.org.',
     serverUrl: 'Server-Adresse',
     connect: 'Verbinden',
     connecting: 'Wird verbunden …',
-    notGero: 'Unter dieser Adresse antwortet kein Gero-Server.',
+    notVokabeltrainer: 'Unter dieser Adresse antwortet kein Vokabeltrainer-Server.',
     unreachable:
       'Server nicht erreichbar. Ist das Handy im selben Netz, stimmen Adresse, Port und http/https?',
     server: 'Server: {url}',
@@ -404,7 +404,7 @@ export const de = {
     reminderOn: 'Täglich um',
     reminderAppOnly: 'Wirkt nur in der Android-App.',
     reminderDenied:
-      'Benachrichtigungen sind für Gero nicht erlaubt. Erlaube sie in den Android-Einstellungen.',
+      'Benachrichtigungen sind für den Vokabeltrainer nicht erlaubt. Erlaube sie in den Android-Einstellungen.',
     notificationBody: '{n} Vokabeln sind fällig.',
     notificationBodyOne: '1 Vokabel ist fällig.',
   },

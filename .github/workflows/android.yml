@@ -1,6 +1,6 @@
 # Builds the Android app (signed APK) and offers it as a download on the run page.
 # Started by hand with "publish", it also puts the APK into the repository
-# (release/Gero-<version>.apk) and creates a GitHub release with the APK attached.
+# (release/Vokabeltrainer-<version>.apk) and creates a GitHub release with the APK attached.
 name: Android-APK
 
 on:
@@ -54,13 +54,13 @@ jobs:
         run: |
           VERSION=$(node -p "require('./apps/web/package.json').version")
           mkdir -p out
-          cp apps/web/android/app/build/outputs/apk/release/app-release.apk "out/Gero-$VERSION.apk"
+          cp apps/web/android/app/build/outputs/apk/release/app-release.apk "out/Vokabeltrainer-$VERSION.apk"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Gero-${{ steps.apk.outputs.version }}-apk
-          path: out/Gero-${{ steps.apk.outputs.version }}.apk
+          name: Vokabeltrainer-${{ steps.apk.outputs.version }}-apk
+          path: out/Vokabeltrainer-${{ steps.apk.outputs.version }}.apk
           if-no-files-found: error
 
       - name: APK ins Repository legen
@@ -81,11 +81,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v${{ steps.apk.outputs.version }}"
-          FILE="out/Gero-${{ steps.apk.outputs.version }}.apk"
+          FILE="out/Vokabeltrainer-${{ steps.apk.outputs.version }}.apk"
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" "$FILE" --clobber
           else
             gh release create "$TAG" "$FILE" --target "$(git rev-parse HEAD)" \
-              --title "Gero ${{ steps.apk.outputs.version }}" \
-              --notes "Android-App (APK) für Gero. Herunterladen, auf dem Handy öffnen und die Installation erlauben."
+              --title "Vokabeltrainer ${{ steps.apk.outputs.version }}" \
+              --notes "Android-App (APK) für den Vokabeltrainer. Herunterladen, auf dem Handy öffnen und die Installation erlauben."
           fi

@@ -1,7 +1,7 @@
 import type { Messages } from './de';
 
 export const en: Messages = {
-  appName: 'Gero',
+  appName: 'Vokabeltrainer',
   tagline: 'Vocabulary trainer',
   nav: {
     label: 'Main navigation',
@@ -164,11 +164,11 @@ export const en: Messages = {
     checking: 'Checking …',
     next: 'Next',
     aiFailed:
-      'The AI did not answer in time, so Gero decided on its own. Unclear answers then count as wrong.',
+      'The AI did not answer in time, so Vokabeltrainer decided on its own. Unclear answers then count as wrong.',
     byAi: 'Checked by the AI',
     iWasRight: 'I was right',
     localDecision:
-      'There is no AI verdict, so Gero decided on its own. Unclear answers then count as wrong.',
+      'There is no AI verdict, so Vokabeltrainer decided on its own. Unclear answers then count as wrong.',
     knew: 'I knew it',
     didntKnow: 'I didn’t know',
     swipeHint: 'Swipe right = knew it, left = didn’t know. On a computer also with ← and →.',
@@ -311,7 +311,7 @@ export const en: Messages = {
     optional: 'Optional – you can also set this later in the settings.',
     language: {
       title: 'Language',
-      text: 'Which language should Gero use? You can change this at any time.',
+      text: 'Which language should Vokabeltrainer use? You can change this at any time.',
     },
     name: {
       title: 'Name',
@@ -342,12 +342,12 @@ export const en: Messages = {
     },
     vision: {
       title: 'Image recognition',
-      text: 'To read photos of your vocabulary notebook, Gero needs a model that understands images. The list shows the provider’s image-capable models. How well a model reads handwriting has not been tested – try it out.',
+      text: 'To read photos of your vocabulary notebook, Vokabeltrainer needs a model that understands images. The list shows the provider’s image-capable models. How well a model reads handwriting has not been tested – try it out.',
       none: 'No image model selected yet.',
     },
     timeout: {
       title: 'AI check time limit',
-      text: 'If the AI does not answer in time, Gero decides on its own. You can then correct the decision with “I was right”.',
+      text: 'If the AI does not answer in time, Vokabeltrainer decides on its own. You can then correct the decision with “I was right”.',
     },
     learning: {
       title: 'Learning',
@@ -382,11 +382,11 @@ export const en: Messages = {
   app: {
     serverTitle: 'Connect to server',
     serverIntro:
-      'Enter the address of your Gero server – in the home network e.g. http://192.168.1.20:3000, over the internet e.g. https://gero.example.org.',
+      'Enter the address of your Vokabeltrainer server – in the home network e.g. http://192.168.1.20:3000, over the internet e.g. https://vokabeltrainer.example.org.',
     serverUrl: 'Server address',
     connect: 'Connect',
     connecting: 'Connecting …',
-    notGero: 'No Gero server answers at this address.',
+    notVokabeltrainer: 'No Vokabeltrainer server answers at this address.',
     unreachable:
       'Server not reachable. Is the phone in the same network, are address, port and http/https correct?',
     server: 'Server: {url}',
@@ -396,7 +396,8 @@ export const en: Messages = {
     reminderOff: 'Off',
     reminderOn: 'Daily at',
     reminderAppOnly: 'Only works in the Android app.',
-    reminderDenied: 'Notifications are not allowed for Gero. Allow them in the Android settings.',
+    reminderDenied:
+      'Notifications are not allowed for Vokabeltrainer. Allow them in the Android settings.',
     notificationBody: '{n} words are due.',
     notificationBodyOne: '1 word is due.',
   },

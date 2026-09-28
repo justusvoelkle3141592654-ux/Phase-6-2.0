@@ -1,4 +1,4 @@
-import type { ApiErrorCode } from '@gero/shared';
+import type { ApiErrorCode } from '@vokabeltrainer/shared';
 import { getServerUrl, getToken, isApp } from './platform';
 
 export class ApiError extends Error {
@@ -13,7 +13,7 @@ export class ApiError extends Error {
 }
 
 /**
- * Raw request against the Gero API (path starting with "/api"). The browser
+ * Raw request against the Vokabeltrainer API (path starting with "/api"). The browser
  * uses the session cookie; the Android app calls the configured server with
  * its bearer token.
  */
@@ -29,7 +29,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   }
 }
 
-/** JSON request against the Gero API. Throws ApiError on failure. */
+/** JSON request against the Vokabeltrainer API. Throws ApiError on failure. */
 export async function api<T>(
   path: string,
   init: { method?: string; body?: unknown; form?: FormData } = {},

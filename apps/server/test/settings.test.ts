@@ -6,7 +6,10 @@ let app: FastifyInstance;
 let headers: Record<string, string>;
 beforeEach(async () => {
   app = await testApp();
-  headers = { origin: ORIGIN, cookie: `gero_session=${sessionCookie(await register(app))}` };
+  headers = {
+    origin: ORIGIN,
+    cookie: `vokabeltrainer_session=${sessionCookie(await register(app))}`,
+  };
 });
 afterEach(async () => {
   await app.close();
@@ -75,7 +78,7 @@ describe('Einstellungen', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/settings',
-      headers: { cookie: `gero_session=${other}` },
+      headers: { cookie: `vokabeltrainer_session=${other}` },
     });
     expect(res.json().settings.wrongMode).toBe('reset');
   });

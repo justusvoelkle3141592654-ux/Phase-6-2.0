@@ -8,7 +8,7 @@ export interface AppConfig {
   port: number;
   /** Directory for the SQLite database, uploaded photos and generated secrets. */
   dataDir: string;
-  /** SQLite file; defaults to `<dataDir>/gero.db`. Tests use ':memory:'. */
+  /** SQLite file; defaults to `<dataDir>/vokabeltrainer.db`. Tests use ':memory:'. */
   dbFile?: string;
   /** Directory of the built web app; served as static files when set. */
   webDist: string | null;

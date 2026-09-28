@@ -1,4 +1,4 @@
-package de.gero.app;
+package de.vokabeltrainer.app;
 
 import com.getcapacitor.BridgeActivity;
 

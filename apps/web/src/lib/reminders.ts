@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import type { DueDayDto } from '@gero/shared';
+import type { DueDayDto } from '@vokabeltrainer/shared';
 import { useI18n } from '../i18n';
 import { api } from './api';
 import { fill } from './format';
@@ -62,13 +62,13 @@ export function useReminderSync(enabled: boolean) {
       await LocalNotifications.schedule({
         notifications: planned.map((r) => ({
           id: r.id,
-          title: 'Gero',
+          title: 'Vokabeltrainer',
           body:
             r.count === 1
               ? m.app.notificationBodyOne
               : fill(m.app.notificationBody, { n: r.count }),
           schedule: { at: r.at, allowWhileIdle: true },
-          smallIcon: 'ic_stat_gero',
+          smallIcon: 'ic_stat_vokabeltrainer',
         })),
       });
     })().catch(() => undefined);

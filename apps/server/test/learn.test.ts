@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { addDays, todayIn } from '@gero/shared';
+import { addDays, todayIn } from '@vokabeltrainer/shared';
 import { ORIGIN, register, sessionCookie, testApp } from './helpers';
 
 let app: FastifyInstance;
@@ -11,7 +11,7 @@ beforeEach(async () => {
   app = await testApp();
   headers = {
     origin: ORIGIN,
-    cookie: `gero_session=${sessionCookie(await register(app, { timezone: 'Europe/Berlin' }))}`,
+    cookie: `vokabeltrainer_session=${sessionCookie(await register(app, { timezone: 'Europe/Berlin' }))}`,
   };
   // These tests run without AI (no network): remove the preset checking model.
   await app.inject({ method: 'DELETE', url: '/api/ai/tasks/check', headers });
@@ -175,7 +175,7 @@ describe('Antworten', () => {
     const { vocab } = await seed();
     headers = {
       origin: ORIGIN,
-      cookie: `gero_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
+      cookie: `vokabeltrainer_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
     };
     expect((await answer(vocab[0].id, { answer: 'Freund' })).statusCode).toBe(404);
   });

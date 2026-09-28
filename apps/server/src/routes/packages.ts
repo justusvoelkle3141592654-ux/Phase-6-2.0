@@ -8,7 +8,7 @@ import {
   vocabUpdateSchema,
   type PackageDto,
   type VocabDto,
-} from '@gero/shared';
+} from '@vokabeltrainer/shared';
 import type { Db } from '../db';
 import { packages, vocab, type Package, type Vocab } from '../db/schema';
 import { parseBody } from './parse';

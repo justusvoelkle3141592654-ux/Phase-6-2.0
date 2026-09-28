@@ -7,7 +7,7 @@ import {
   type OverviewDto,
   type SummaryDto,
   type TodayStats,
-} from '@gero/shared';
+} from '@vokabeltrainer/shared';
 import type { Db } from '../db';
 import { attempts, dailySummaries, vocab } from '../db/schema';
 import type { AiService } from '../ai/service';

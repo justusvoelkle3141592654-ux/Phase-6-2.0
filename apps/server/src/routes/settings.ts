@@ -6,7 +6,7 @@ import {
   DEFAULT_WRONG_MODE,
   updateSettingsSchema,
   type UserSettings,
-} from '@gero/shared';
+} from '@vokabeltrainer/shared';
 import type { Db } from '../db';
 import { userSettings, users } from '../db/schema';
 import { parseBody } from './parse';

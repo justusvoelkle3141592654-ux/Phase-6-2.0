@@ -1,4 +1,4 @@
-import { recognitionSchema, type RecognizedEntry } from '@gero/shared';
+import { recognitionSchema, type RecognizedEntry } from '@vokabeltrainer/shared';
 import type { AiService } from '../ai/service';
 import { ProviderError, type ChatMessage } from '../ai';
 

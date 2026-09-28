@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { PackageDto, PackageInput, VocabDto, VocabInput } from '@gero/shared';
+import type { PackageDto, PackageInput, VocabDto, VocabInput } from '@vokabeltrainer/shared';
 import { api } from './api';
 
 export const PACKAGES_KEY = ['packages'] as const;

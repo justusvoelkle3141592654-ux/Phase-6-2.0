@@ -1,4 +1,4 @@
-import { DEFAULT_AI_TIMEOUT_MS, normalize, type CardDirection } from '@gero/shared';
+import { DEFAULT_AI_TIMEOUT_MS, normalize, type CardDirection } from '@vokabeltrainer/shared';
 import type { AiService } from '../ai/service';
 import type { Db } from '../db';
 import { getSettings } from '../routes/settings';

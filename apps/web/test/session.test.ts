@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AnswerResult, LearnCard } from '@gero/shared';
+import type { AnswerResult, LearnCard } from '@vokabeltrainer/shared';
 import {
   changeDirection,
   overrideLast,

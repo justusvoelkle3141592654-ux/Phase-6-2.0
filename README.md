@@ -1,4 +1,4 @@
-# Gero – KI-gestützter Vokabeltrainer
+# Vokabeltrainer – KI-gestützt
 
 Selbst gehosteter Vokabeltrainer für den Browser und als Android-App. Fotos aus dem
 handgeschriebenen Vokabelheft werden per KI in Vokabelpakete umgewandelt und nach dem
@@ -8,10 +8,10 @@ prüft getippte Antworten. Mehrere Accounts auf einem Server, die Daten sind get
 ## Schnellstart mit Docker
 
 ```bash
-git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git gero
-cd gero
+git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git vokabeltrainer
+cd vokabeltrainer
 docker compose up -d
-docker compose logs gero | grep Registrierungscode
+docker compose logs vokabeltrainer | grep Registrierungscode
 ```
 
 Dann <http://localhost:3000> öffnen (im Heimnetz `http://<IP-des-Servers>:3000`), mit dem
@@ -24,18 +24,18 @@ Die **Android-App** liegt fertig unter [`release/`](release/) bzw. bei den GitHu
 
 ### Docker Compose
 
-`docker-compose.yml` startet Gero auf Port 3000. Daten (Datenbank, Fotos, `secrets.json`) liegen
-im Volume `gero-data`. Einstellungen kommen aus einer `.env` neben der Compose-Datei
+`docker-compose.yml` startet den Vokabeltrainer auf Port 3000. Daten (Datenbank, Fotos, `secrets.json`) liegen
+im Volume `vokabeltrainer-data`. Einstellungen kommen aus einer `.env` neben der Compose-Datei
 (Vorlage `.env.example`, siehe [Konfiguration](#konfiguration)).
 
 ```bash
-docker compose up -d                        # Gero
+docker compose up -d                        # Vokabeltrainer
 docker compose --profile ollama up -d       # zusätzlich Ollama für lokale KI
 docker compose --profile https up -d        # zusätzlich Caddy mit HTTPS
 ```
 
 - **Ollama im Compose-Netz:** Modelle laden mit
-  `docker compose exec ollama ollama pull <modell>`, in Gero unter Einstellungen → KI einen
+  `docker compose exec ollama ollama pull <modell>`, im Vokabeltrainer unter Einstellungen → KI einen
   Anbieter „Eigener Server“ mit Adresse `http://ollama:11434` und Format „Ollama“ anlegen.
 - **HTTPS:** In `deploy/Caddyfile` die eigene Domain eintragen (DNS muss auf den Server zeigen,
   Ports 80 und 443 erreichbar), in `.env` `TRUST_PROXY=true` setzen. Caddy holt die Zertifikate
@@ -48,8 +48,8 @@ werden normalerweise fertige Binärdateien geladen; passt keine, braucht npm Pyt
 C++-Compiler.
 
 ```bash
-git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git gero
-cd gero
+git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git vokabeltrainer
+cd vokabeltrainer
 npm ci
 npm run build
 cp .env.example .env   # optional, die Standardwerte funktionieren
@@ -61,17 +61,17 @@ Der Server liefert Oberfläche und API gemeinsam auf <http://localhost:3000> aus
 
 ### Als systemd-Dienst
 
-Vorlage: `deploy/gero.service` (erwartet das Projekt unter `/opt/gero` und einen
-Systembenutzer `gero`).
+Vorlage: `deploy/vokabeltrainer.service` (erwartet das Projekt unter `/opt/vokabeltrainer` und einen
+Systembenutzer `vokabeltrainer`).
 
 ```bash
-sudo useradd --system --home /opt/gero --shell /usr/sbin/nologin gero
-sudo git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git /opt/gero
-cd /opt/gero && sudo npm ci && sudo npm run build
-sudo mkdir -p /opt/gero/data && sudo chown -R gero:gero /opt/gero/data
-sudo cp deploy/gero.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now gero
-journalctl -u gero | grep Registrierungscode
+sudo useradd --system --home /opt/vokabeltrainer --shell /usr/sbin/nologin vokabeltrainer
+sudo git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git /opt/vokabeltrainer
+cd /opt/vokabeltrainer && sudo npm ci && sudo npm run build
+sudo mkdir -p /opt/vokabeltrainer/data && sudo chown -R vokabeltrainer:vokabeltrainer /opt/vokabeltrainer/data
+sudo cp deploy/vokabeltrainer.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now vokabeltrainer
+journalctl -u vokabeltrainer | grep Registrierungscode
 ```
 
 ### HTTPS über einen Reverse-Proxy
@@ -79,12 +79,12 @@ journalctl -u gero | grep Registrierungscode
 Für den Zugriff aus dem Internet gehört ein Reverse-Proxy mit HTTPS davor, z. B. Caddy:
 
 ```
-gero.example.org {
+vokabeltrainer.example.org {
 	reverse_proxy localhost:3000
 }
 ```
 
-Dazu `TRUST_PROXY=true` setzen, damit Gero HTTPS erkennt (das Sitzungs-Cookie wird dann mit
+Dazu `TRUST_PROXY=true` setzen, damit der Vokabeltrainer HTTPS erkennt (das Sitzungs-Cookie wird dann mit
 `Secure` gesetzt). Im Heimnetz geht es auch ohne HTTPS; die Android-App erlaubt dort Klartext-HTTP.
 
 ### Aktualisieren
@@ -92,16 +92,16 @@ Dazu `TRUST_PROXY=true` setzen, damit Gero HTTPS erkennt (das Sitzungs-Cookie wi
 ```bash
 git pull
 docker compose up -d --build                 # Docker
-npm ci && npm run build && sudo systemctl restart gero   # direkte Installation
+npm ci && npm run build && sudo systemctl restart vokabeltrainer   # direkte Installation
 ```
 
 Datenbank-Migrationen laufen beim Start automatisch.
 
 ### Sichern
 
-Alles Wichtige liegt im Datenordner (`data/` bzw. Volume `gero-data`): `gero.db` (Datenbank),
+Alles Wichtige liegt im Datenordner (`data/` bzw. Volume `vokabeltrainer-data`): `vokabeltrainer.db` (Datenbank),
 `uploads/` (Fotos) und `secrets.json` (Registrierungscode und Hauptschlüssel). Für eine konsistente
-Sicherung den Dienst kurz stoppen oder mit `sqlite3 data/gero.db ".backup sicherung.db"` sichern.
+Sicherung den Dienst kurz stoppen oder mit `sqlite3 data/vokabeltrainer.db ".backup sicherung.db"` sichern.
 **Ohne `secrets.json` (bzw. `APP_SECRET`) lassen sich gespeicherte API-Schlüssel nicht mehr
 entschlüsseln.**
 
@@ -128,7 +128,7 @@ npm run typecheck # TypeScript-Prüfung aller Pakete
 Nach einer Änderung an `apps/server/src/db/schema.ts` eine neue Migration erzeugen:
 
 ```bash
-npm run db:generate -w @gero/server
+npm run db:generate -w @vokabeltrainer/server
 ```
 
 ## Konfiguration
@@ -159,7 +159,7 @@ E-Mails verschickt.
 - Dasselbe gilt für `APP_SECRET`. Mit diesem Schlüssel werden die API-Schlüssel der
   KI-Anbieter verschlüsselt. **`data/secrets.json` sichern und nicht verlieren**, sonst müssen
   alle API-Schlüssel neu eingegeben werden. Die Datei ist nur für den Besitzer lesbar (Rechte 600).
-- Anmeldung im Browser über ein Cookie (`gero_session`, HttpOnly). Die Android-App bekommt
+- Anmeldung im Browser über ein Cookie (`vokabeltrainer_session`, HttpOnly). Die Android-App bekommt
   stattdessen einen Token. Sitzungen laufen nach 90 Tagen ohne Nutzung ab.
 - Anmelden, Registrieren und Passwort ändern sind auf 10 Versuche pro Minute begrenzt.
 - Wer das Passwort ändert, wird auf allen anderen Geräten abgemeldet.
@@ -261,7 +261,7 @@ mit ← und →).
 5. Alles andere entscheidet das Prüfmodell (kurzer Prompt, Antwort nur ein Wort: richtig /
    tippfehler / falsch; Synonyme zählen als richtig). **Sagt die KI „falsch“, ist es falsch.**
 6. Zeitlimit (Standard 2 Sekunden, in den Einstellungen änderbar). Antwortet die KI nicht
-   rechtzeitig, ist sie nicht erreichbar oder unverständlich, entscheidet Gero selbst (unklar =
+   rechtzeitig, ist sie nicht erreichbar oder unverständlich, entscheidet der Vokabeltrainer selbst (unklar =
    falsch) und zeigt den Button „Ich hatte recht“. Das Lernen läuft immer weiter.
 7. KI-Urteile und Korrekturen werden je Vokabel und normalisierter Antwort gespeichert und beim
    nächsten Mal ohne KI verwendet.
@@ -274,18 +274,18 @@ Modell und Anbieter ab; die gemessenen Werte stehen in den Einstellungen.
 ## Android-App
 
 Die Android-App ist dieselbe Oberfläche, verpackt mit Capacitor (`apps/web/android`). Sie spricht
-mit deinem Gero-Server; iOS gibt es nicht.
+mit deinem Vokabeltrainer-Server; iOS gibt es nicht.
 
 ### APK herunterladen
 
-- **Fertiges APK:** im Repository unter [`release/`](release/) (z. B. `release/Gero-1.0.0.apk`) und
+- **Fertiges APK:** im Repository unter [`release/`](release/) (z. B. `release/Vokabeltrainer-1.0.0.apk`) und
   auf GitHub unter **Releases** (Tag `v1.0.0`). Herunterladen, auf dem Handy öffnen und die
   Installation aus „unbekannten Quellen“ erlauben.
 - **Automatisch gebaut:** Bei jedem Push, der die Oberfläche ändert, baut der Workflow
   **Android-APK** (`.github/workflows/android.yml`) ein signiertes APK (Actions → Android-APK →
   Lauf → Artifacts). Von Hand gestartet („Run workflow“ mit _publish_) legt er das APK zusätzlich
   unter `release/` ab und aktualisiert das Release.
-- **Updates:** Alle APKs sind mit demselben Schlüssel signiert (`apps/web/android/app/gero-release.keystore`),
+- **Updates:** Alle APKs sind mit demselben Schlüssel signiert (`apps/web/android/app/vokabeltrainer-release.keystore`),
   deshalb installiert sich eine neuere Version über die alte, die Daten bleiben erhalten. Der
   Schlüssel liegt im Repository – für den privaten Gebrauch in Ordnung, für eine
   Veröffentlichung im Play Store einen eigenen, geheimen Schlüssel verwenden.
@@ -294,7 +294,7 @@ mit deinem Gero-Server; iOS gibt es nicht.
 
 1. Server-Adresse eingeben:
    - im Heimnetz z. B. `http://192.168.1.20:3000` (Klartext-HTTP ist in der App erlaubt),
-   - über das Internet z. B. `https://gero.example.org` (hinter einem Reverse-Proxy mit HTTPS).
+   - über das Internet z. B. `https://vokabeltrainer.example.org` (hinter einem Reverse-Proxy mit HTTPS).
 2. Anmelden oder registrieren (Registrierungscode wie im Browser). Die App bekommt einen Token,
    der in den Capacitor Preferences gespeichert wird; Cookies werden nicht verwendet.
 3. Unter **Einstellungen → Erinnerung** eine Uhrzeit wählen. Die App plant lokale
@@ -310,7 +310,7 @@ Voraussetzungen: Node.js 22.12+, JDK 21, Android Studio mit Android SDK (API 36)
 ```bash
 npm install
 npm run android:sync          # Oberfläche bauen und nach apps/web/android kopieren
-npm run android:open -w @gero/web   # öffnet das Projekt in Android Studio
+npm run android:open -w @vokabeltrainer/web   # öffnet das Projekt in Android Studio
 ```
 
 In Android Studio mit **Run ▶** auf ein angeschlossenes Handy oder einen Emulator installieren,
