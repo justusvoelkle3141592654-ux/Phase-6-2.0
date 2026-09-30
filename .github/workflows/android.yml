@@ -4,18 +4,7 @@
 name: Android-APK
 
 on:
-  push:
-    paths:
-      - 'apps/web/**'
-      - 'packages/shared/**'
-      - 'package-lock.json'
-      - '.github/workflows/android.yml'
-  workflow_dispatch:
-    inputs:
-      publish:
-        description: 'APK ins Repository legen und als Release veröffentlichen'
-        type: boolean
-        default: false
+
 
 permissions:
   contents: write
