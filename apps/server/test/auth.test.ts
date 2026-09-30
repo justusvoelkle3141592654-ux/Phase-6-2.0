@@ -76,6 +76,38 @@ describe('Registrierung', () => {
   });
 });
 
+describe('Offline-Modus', () => {
+  it('meldet ohne Registrierungscode mit Standard-Account an', async () => {
+    const localApp = await testApp({ offlineMode: true });
+    const info = await localApp.inject({ method: 'GET', url: '/api/auth/mode', headers: json });
+    expect(info.statusCode).toBe(200);
+    expect(info.json()).toMatchObject({ offlineMode: true, email: 'offline@local.test' });
+
+    const registerRes = await localApp.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      headers: json,
+      payload: {
+        email: 'guest@example.org',
+        password: 'geheim123',
+        uiLanguage: 'de',
+        timezone: 'Europe/Berlin',
+      },
+    });
+    expect(registerRes.statusCode).toBe(201);
+
+    const loginRes = await localApp.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers: json,
+      payload: { email: 'offline@local.test', password: 'offline' },
+    });
+    expect(loginRes.statusCode).toBe(200);
+    expect(sessionCookie(loginRes)).toBeTruthy();
+    await localApp.close();
+  });
+});
+
 describe('Anmeldung', () => {
   beforeEach(async () => {
     await register(app);
@@ -210,6 +242,18 @@ describe('Schutz vor Cross-Site-Anfragen', () => {
     });
     expect(res.statusCode).toBe(403);
     expect(res.json()).toEqual({ error: 'forbidden_origin' });
+  });
+
+  it('erlaubt Vite-Dev-Requests vom selben Host mit anderem Port', async () => {
+    await register(app);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers: { origin: 'http://192.168.100.59:5173', host: '192.168.100.59:3000' },
+      payload: { email: 'anna@example.org', password: 'geheim123' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(sessionCookie(res)).toBeTruthy();
   });
 
   it('lehnt Cookie-Anfragen ohne Origin ab', async () => {

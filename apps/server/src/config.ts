@@ -16,6 +16,8 @@ export interface AppConfig {
   appSecret: string | null;
   /** Code required for self-registration. Generated into dataDir when not set. */
   registrationCode: string | null;
+  /** Start in a local single-user mode without the registration gate. */
+  offlineMode: boolean;
   /** Set when running behind a reverse proxy (Caddy, nginx) that terminates HTTPS. */
   trustProxy: boolean;
   /** Extra origins allowed for token-authenticated requests (the Android app). */
@@ -35,8 +37,16 @@ function parseList(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-/** Origins used by the Capacitor Android WebView. */
-export const APP_ORIGINS = ['http://localhost', 'https://localhost', 'capacitor://localhost'];
+/** Origins used by the Capacitor Android WebView and Vite dev server. */
+export const APP_ORIGINS = [
+  'http://localhost',
+  'https://localhost',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+  'capacitor://localhost',
+];
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const port = Number(env.PORT ?? 3000);
@@ -50,6 +60,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     webDist: env.WEB_DIST === '' ? null : path.resolve(REPO_ROOT, env.WEB_DIST ?? 'apps/web/dist'),
     appSecret: env.APP_SECRET || null,
     registrationCode: env.REGISTRATION_CODE || null,
+    offlineMode: parseBool(env.OFFLINE_MODE, false),
     trustProxy: parseBool(env.TRUST_PROXY, false),
     corsOrigins: [...APP_ORIGINS, ...parseList(env.CORS_ORIGINS)],
     logLevel: env.LOG_LEVEL ?? 'info',

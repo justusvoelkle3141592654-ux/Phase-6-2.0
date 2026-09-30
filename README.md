@@ -17,6 +17,10 @@ docker compose logs gero | grep Registrierungscode
 Dann <http://localhost:3000> öffnen (im Heimnetz `http://<IP-des-Servers>:3000`), mit dem
 Registrierungscode einen Account anlegen und dem Einrichtungsassistenten folgen.
 
+Für ein lokales Test-Setup ohne Konto-Registrierung kann `OFFLINE_MODE=true` in `.env` gesetzt
+werden. Dann startet der Server mit einem Standard-Offline-Account (`offline@local.test` / `offline`)
+und der Login-Dialog bietet einen direkten „Continue offline“-Button.
+
 Die **Android-App** liegt fertig unter [`release/`](release/) bzw. bei den GitHub-Releases
 (siehe [Android-App](#android-app)).
 
@@ -145,6 +149,7 @@ Alle Einstellungen laufen über Umgebungsvariablen oder eine `.env`-Datei im Pro
 | `CORS_ORIGINS`      | –            | Zusätzlich erlaubte Origins, kommagetrennt (Android-App ist erlaubt) |
 | `LOG_LEVEL`         | `info`       | `fatal`, `error`, `warn`, `info`, `debug`, `trace` oder `silent`     |
 | `REGISTRATION_CODE` | wird erzeugt | Code, den man zum Registrieren braucht (siehe unten)                 |
+| `OFFLINE_MODE`      | `false`      | Startet ohne Registrierungscode mit Offline-Standardaccount          |
 | `APP_SECRET`        | wird erzeugt | Hauptschlüssel für die Verschlüsselung gespeicherter API-Schlüssel   |
 
 ## Accounts
@@ -156,6 +161,9 @@ E-Mails verschickt.
 - Ist `REGISTRATION_CODE` nicht gesetzt, erzeugt der Server beim ersten Start einen Code
   (z. B. `U4JM-E3E5-KVHH`), speichert ihn in `data/secrets.json` und schreibt ihn bei jedem Start
   ins Log (`Registrierungscode: …`). Groß-/Kleinschreibung spielt bei der Eingabe keine Rolle.
+- Mit `OFFLINE_MODE=true` wird der Server in einem lokalen Ein-Benutzer-Modus gestartet: Dann
+  funktionieren Login und Registrierung ohne Code, und ein Standardkonto `offline@local.test` /
+  `offline` wird automatisch angelegt.
 - Dasselbe gilt für `APP_SECRET`. Mit diesem Schlüssel werden die API-Schlüssel der
   KI-Anbieter verschlüsselt. **`data/secrets.json` sichern und nicht verlieren**, sonst müssen
   alle API-Schlüssel neu eingegeben werden. Die Datei ist nur für den Besitzer lesbar (Rechte 600).

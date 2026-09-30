@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@capacitor/cli": "8.4.3",
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.3.0",
     "@fastify/multipart": "^10.1.2",
@@ -27,7 +28,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
-    "drizzle-kit": "^0.31.11",
+    "drizzle-kit": "^0.18.1",
     "esbuild": "^0.28.2",
     "tsx": "^4.23.15"
   }

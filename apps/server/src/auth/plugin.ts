@@ -31,6 +31,14 @@ function normalizeHost(host: string): string {
   return host.toLowerCase().replace(/:(80|443)$/, '');
 }
 
+function hostname(value: string): string | null {
+  try {
+    return new URL(value.includes('://') ? value : `http://${value}`).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
 function originHost(request: FastifyRequest): string | null | undefined {
   const value = request.headers.origin ?? request.headers.referer;
   if (!value) return undefined;
@@ -75,8 +83,11 @@ export const authPlugin = fp<{ db: Db; corsOrigins: string[] }>(
       // cannot send cookies cross-origin anyway).
       if (!bearer && UNSAFE_METHODS.has(request.method)) {
         const host = originHost(request);
+        const requestHostname = hostname(`http://${request.headers.host ?? request.host}`);
+        const originHostname = typeof host === 'string' ? hostname(host) : null;
         const allowed =
           host === normalizeHost(request.host) ||
+          (requestHostname !== null && originHostname !== null && requestHostname === originHostname) ||
           (host === undefined && !cookie) ||
           (request.headers.origin !== undefined && corsOrigins.includes(request.headers.origin));
         if (!allowed) return reply.code(403).send({ error: 'forbidden_origin' });
