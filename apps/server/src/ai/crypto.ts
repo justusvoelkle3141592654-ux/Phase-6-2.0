@@ -8,7 +8,7 @@ export class SecretBox {
   private readonly key: Buffer;
 
   constructor(appSecret: string) {
-    this.key = crypto.createHash('sha256').update(`gero-api-keys:${appSecret}`).digest();
+    this.key = crypto.createHash('sha256').update(`wordflow-api-keys:${appSecret}`).digest();
   }
 
   encrypt(plain: string): string {

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ChevronLeft, GraduationCap, Pencil, Trash2 } from 'lucide-react';
-import type { PackageDto, VocabDto } from '@gero/shared';
+import type { PackageDto, VocabDto } from '@wordflow/shared';
 import { Notice } from '../components/Notice';
 import { PackageForm } from '../components/PackageForm';
 import { StageBadge } from '../components/StageBadge';

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Camera, GraduationCap, Sparkles } from 'lucide-react';
-import type { OverviewDto } from '@gero/shared';
+import type { OverviewDto } from '@wordflow/shared';
 import { Notice } from '../components/Notice';
 import { EmptyState, PageHeader } from '../components/Page';
 import { useI18n } from '../i18n';

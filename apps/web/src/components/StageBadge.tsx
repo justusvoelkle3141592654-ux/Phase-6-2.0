@@ -1,4 +1,4 @@
-import type { VocabDto } from '@gero/shared';
+import type { VocabDto } from '@wordflow/shared';
 import { useI18n } from '../i18n';
 import { fill } from '../lib/format';
 

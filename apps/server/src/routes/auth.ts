@@ -8,7 +8,7 @@ import {
   updateProfileSchema,
   type AuthResponse,
   type UserDto,
-} from '@gero/shared';
+} from '@wordflow/shared';
 import type { Db } from '../db';
 import { users, type User } from '../db/schema';
 import { burnPasswordCheck, hashPassword, verifyPassword } from '../auth/password';

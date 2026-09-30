@@ -49,7 +49,7 @@ describe('Hochladen und Erkennen', () => {
         stream(res, 'text/event-stream', openAiStream(replies.shift() ?? '', 1)),
     });
     app = await testApp();
-    headers = { origin: ORIGIN, cookie: `gero_session=${sessionCookie(await register(app))}` };
+    headers = { origin: ORIGIN, cookie: `wordflow_session=${sessionCookie(await register(app))}` };
     const provider = (
       await app.inject({
         method: 'POST',
@@ -229,7 +229,7 @@ describe('Hochladen und Erkennen', () => {
     const job = await waitForJob((await upload()).json().job.id);
     const bob = {
       origin: ORIGIN,
-      cookie: `gero_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
+      cookie: `wordflow_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
     };
     expect(
       (await app.inject({ method: 'GET', url: `/api/uploads/${job.id}`, headers: bob })).statusCode,

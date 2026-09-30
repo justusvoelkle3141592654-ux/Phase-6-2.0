@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import type { UserDto, UserSettings } from '@gero/shared';
+import type { UserDto, UserSettings } from '@wordflow/shared';
 import { I18nProvider } from '../src/i18n';
 import { routes } from '../src/router';
 

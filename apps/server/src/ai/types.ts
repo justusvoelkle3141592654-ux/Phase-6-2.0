@@ -1,4 +1,4 @@
-import type { LatencyDto, ModelInfoDto, ProviderErrorCode } from '@gero/shared';
+import type { LatencyDto, ModelInfoDto, ProviderErrorCode } from '@wordflow/shared';
 
 export interface ChatImage {
   mediaType: string;

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { OverviewDto, SummaryDto } from '@gero/shared';
+import type { OverviewDto, SummaryDto } from '@wordflow/shared';
 import { api } from './api';
 
 export function useOverview() {

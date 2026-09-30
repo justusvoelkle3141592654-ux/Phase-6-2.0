@@ -45,7 +45,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
     app.log.info('Offline-Modus aktiv: Ein Standard-Account wird ohne Registrierung gestartet.');
   }
 
-  const db = openDatabase(config.dbFile ?? path.join(config.dataDir, 'gero.db'));
+  const db = openDatabase(config.dbFile ?? path.join(config.dataDir, 'wordflow.db'));
   deleteExpiredSessions(db);
   if (config.offlineMode) {
     await ensureOfflineUser(db);

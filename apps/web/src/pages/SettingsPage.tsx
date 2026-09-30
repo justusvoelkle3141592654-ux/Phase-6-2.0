@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { LogOut } from 'lucide-react';
-import { PASSWORD_MIN_LENGTH, type UserDto, type UserSettings, type WrongMode } from '@gero/shared';
+import { PASSWORD_MIN_LENGTH, type UserDto, type UserSettings, type WrongMode } from '@wordflow/shared';
 import { LanguageSwitch } from '../components/LanguageSwitch';
 import { Notice } from '../components/Notice';
 import { AiSettings } from '../components/ai/AiSettings';

@@ -1,4 +1,4 @@
-import { UI_LANGUAGES, type UiLanguage } from '@gero/shared';
+import { UI_LANGUAGES, type UiLanguage } from '@wordflow/shared';
 import { useI18n } from '../i18n';
 
 const LANGUAGE_NAMES = { de: 'Deutsch', en: 'English' } as const;

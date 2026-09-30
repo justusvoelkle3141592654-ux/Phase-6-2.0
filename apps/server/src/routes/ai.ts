@@ -9,7 +9,7 @@ import {
   testConnectionSchema,
   type AiTask,
   type TestResultDto,
-} from '@gero/shared';
+} from '@wordflow/shared';
 import type { Db } from '../db';
 import { providerConfigs, taskModels, type ProviderConfig } from '../db/schema';
 import { ProviderError } from '../ai';

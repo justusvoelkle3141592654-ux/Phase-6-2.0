@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { GraduationCap } from 'lucide-react';
-import type { AnswerResult } from '@gero/shared';
+import type { AnswerResult } from '@wordflow/shared';
 import { Flashcard } from '../components/Flashcard';
 import { Notice } from '../components/Notice';
 import { EmptyState, PageHeader } from '../components/Page';

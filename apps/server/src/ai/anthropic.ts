@@ -1,4 +1,4 @@
-import type { ModelInfoDto } from '@gero/shared';
+import type { ModelInfoDto } from '@wordflow/shared';
 import {
   lines,
   readJson,
