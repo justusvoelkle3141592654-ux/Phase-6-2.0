@@ -2,12 +2,17 @@ export const de = {
   appName: 'WordFlow',
   tagline: 'Vokabeltrainer',
   nav: {
+    declensions: 'Deklinationen',
     label: 'Hauptnavigation',
     home: 'Start',
     upload: 'Hochladen',
     packages: 'Pakete',
     learn: 'Lernen',
     settings: 'Einstellungen',
+  },
+  declensions: {
+    title: 'Deklinationen',
+    select: 'Klasse wählen',
   },
   home: {
     title: 'Heute',

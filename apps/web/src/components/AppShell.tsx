@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router';
-import { Camera, GraduationCap, House, Layers, Settings, type LucideIcon } from 'lucide-react';
+import { Camera, GraduationCap, House, Layers, Settings, BookOpen, type LucideIcon } from 'lucide-react';
 import { useI18n } from '../i18n';
 import type { Messages } from '../i18n/de';
 import { Wordmark } from './Wordmark';
@@ -15,6 +15,7 @@ export const TABS: Tab[] = [
   { to: '/upload', label: 'upload', icon: Camera },
   { to: '/packages', label: 'packages', icon: Layers },
   { to: '/learn', label: 'learn', icon: GraduationCap },
+  { to: '/declensions', label: 'declensions', icon: BookOpen },
   { to: '/settings', label: 'settings', icon: Settings },
 ];
 

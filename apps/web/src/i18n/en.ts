@@ -4,12 +4,17 @@ export const en: Messages = {
   appName: 'WordFlow',
   tagline: 'Vocabulary trainer',
   nav: {
+    settings: 'Settings',
     label: 'Main navigation',
     home: 'Home',
     upload: 'Upload',
     packages: 'Decks',
     learn: 'Learn',
-    settings: 'Settings',
+    declensions: 'Declensions',
+  },
+  declensions: {
+    title: 'Declensions',
+    select: 'Select class',
   },
   home: {
     title: 'Today',
@@ -38,8 +43,8 @@ export const en: Messages = {
     summaryFailed: 'The summary could not be created right now.',
     summaryStale: 'As of before your latest answers.',
     retry: 'Try again',
-  },
-  upload: {
+    },
+    upload: {
     title: 'Upload vocabulary',
     empty:
       'Take photos of pages from your vocabulary notebook. The words are recognised automatically.',
@@ -406,3 +411,4 @@ export const en: Messages = {
     comingSoon: 'Coming in one of the next steps.',
   },
 };
+
