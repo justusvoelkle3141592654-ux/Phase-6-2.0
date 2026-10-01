@@ -2,9 +2,6 @@ import { useState } from 'react';
 import { useI18n } from '../i18n';
 import { PageHeader } from '../components/Page';
 
-import { Link } from 'react-router';
-import { Camera } from 'lucide-react';
-
 // Placeholder page for Latin declension classes. In a full implementation,
 // this would provide a UI to select and practice declension tables.
 export function DeclensionsPage() {
@@ -118,52 +115,57 @@ export function DeclensionsPage() {
   return (
     <>
       <PageHeader title={m.declensions.title} />
-      <div className="mb-4">
-        <label className="label" htmlFor="decl-select">
-          {m.declensions.select}
-        </label>
-        <select
-          id="decl-select"
-          className="field"
-          value={selected}
-          onChange={(e) => {
-            setSelected(e.target.value);
-            setQuizMode(false);
-            setFeedback(null);
-          }}
-        >
-          <option value="">—</option>
-          {declensions.map((d) => (
-            <option key={d.name} value={d.name}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-        {selected && !quizMode && (
-          <button className="btn btn-primary ml-2" onClick={startQuiz}>
-            Quiz starten
-          </button>
-        )}
-        {quizMode && (
-          <button className="btn btn-secondary ml-2" onClick={endQuiz}>
-            Quiz beenden
-          </button>
-        )}
+      <div className="mb-6 space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label className="label" htmlFor="decl-select">
+              {m.declensions.select}
+            </label>
+            <select
+              id="decl-select"
+              className="field"
+              value={selected}
+              onChange={(e) => {
+                setSelected(e.target.value);
+                setQuizMode(false);
+                setFeedback(null);
+              }}
+            >
+              <option value="">—</option>
+              {declensions.map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selected && !quizMode && (
+            <button type="button" className="btn btn-primary sm:self-center" onClick={startQuiz}>
+              Quiz starten
+            </button>
+          )}
+          {quizMode && (
+            <button type="button" className="btn btn-secondary sm:self-center" onClick={endQuiz}>
+              Quiz beenden
+            </button>
+          )}
+        </div>
       </div>
       {quizMode && question && (
-        <div className="mb-4">
+        <div className="mb-4 space-y-3">
           <p className="font-semibold">
             {question.decl.name}: {question.case} ({question.number})
           </p>
-          <form onSubmit={checkAnswer}>
+          <form onSubmit={checkAnswer} className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
-              className="field mr-2"
+              className="field w-full sm:max-w-xs"
               placeholder="Deine Antwort"
               value={userAnswer}
               onChange={(e) => setUserAnswer(e.target.value)}
               required
             />
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn btn-primary shrink-0">
               Prüfen
             </button>
           </form>
@@ -172,7 +174,7 @@ export function DeclensionsPage() {
               {feedback.message}
             </p>
           )}
-          <button className="btn btn-secondary mt-2" onClick={() => nextQuestion()}>
+          <button type="button" className="btn btn-secondary" onClick={() => nextQuestion()}>
             Nächste Frage
           </button>
         </div>
