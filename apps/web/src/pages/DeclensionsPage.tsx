@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useI18n } from '../i18n';
-import { PageHeader, EmptyState } from '../components/Page';
+import { PageHeader } from '../components/Page';
+
 import { Link } from 'react-router';
 import { Camera } from 'lucide-react';
 
@@ -9,6 +10,7 @@ import { Camera } from 'lucide-react';
 export function DeclensionsPage() {
   const { m } = useI18n();
   const [selected, setSelected] = useState('');
+
   const declensions = [
     {
       name: 'puella',
@@ -41,7 +43,77 @@ export function DeclensionsPage() {
       ],
     },
   ];
-  const decl = declensions.find((d) => d.name === selected);
+
+  // Quiz state
+  const [quizMode, setQuizMode] = useState(false);
+  const [question, setQuestion] = useState<any>(null);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [feedback, setFeedback] = useState<any>(null);
+
+  const startQuiz = () => {
+    // If a noun is selected, quiz only that noun; otherwise quiz all declensions
+    const targetDecls = selected ? declensions.filter((d) => d.name === selected) : declensions;
+    const pool = targetDecls.flatMap((d) =>
+      d.rows.flatMap((row) => [
+        {
+          decl: d,
+          case: row.case,
+          number: 'Singular',
+          answer: row.singular,
+        },
+        {
+          decl: d,
+          case: row.case,
+          number: 'Plural',
+          answer: row.plural,
+        },
+      ])
+    );
+    setRemainingQuestions(pool);
+    setQuizMode(true);
+    // Start first question after pool is set
+    setTimeout(() => nextQuestion(pool), 0);
+  };
+
+  const [remainingQuestions, setRemainingQuestions] = useState<any[]>([]);
+
+  const nextQuestion = (questions = remainingQuestions) => {
+    if (questions.length === 0) {
+      // No more questions – end quiz automatically
+      endQuiz();
+      return;
+    }
+    const idx = Math.floor(Math.random() * questions.length);
+    const q = questions[idx];
+    setQuestion(q);
+    setUserAnswer('');
+    setFeedback(null);
+    // Remove selected question from the pool temporarily; will be re-added if answered incorrectly
+    const newPool = questions.filter((_, i) => i !== idx);
+    setRemainingQuestions(newPool);
+  };
+
+  const checkAnswer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!question) return;
+    const isCorrect = userAnswer.trim().toLowerCase() === question.answer.trim().toLowerCase();
+    setFeedback({
+      correct: isCorrect,
+      message: isCorrect ? 'Richtig!' : `Falsch – richtig wäre: ${question.answer}`,
+    });
+    if (!isCorrect) {
+      // Reinsert the question back into the pool for another try
+      setRemainingQuestions((prev) => [...prev, question]);
+    }
+  };
+
+  const endQuiz = () => {
+    setQuizMode(false);
+    setQuestion(null);
+    setFeedback(null);
+    setUserAnswer('');
+    setRemainingQuestions([]);
+  };
 
   return (
     <>
@@ -54,7 +126,11 @@ export function DeclensionsPage() {
           id="decl-select"
           className="field"
           value={selected}
-          onChange={(e) => setSelected(e.target.value)}
+          onChange={(e) => {
+            setSelected(e.target.value);
+            setQuizMode(false);
+            setFeedback(null);
+          }}
         >
           <option value="">—</option>
           {declensions.map((d) => (
@@ -63,38 +139,47 @@ export function DeclensionsPage() {
             </option>
           ))}
         </select>
+        {selected && !quizMode && (
+          <button className="btn btn-primary ml-2" onClick={startQuiz}>
+            Quiz starten
+          </button>
+        )}
+        {quizMode && (
+          <button className="btn btn-secondary ml-2" onClick={endQuiz}>
+            Quiz beenden
+          </button>
+        )}
       </div>
-      {decl && (
-        <table className="table-auto w-full border border-gray-200 mb-4">
-          <thead>
-            <tr>
-              <th className="px-2 py-1 border">Kasus</th>
-              <th className="px-2 py-1 border">Singular</th>
-              <th className="px-2 py-1 border">Plural</th>
-            </tr>
-          </thead>
-          <tbody>
-            {decl.rows.map((row) => (
-              <tr key={row.case}>
-                <td className="px-2 py-1 border">{row.case}</td>
-                <td className="px-2 py-1 border">{row.singular}</td>
-                <td className="px-2 py-1 border">{row.plural}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {quizMode && question && (
+        <div className="mb-4">
+          <p className="font-semibold">
+            {question.decl.name}: {question.case} ({question.number})
+          </p>
+          <form onSubmit={checkAnswer}>
+            <input
+              className="field mr-2"
+              placeholder="Deine Antwort"
+              value={userAnswer}
+              onChange={(e) => setUserAnswer(e.target.value)}
+              required
+            />
+            <button type="submit" className="btn btn-primary">
+              Prüfen
+            </button>
+          </form>
+          {feedback && (
+            <p className={feedback.correct ? 'text-green-600' : 'text-red-600'}>
+              {feedback.message}
+            </p>
+          )}
+          <button className="btn btn-secondary mt-2" onClick={() => nextQuestion()}>
+            Nächste Frage
+          </button>
+        </div>
       )}
-      <EmptyState
-        action={
-          <Link to="/learn" className="btn btn-primary">
-            <Camera className="size-5" aria-hidden="true" />
-            {m.learn.start}
-          </Link>
-        }
-      >
-        {/* Placeholder text – replace with actual declension UI later. */}
-        <p>Wähle ein Substantiv, um die Deklinationstabelle zu sehen.</p>
-      </EmptyState>
+      {!quizMode && selected && (
+        <p>Wähle "Quiz starten", um das Üben zu beginnen.</p>
+      )}
     </>
   );
 }

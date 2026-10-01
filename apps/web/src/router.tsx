@@ -27,6 +27,7 @@ export const routes = [
       { path: 'packages/:id', element: <PackageDetailPage /> },
       { path: 'learn', element: <LearnPage /> },
       { path: 'declensions', element: <DeclensionsPage /> },
+      { path: 'settings', element: <SettingsPage /> },
     ],
   },
 ];
