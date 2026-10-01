@@ -4,7 +4,7 @@ import {
   PROVIDER_PRESETS,
   type ProviderDto,
   type ProviderKind,
-} from '@gero/shared';
+} from '@wordflow/shared';
 import { useI18n } from '../../i18n';
 import { useCreateProvider } from '../../lib/ai';
 import { errorMessage } from '../../lib/errors';

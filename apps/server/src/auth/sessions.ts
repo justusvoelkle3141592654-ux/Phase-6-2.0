@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { and, eq, gt, lt, ne } from 'drizzle-orm';
-import { SESSION_DAYS } from '@gero/shared';
+import { SESSION_DAYS } from '@wordflow/shared';
 import type { Db } from '../db';
 import { sessions, users, type Session, type User } from '../db/schema';
 

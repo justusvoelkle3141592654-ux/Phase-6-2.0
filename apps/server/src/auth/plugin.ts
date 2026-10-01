@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
-import { SESSION_COOKIE } from '@gero/shared';
+import { SESSION_COOKIE } from '@wordflow/shared';
 import type { Db } from '../db';
 import type { Session, User } from '../db/schema';
 import { resolveSession, SESSION_MS } from './sessions';
@@ -29,6 +29,14 @@ function bearerToken(request: FastifyRequest): string | null {
 /** Host with the default ports removed, so "example.org:443" equals "example.org". */
 function normalizeHost(host: string): string {
   return host.toLowerCase().replace(/:(80|443)$/, '');
+}
+
+function hostname(value: string): string | null {
+  try {
+    return new URL(value.includes('://') ? value : `http://${value}`).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
 }
 
 function originHost(request: FastifyRequest): string | null | undefined {
@@ -75,8 +83,11 @@ export const authPlugin = fp<{ db: Db; corsOrigins: string[] }>(
       // cannot send cookies cross-origin anyway).
       if (!bearer && UNSAFE_METHODS.has(request.method)) {
         const host = originHost(request);
+        const requestHostname = hostname(`http://${request.headers.host ?? request.host}`);
+        const originHostname = typeof host === 'string' ? hostname(host) : null;
         const allowed =
           host === normalizeHost(request.host) ||
+          (requestHostname !== null && originHostname !== null && requestHostname === originHostname) ||
           (host === undefined && !cookie) ||
           (request.headers.origin !== undefined && corsOrigins.includes(request.headers.origin));
         if (!allowed) return reply.code(403).send({ error: 'forbidden_origin' });

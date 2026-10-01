@@ -9,7 +9,7 @@ import type {
   ProviderUpdateInput,
   TaskModelInput,
   TestResultDto,
-} from '@gero/shared';
+} from '@wordflow/shared';
 import { api } from './api';
 
 export const AI_CONFIG_KEY = ['ai', 'config'] as const;

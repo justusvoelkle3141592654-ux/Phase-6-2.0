@@ -18,6 +18,6 @@ export async function verifyPassword(passwordHash: string, password: string): Pr
 /** Used when the e-mail is unknown, so the response time does not reveal it. */
 let dummyHash: Promise<string> | null = null;
 export async function burnPasswordCheck(password: string): Promise<void> {
-  dummyHash ??= hashPassword('gero-dummy-password');
+  dummyHash ??= hashPassword('wordflow-dummy-password');
   await verifyPassword(await dummyHash, password);
 }

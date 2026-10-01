@@ -1,8 +1,8 @@
-# HTTPS für Gero. Domain anpassen; sie muss per DNS auf diesen Server zeigen,
-# Ports 80 und 443 müssen erreichbar sein. In Gero TRUST_PROXY=true setzen.
+# HTTPS für WordFlow. Domain anpassen; sie muss per DNS auf diesen Server zeigen,
+# Ports 80 und 443 müssen erreichbar sein. In WordFlow TRUST_PROXY=true setzen.
 
-gero.example.org {
+wordflow.example.org {
 	encode zstd gzip
-	# Im Docker-Compose-Netz heißt der Dienst "gero"; bei direkter Installation localhost:3000.
-	reverse_proxy gero:3000
+	# Im Docker-Compose-Netz heißt der Dienst "wordflow"; bei direkter Installation localhost:3000.
+	reverse_proxy wordflow:3000
 }

@@ -57,7 +57,7 @@ beforeEach(() => {
           headers: { 'Content-Type': 'application/json' },
         });
       if (url === 'http://192.168.1.20:3000/api/health')
-        return json(200, { status: 'ok', name: 'Gero', version: '0.1.0' });
+        return json(200, { status: 'ok', name: 'WordFlow', version: '0.1.0' });
       if (url === 'http://192.168.1.20:3000/api/auth/login')
         return json(200, { user: USER, token: 'tok123' });
       if (url === 'http://192.168.1.20:3000/api/overview') return json(404, { error: 'not_found' });

@@ -11,7 +11,7 @@ import { openDatabase } from './db';
 import { loadSecrets } from './secrets';
 import { authPlugin } from './auth/plugin';
 import { deleteExpiredSessions } from './auth/sessions';
-import { authRoutes } from './routes/auth';
+import { authRoutes, ensureOfflineUser } from './routes/auth';
 import { healthRoutes } from './routes/health';
 import { settingsRoutes } from './routes/settings';
 import { packageRoutes } from './routes/packages';
@@ -38,12 +38,18 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
       `Neue Schlüssel erzeugt und in ${path.join(config.dataDir, 'secrets.json')} gespeichert.`,
     );
   }
-  if (!config.registrationCode) {
+  if (!config.registrationCode && !config.offlineMode) {
     app.log.info(`Registrierungscode: ${secrets.registrationCode}`);
   }
+  if (config.offlineMode) {
+    app.log.info('Offline-Modus aktiv: Ein Standard-Account wird ohne Registrierung gestartet.');
+  }
 
-  const db = openDatabase(config.dbFile ?? path.join(config.dataDir, 'gero.db'));
+  const db = openDatabase(config.dbFile ?? path.join(config.dataDir, 'wordflow.db'));
   deleteExpiredSessions(db);
+  if (config.offlineMode) {
+    await ensureOfflineUser(db);
+  }
   const ai = new AiService(db, secrets.appSecret);
   app.addHook('onClose', async () => db.$client.close());
 
@@ -77,7 +83,11 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   await app.register(
     async (api) => {
       await api.register(healthRoutes);
-      await api.register(authRoutes, { db, registrationCode: secrets.registrationCode });
+      await api.register(authRoutes, {
+        db,
+        registrationCode: secrets.registrationCode,
+        offlineMode: config.offlineMode,
+      });
       await api.register(settingsRoutes, { db });
       await api.register(packageRoutes, { db });
       await api.register(learnRoutes, {

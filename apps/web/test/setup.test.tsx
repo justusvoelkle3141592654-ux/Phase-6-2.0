@@ -167,7 +167,7 @@ describe('Einrichtungsassistent', () => {
 
   it('lässt ungültige Intervalle nicht zu', async () => {
     api();
-    localStorage.setItem(`gero.setupStep.${USER.id}`, '8');
+    localStorage.setItem(`wordflow.setupStep.${USER.id}`, '8');
     renderApp('/');
     await expectStep(9, 'Lernen');
     fireEvent.change(screen.getByLabelText('Stufe 4'), { target: { value: '0' } });

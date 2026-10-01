@@ -46,7 +46,7 @@ describe('KI-Antwortprüfung im Lernen', () => {
       },
     });
     app = await testApp();
-    headers = { origin: ORIGIN, cookie: `gero_session=${sessionCookie(await register(app))}` };
+    headers = { origin: ORIGIN, cookie: `wordflow_session=${sessionCookie(await register(app))}` };
     const provider = (
       await app.inject({
         method: 'POST',

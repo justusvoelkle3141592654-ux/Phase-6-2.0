@@ -6,7 +6,7 @@ import type {
   RegisterInput,
   UpdateProfileInput,
   UserDto,
-} from '@gero/shared';
+} from '@wordflow/shared';
 import { api, ApiError } from './api';
 import { getToken, isApp, setToken } from './platform';
 

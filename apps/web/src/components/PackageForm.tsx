@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { DIRECTIONS, LANGUAGE_PRESETS, type Direction, type PackageInput } from '@gero/shared';
+import { DIRECTIONS, LANGUAGE_PRESETS, type Direction, type PackageInput } from '@wordflow/shared';
 import { useI18n } from '../i18n';
 import { isPreset } from '../lib/languages';
 

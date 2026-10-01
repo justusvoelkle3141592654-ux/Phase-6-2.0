@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { AI_TASKS, type AiConfigDto, type AiTask, type ProviderDto } from '@gero/shared';
+import { AI_TASKS, type AiConfigDto, type AiTask, type ProviderDto } from '@wordflow/shared';
 import { useI18n } from '../../i18n';
 import {
   useAiConfig,

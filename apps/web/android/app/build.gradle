@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "de.gero.app"
+    namespace = "de.wordflow.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "de.gero.app"
+        applicationId "de.wordflow.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -19,19 +19,19 @@ android {
     // Fixed signing key so a newer APK installs over an older one (updates keep the data).
     // The key is part of the repository: fine for private use, not for publishing in a store.
     signingConfigs {
-        gero {
-            storeFile file('gero-release.keystore')
-            storePassword 'gero-app-key'
-            keyAlias 'gero'
-            keyPassword 'gero-app-key'
+        wordflow {
+            storeFile file('wordflow-release.keystore')
+            storePassword 'wordflow-app-key'
+            keyAlias 'wordflow'
+            keyPassword 'wordflow-app-key'
         }
     }
     buildTypes {
         debug {
-            signingConfig signingConfigs.gero
+            signingConfig signingConfigs.wordflow
         }
         release {
-            signingConfig signingConfigs.gero
+            signingConfig signingConfigs.wordflow
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

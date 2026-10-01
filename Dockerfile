@@ -1,6 +1,6 @@
-# Gero – Server und Oberfläche in einem Image.
-# Build:  docker build -t gero .
-# Start:  docker run -p 3000:3000 -v gero-data:/data gero
+# WordFlow – Server und Oberfläche in einem Image.
+# Build:  docker build -t wordflow .
+# Start:  docker run -p 3000:3000 -v wordflow-data:/data wordflow
 
 # The full image brings python3, make and g++ for native modules
 # (better-sqlite3, @node-rs/argon2) in case no prebuilt binary fits.
