@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { APP_NAME, type HealthResponse } from '@gero/shared';
+import { APP_NAME, type HealthResponse } from '@wordflow/shared';
 import { CenteredLayout } from '../components/CenteredLayout';
 import { Notice } from '../components/Notice';
 import { useI18n } from '../i18n';
@@ -23,12 +23,12 @@ export function ServerSetupPage({ onDone }: { onDone: () => void }) {
     try {
       const res = await fetch(`${base}/api/health`, { signal: AbortSignal.timeout(8000) });
       const health = (await res.json()) as HealthResponse;
-      if (!res.ok || health.name !== APP_NAME) throw new Error('not_gero');
+      if (!res.ok || health.name !== APP_NAME) throw new Error('not_wordflow');
       await setServerUrl(base);
       qc.setQueryData(ME_KEY, null);
       onDone();
     } catch (err) {
-      setError((err as Error).message === 'not_gero' ? m.app.notGero : m.app.unreachable);
+      setError((err as Error).message === 'not_wordflow' ? m.app.notWordFlow : m.app.unreachable);
     } finally {
       setBusy(false);
     }

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { todayIn } from '@gero/shared';
+import { todayIn } from '@wordflow/shared';
 import { ORIGIN, register, sessionCookie, testApp } from './helpers';
 
 let app: FastifyInstance;
@@ -8,7 +8,7 @@ let headers: Record<string, string>;
 
 beforeEach(async () => {
   app = await testApp();
-  headers = { origin: ORIGIN, cookie: `gero_session=${sessionCookie(await register(app))}` };
+  headers = { origin: ORIGIN, cookie: `wordflow_session=${sessionCookie(await register(app))}` };
 });
 afterEach(async () => {
   await app.close();
@@ -140,7 +140,7 @@ describe('Vokabeln', () => {
     ).json().vocab;
     const bob = {
       origin: ORIGIN,
-      cookie: `gero_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
+      cookie: `wordflow_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
     };
     expect((await req('GET', '/packages', undefined, bob)).json().packages).toHaveLength(0);
     expect((await req('GET', `/packages/${pkg.id}`, undefined, bob)).statusCode).toBe(404);

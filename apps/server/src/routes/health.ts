@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { APP_NAME, type HealthResponse } from '@gero/shared';
+import { APP_NAME, type HealthResponse } from '@wordflow/shared';
 import { APP_VERSION } from '../version';
 
 export const healthRoutes: FastifyPluginAsync = async (app) => {

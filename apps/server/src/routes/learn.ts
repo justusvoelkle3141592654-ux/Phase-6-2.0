@@ -6,7 +6,7 @@ import {
   todayIn,
   type AnswerResult,
   type LearnCard,
-} from '@gero/shared';
+} from '@wordflow/shared';
 import type { Db } from '../db';
 import { attempts, packages, vocab } from '../db/schema';
 import { decide, rememberCorrection, type AiCheck, type Decision } from '../learn/decide';

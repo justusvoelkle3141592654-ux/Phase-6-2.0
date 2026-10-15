@@ -1,4 +1,4 @@
-import type { ProviderDto, ProviderErrorDto } from '@gero/shared';
+import type { ProviderDto, ProviderErrorDto } from '@wordflow/shared';
 import { useI18n } from '../../i18n';
 import { ApiError } from '../../lib/api';
 import { Notice } from '../Notice';

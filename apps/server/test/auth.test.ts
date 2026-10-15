@@ -32,11 +32,11 @@ describe('Registrierung', () => {
     });
     expect(res.json().token).toBeUndefined();
 
-    const cookie = res.cookies.find((c) => c.name === 'gero_session');
+    const cookie = res.cookies.find((c) => c.name === 'wordflow_session');
     expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Lax', path: '/' });
     expect(cookie?.secure).toBeFalsy();
 
-    const who = await me({ cookie: `gero_session=${cookie!.value}` });
+    const who = await me({ cookie: `wordflow_session=${cookie!.value}` });
     expect(who.statusCode).toBe(200);
     expect(who.json().user.email).toBe('anna@example.org');
   });
@@ -73,6 +73,38 @@ describe('Registrierung', () => {
     expect(res.statusCode).toBe(400);
     expect(res.json()).toMatchObject({ error: 'validation_error' });
     expect(res.json().fields).toEqual(expect.arrayContaining(['email', 'password', 'timezone']));
+  });
+});
+
+describe('Offline-Modus', () => {
+  it('meldet ohne Registrierungscode mit Standard-Account an', async () => {
+    const localApp = await testApp({ offlineMode: true });
+    const info = await localApp.inject({ method: 'GET', url: '/api/auth/mode', headers: json });
+    expect(info.statusCode).toBe(200);
+    expect(info.json()).toMatchObject({ offlineMode: true, email: 'offline@local.test' });
+
+    const registerRes = await localApp.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      headers: json,
+      payload: {
+        email: 'guest@example.org',
+        password: 'geheim123',
+        uiLanguage: 'de',
+        timezone: 'Europe/Berlin',
+      },
+    });
+    expect(registerRes.statusCode).toBe(201);
+
+    const loginRes = await localApp.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers: json,
+      payload: { email: 'offline@local.test', password: 'offline' },
+    });
+    expect(loginRes.statusCode).toBe(200);
+    expect(sessionCookie(loginRes)).toBeTruthy();
+    await localApp.close();
   });
 });
 
@@ -120,7 +152,7 @@ describe('Anmeldung', () => {
       payload: { email: 'anna@example.org', password: 'geheim123' },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.cookies.find((c) => c.name === 'gero_session')?.secure).toBe(true);
+    expect(res.cookies.find((c) => c.name === 'wordflow_session')?.secure).toBe(true);
     await proxied.close();
   });
 });
@@ -128,12 +160,12 @@ describe('Anmeldung', () => {
 describe('Abmelden', () => {
   it('löscht die Session', async () => {
     const cookie = sessionCookie(await register(app))!;
-    const headers = { ...json, cookie: `gero_session=${cookie}` };
+    const headers = { ...json, cookie: `wordflow_session=${cookie}` };
     const res = await app.inject({ method: 'POST', url: '/api/auth/logout', headers });
     expect(res.statusCode).toBe(204);
-    const cleared = res.cookies.find((c) => c.name === 'gero_session');
+    const cleared = res.cookies.find((c) => c.name === 'wordflow_session');
     expect(cleared?.value).toBe('');
-    expect((await me({ cookie: `gero_session=${cookie}` })).statusCode).toBe(401);
+    expect((await me({ cookie: `wordflow_session=${cookie}` })).statusCode).toBe(401);
   });
 
   it('beendet auch App-Tokens', async () => {
@@ -150,7 +182,7 @@ describe('Abmelden', () => {
 describe('Profil und Passwort', () => {
   let headers: Record<string, string>;
   beforeEach(async () => {
-    headers = { ...json, cookie: `gero_session=${sessionCookie(await register(app))}` };
+    headers = { ...json, cookie: `wordflow_session=${sessionCookie(await register(app))}` };
   });
 
   it('ändert Name, Sprache und Zeitzone', async () => {
@@ -189,7 +221,7 @@ describe('Profil und Passwort', () => {
     expect(res.statusCode).toBe(204);
 
     expect((await me({ cookie: headers.cookie! })).statusCode).toBe(200);
-    expect((await me({ cookie: `gero_session=${other}` })).statusCode).toBe(401);
+    expect((await me({ cookie: `wordflow_session=${other}` })).statusCode).toBe(401);
     expect((await login({ email: 'anna@example.org', password: 'geheim123' })).statusCode).toBe(
       401,
     );
@@ -205,11 +237,23 @@ describe('Schutz vor Cross-Site-Anfragen', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: '/api/auth/me',
-      headers: { origin: 'https://boese.example', cookie: `gero_session=${cookie}` },
+      headers: { origin: 'https://boese.example', cookie: `wordflow_session=${cookie}` },
       payload: { name: 'gehackt' },
     });
     expect(res.statusCode).toBe(403);
     expect(res.json()).toEqual({ error: 'forbidden_origin' });
+  });
+
+  it('erlaubt Vite-Dev-Requests vom selben Host mit anderem Port', async () => {
+    await register(app);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers: { origin: 'http://192.168.100.59:5173', host: '192.168.100.59:3000' },
+      payload: { email: 'anna@example.org', password: 'geheim123' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(sessionCookie(res)).toBeTruthy();
   });
 
   it('lehnt Cookie-Anfragen ohne Origin ab', async () => {
@@ -217,7 +261,7 @@ describe('Schutz vor Cross-Site-Anfragen', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: '/api/auth/me',
-      headers: { cookie: `gero_session=${cookie}` },
+      headers: { cookie: `wordflow_session=${cookie}` },
       payload: { name: 'x' },
     });
     expect(res.statusCode).toBe(403);

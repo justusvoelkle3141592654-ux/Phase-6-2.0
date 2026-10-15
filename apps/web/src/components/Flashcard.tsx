@@ -6,7 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { Check, RotateCcw, X } from 'lucide-react';
-import type { AnswerResult } from '@gero/shared';
+import type { AnswerResult } from '@wordflow/shared';
 import { useI18n } from '../i18n';
 import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';

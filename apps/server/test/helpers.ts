@@ -10,7 +10,7 @@ export const ORIGIN = 'http://localhost:80';
 
 /** App with an in-memory database and a throw-away data directory. */
 export async function testApp(overrides: Partial<AppConfig> = {}): Promise<FastifyInstance> {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gero-test-'));
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wordflow-test-'));
   const app = await buildApp({
     ...loadConfig({}),
     logLevel: 'silent',
@@ -25,9 +25,9 @@ export async function testApp(overrides: Partial<AppConfig> = {}): Promise<Fasti
   return app;
 }
 
-/** Extracts the `gero_session` cookie value from a response. */
+/** Extracts the `wordflow_session` cookie value from a response. */
 export function sessionCookie(res: LightMyRequestResponse): string | undefined {
-  return res.cookies.find((c) => c.name === 'gero_session')?.value;
+  return res.cookies.find((c) => c.name === 'wordflow_session')?.value;
 }
 
 export async function register(

@@ -7,7 +7,7 @@ import {
   type Direction,
   type RecognizedEntry,
   type UploadPageDto,
-} from '@gero/shared';
+} from '@wordflow/shared';
 import { AuthImage } from '../components/AuthImage';
 import { Lightbox } from '../components/Lightbox';
 import { Notice } from '../components/Notice';

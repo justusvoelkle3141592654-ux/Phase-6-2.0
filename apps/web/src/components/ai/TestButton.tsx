@@ -1,4 +1,4 @@
-import type { ProviderDto } from '@gero/shared';
+import type { ProviderDto } from '@wordflow/shared';
 import { useI18n } from '../../i18n';
 import { useTestConnection } from '../../lib/ai';
 import { errorMessage } from '../../lib/errors';

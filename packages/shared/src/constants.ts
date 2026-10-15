@@ -1,5 +1,5 @@
 /** Name of the app as shown in the UI and API. */
-export const APP_NAME = 'Gero';
+export const APP_NAME = 'WordFlow';
 
 /** Supported UI languages. */
 export const UI_LANGUAGES = ['de', 'en'] as const;
@@ -9,7 +9,7 @@ export type UiLanguage = (typeof UI_LANGUAGES)[number];
 export const STAGE_COUNT = 6;
 
 /** Name of the browser session cookie. */
-export const SESSION_COOKIE = 'gero_session';
+export const SESSION_COOKIE = 'wordflow_session';
 
 /** Sessions expire after this many days without use. */
 export const SESSION_DAYS = 90;

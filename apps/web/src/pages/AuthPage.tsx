@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react';
-import { PASSWORD_MIN_LENGTH } from '@gero/shared';
+import { useEffect, useState, type FormEvent } from 'react';
+import { PASSWORD_MIN_LENGTH } from '@wordflow/shared';
 import { CenteredLayout } from '../components/CenteredLayout';
 import { Notice } from '../components/Notice';
 import { useI18n } from '../i18n';
+import { api } from '../lib/api';
 import { useLogin, useRegister } from '../lib/auth';
 import { getServerUrl } from '../lib/platform';
 import { errorMessage } from '../lib/errors';
@@ -23,10 +24,20 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [offlineAccount, setOfflineAccount] = useState<{ email: string; password: string } | null>(null);
   const login = useLogin();
   const register = useRegister();
   const pending = login.isPending || register.isPending;
   const error = mode === 'login' ? login.error : register.error;
+
+  useEffect(() => {
+    void api<{ offlineMode: boolean; email?: string; password?: string }>('/auth/mode')
+      .then((data) => {
+        if (!data.offlineMode) return;
+        setOfflineAccount({ email: data.email ?? 'offline@local.test', password: data.password ?? 'offline' });
+      })
+      .catch(() => undefined);
+  }, []);
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -116,6 +127,21 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
           )}
 
           {error && <Notice tone="error">{errorMessage(m, error)}</Notice>}
+
+          {offlineAccount && mode === 'login' && (
+            <button
+              type="button"
+              className="btn btn-secondary w-full"
+              onClick={() => {
+                setEmail(offlineAccount.email);
+                setPassword(offlineAccount.password);
+                login.mutate({ email: offlineAccount.email, password: offlineAccount.password });
+              }}
+              disabled={pending}
+            >
+              Continue offline
+            </button>
+          )}
 
           <div className="space-y-2 pt-2">
             <button type="submit" className="btn btn-primary w-full" disabled={pending}>

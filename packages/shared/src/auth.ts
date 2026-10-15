@@ -26,7 +26,7 @@ const timezone = z
 export const registerSchema = z.object({
   email,
   password,
-  registrationCode: z.string().trim().min(1).max(100),
+  registrationCode: z.string().trim().min(1).max(100).optional(),
   uiLanguage: z.enum(UI_LANGUAGES).optional(),
   timezone: timezone.optional(),
   client: authClientSchema,

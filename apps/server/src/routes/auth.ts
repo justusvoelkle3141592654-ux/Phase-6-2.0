@@ -8,7 +8,7 @@ import {
   updateProfileSchema,
   type AuthResponse,
   type UserDto,
-} from '@gero/shared';
+} from '@wordflow/shared';
 import type { Db } from '../db';
 import { users, type User } from '../db/schema';
 import { burnPasswordCheck, hashPassword, verifyPassword } from '../auth/password';
@@ -35,9 +35,29 @@ function sameCode(a: string, b: string): boolean {
 /** Rate limit for endpoints that check passwords or codes. */
 const limited = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } };
 
-export const authRoutes: FastifyPluginAsync<{ db: Db; registrationCode: string }> = async (
+const DEFAULT_OFFLINE_EMAIL = 'offline@local.test';
+const DEFAULT_OFFLINE_PASSWORD = 'offline';
+
+export async function ensureOfflineUser(db: Db): Promise<User> {
+  let user = db.select().from(users).where(eq(users.email, DEFAULT_OFFLINE_EMAIL)).get();
+  if (!user) {
+    user = db
+      .insert(users)
+      .values({
+        email: DEFAULT_OFFLINE_EMAIL,
+        passwordHash: await hashPassword(DEFAULT_OFFLINE_PASSWORD),
+        uiLanguage: 'de',
+        timezone: 'Europe/Berlin',
+      })
+      .returning()
+      .get();
+  }
+  return user;
+}
+
+export const authRoutes: FastifyPluginAsync<{ db: Db; registrationCode: string; offlineMode: boolean }> = async (
   app,
-  { db, registrationCode },
+  { db, registrationCode, offlineMode },
 ) => {
   function signIn(
     request: FastifyRequest,
@@ -52,10 +72,16 @@ export const authRoutes: FastifyPluginAsync<{ db: Db; registrationCode: string }
     return { user: toUserDto(user) };
   }
 
+  app.get('/auth/mode', async () => ({
+    offlineMode,
+    email: offlineMode ? DEFAULT_OFFLINE_EMAIL : undefined,
+    password: offlineMode ? DEFAULT_OFFLINE_PASSWORD : undefined,
+  }));
+
   app.post('/auth/register', limited, async (request, reply) => {
     const input = parse(registerSchema, request.body, reply);
     if (!input) return;
-    if (!sameCode(input.registrationCode, registrationCode)) {
+    if (!offlineMode && !sameCode(input.registrationCode ?? '', registrationCode)) {
       return reply.code(403).send({ error: 'invalid_registration_code' });
     }
     if (db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).get()) {
@@ -77,12 +103,21 @@ export const authRoutes: FastifyPluginAsync<{ db: Db; registrationCode: string }
   app.post('/auth/login', limited, async (request, reply) => {
     const input = parse(loginSchema, request.body, reply);
     if (!input) return;
-    const user = db.select().from(users).where(eq(users.email, input.email)).get();
+    let user = db.select().from(users).where(eq(users.email, input.email)).get();
+    if (offlineMode && !user && input.email === DEFAULT_OFFLINE_EMAIL) {
+      user = await ensureOfflineUser(db);
+    }
     if (!user) {
       await burnPasswordCheck(input.password);
       return reply.code(401).send({ error: 'invalid_credentials' });
     }
     if (!(await verifyPassword(user.passwordHash, input.password))) {
+      if (offlineMode && input.email === DEFAULT_OFFLINE_EMAIL && input.password === DEFAULT_OFFLINE_PASSWORD) {
+        user = await ensureOfflineUser(db);
+        if (await verifyPassword(user.passwordHash, input.password)) {
+          return signIn(request, reply, user, input.client);
+        }
+      }
       return reply.code(401).send({ error: 'invalid_credentials' });
     }
     return signIn(request, reply, user, input.client);

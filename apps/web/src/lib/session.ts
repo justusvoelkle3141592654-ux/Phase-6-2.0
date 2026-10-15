@@ -1,4 +1,4 @@
-import type { AnswerResult, CardDirection, LearnCard } from '@gero/shared';
+import type { AnswerResult, CardDirection, LearnCard } from '@wordflow/shared';
 
 /** Direction chosen on the learn page: as set in each package, or one for all cards. */
 export type DirectionChoice = 'package' | 'foreign_native' | 'native_foreign' | 'random';

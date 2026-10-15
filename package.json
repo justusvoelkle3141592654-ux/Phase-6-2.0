@@ -1,5 +1,5 @@
 {
-  "name": "gero",
+  "name": "wordflow",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -10,13 +10,13 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "concurrently -n server,web -c blue,green \"npm run dev -w @gero/server\" \"npm run dev -w @gero/web\"",
-    "build": "npm run build -w @gero/web && npm run build -w @gero/server",
-    "start": "npm run start -w @gero/server",
+    "dev": "concurrently -n server,web -c blue,green \"npm run dev -w @wordflow/server\" \"npm run dev -w @wordflow/web\"",
+    "build": "npm run build -w @wordflow/web && npm run build -w @wordflow/server",
+    "start": "npm run start -w @wordflow/server",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "format": "prettier --write .",
-    "android:sync": "npm run android:sync -w @gero/web"
+    "android:sync": "npm run android:sync -w @wordflow/web"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

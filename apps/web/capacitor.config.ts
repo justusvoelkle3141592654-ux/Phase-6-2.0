@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'de.gero.app',
-  appName: 'Gero',
+  appId: 'de.wordflow.app',
+  appName: 'WordFlow',
   webDir: 'dist',
   server: {
     // The app runs on http://localhost, so it may call both a server in the
@@ -15,7 +15,7 @@ const config: CapacitorConfig = {
   },
   plugins: {
     LocalNotifications: {
-      smallIcon: 'ic_stat_gero',
+      smallIcon: 'ic_stat_wordflow',
     },
   },
 };

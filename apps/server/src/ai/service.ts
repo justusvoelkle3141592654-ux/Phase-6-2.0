@@ -8,7 +8,7 @@ import {
   type LatencyDto,
   type LatencyStatsDto,
   type ProviderDto,
-} from '@gero/shared';
+} from '@wordflow/shared';
 import type { Db } from '../db';
 import { latencySamples, providerConfigs, taskModels, type ProviderConfig } from '../db/schema';
 import { SecretBox } from './crypto';
