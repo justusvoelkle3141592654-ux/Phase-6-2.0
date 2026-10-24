@@ -19,7 +19,13 @@ import {
 } from '../components/SettingsFields';
 import { PageHeader } from '../components/Page';
 import { useI18n } from '../i18n';
-import { useChangePassword, useLogout, useMe, useUpdateProfile } from '../lib/auth';
+import {
+  useChangePassword,
+  useDeleteAccount,
+  useLogout,
+  useMe,
+  useUpdateProfile,
+} from '../lib/auth';
 import { errorMessage } from '../lib/errors';
 import { useSettings, useUpdateSettings } from '../lib/settings';
 import { isApp } from '../lib/platform';
@@ -265,6 +271,69 @@ function PasswordSection() {
   );
 }
 
+function DeleteAccountSection() {
+  const { m } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const remove = useDeleteAccount();
+
+  const onSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    remove.mutate({ password });
+  };
+
+  const cancel = () => {
+    setOpen(false);
+    setPassword('');
+    remove.reset();
+  };
+
+  return (
+    <section className="panel space-y-4" aria-labelledby="delete-title">
+      <h2 id="delete-title" className="text-xl font-bold">
+        {m.account.deleteTitle}
+      </h2>
+      <p className="text-ink-soft">{m.account.deleteIntro}</p>
+      {!open ? (
+        <button type="button" className="btn btn-danger" onClick={() => setOpen(true)}>
+          {m.account.deleteStart}
+        </button>
+      ) : (
+        <form className="space-y-4" onSubmit={onSubmit}>
+          <div>
+            <label className="label" htmlFor="delete-password">
+              {m.account.deletePassword}
+            </label>
+            <input
+              id="delete-password"
+              className="field"
+              type="password"
+              autoComplete="current-password"
+              required
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {remove.isError && <Notice tone="error">{errorMessage(m, remove.error)}</Notice>}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="submit"
+              className="btn btn-danger"
+              disabled={remove.isPending || !password}
+            >
+              {m.account.deleteConfirm}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={cancel}>
+              {m.account.deleteCancel}
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
+
 export function SettingsPage() {
   const { m } = useI18n();
   const update = useUpdateProfile();
@@ -288,6 +357,7 @@ export function SettingsPage() {
         {settings.data && <ReminderSection settings={settings.data} />}
         <AiSettings />
         <PasswordSection />
+        <DeleteAccountSection />
       </div>
     </>
   );

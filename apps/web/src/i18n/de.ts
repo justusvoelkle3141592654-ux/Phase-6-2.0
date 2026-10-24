@@ -229,6 +229,13 @@ export const de = {
     currentPassword: 'Aktuelles Passwort',
     newPassword: 'Neues Passwort',
     passwordChanged: 'Passwort geändert. Andere Geräte wurden abgemeldet.',
+    deleteTitle: 'Account löschen',
+    deleteIntro:
+      'Löscht deinen Account mit allen Paketen, Vokabeln, Fotos und Einstellungen. Das lässt sich nicht rückgängig machen.',
+    deleteStart: 'Account löschen …',
+    deletePassword: 'Passwort zur Bestätigung',
+    deleteConfirm: 'Endgültig löschen',
+    deleteCancel: 'Abbrechen',
   },
   ai: {
     title: 'KI',

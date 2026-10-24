@@ -1,8 +1,11 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { eq } from 'drizzle-orm';
 import {
   changePasswordSchema,
+  deleteAccountSchema,
   loginSchema,
   registerSchema,
   updateProfileSchema,
@@ -59,7 +62,8 @@ export const authRoutes: FastifyPluginAsync<{
   db: Db;
   registrationCode: string;
   offlineMode: boolean;
-}> = async (app, { db, registrationCode, offlineMode }) => {
+  dataDir: string;
+}> = async (app, { db, registrationCode, offlineMode, dataDir }) => {
   function signIn(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -169,4 +173,22 @@ export const authRoutes: FastifyPluginAsync<{
       return reply.code(204).send();
     },
   );
+
+  // Deletes the account with all its data. The password confirms the intent.
+  app.delete('/auth/me', { ...limited, preHandler: app.requireAuth }, async (request, reply) => {
+    const input = parse(deleteAccountSchema, request.body, reply);
+    if (!input) return;
+    const user = request.user!;
+    if (!(await verifyPassword(user.passwordHash, input.password))) {
+      return reply.code(403).send({ error: 'wrong_password' });
+    }
+    // Foreign keys cascade: sessions, packages, vocab, settings, AI configs, uploads.
+    db.delete(users).where(eq(users.id, user.id)).run();
+    await fs.promises.rm(path.join(dataDir, 'uploads', String(user.id)), {
+      recursive: true,
+      force: true,
+    });
+    app.clearSessionCookie(request, reply);
+    return reply.code(204).send();
+  });
 };

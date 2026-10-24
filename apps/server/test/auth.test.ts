@@ -352,3 +352,38 @@ describe('Rate-Limit', () => {
     expect(res.json()).toEqual({ error: 'rate_limited' });
   });
 });
+
+describe('Account löschen', () => {
+  it('löscht den Account erst mit richtigem Passwort', async () => {
+    const res = await register(app);
+    const cookie = sessionCookie(res)!;
+    const headers = { ...json, cookie: `wordflow_session=${cookie}` };
+
+    const wrong = await app.inject({
+      method: 'DELETE',
+      url: '/api/auth/me',
+      headers,
+      payload: { password: 'falsch123' },
+    });
+    expect(wrong.statusCode).toBe(403);
+    expect(wrong.json()).toEqual({ error: 'wrong_password' });
+
+    const ok = await app.inject({
+      method: 'DELETE',
+      url: '/api/auth/me',
+      headers,
+      payload: { password: 'geheim123' },
+    });
+    expect(ok.statusCode).toBe(204);
+
+    const me = await app.inject({ method: 'GET', url: '/api/auth/me', headers });
+    expect(me.statusCode).toBe(401);
+    const relogin = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers: json,
+      payload: { email: 'anna@example.org', password: 'geheim123' },
+    });
+    expect(relogin.statusCode).toBe(401);
+  });
+});

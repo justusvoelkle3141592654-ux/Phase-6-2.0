@@ -157,6 +157,35 @@ describe('Einstellungen: Account', () => {
     expect(calls.filter((c) => c.key === 'GET /settings')).toHaveLength(1);
   });
 
+  it('löscht den Account nach Passwort-Bestätigung', async () => {
+    const calls = mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'DELETE /auth/me': () => ({ status: 204 }),
+    });
+    renderApp('/settings');
+    await screen.findByText('anna@example.org');
+    fireEvent.click(screen.getByRole('button', { name: 'Account löschen …' }));
+    type('Passwort zur Bestätigung', 'geheim123');
+    fireEvent.click(screen.getByRole('button', { name: 'Endgültig löschen' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Anmelden' })).toBeTruthy();
+    expect(calls.find((c) => c.key === 'DELETE /auth/me')?.body).toEqual({
+      password: 'geheim123',
+    });
+  });
+
+  it('zeigt beim Löschen ein falsches Passwort an', async () => {
+    mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'DELETE /auth/me': () => ({ status: 403, body: { error: 'wrong_password' } }),
+    });
+    renderApp('/settings');
+    await screen.findByText('anna@example.org');
+    fireEvent.click(screen.getByRole('button', { name: 'Account löschen …' }));
+    type('Passwort zur Bestätigung', 'falsch');
+    fireEvent.click(screen.getByRole('button', { name: 'Endgültig löschen' }));
+    expect(await screen.findByText('Das aktuelle Passwort stimmt nicht.')).toBeTruthy();
+  });
+
   it('ändert das Passwort', async () => {
     const calls = mockApi({
       'GET /auth/me': () => ({ status: 200, body: { user: USER } }),

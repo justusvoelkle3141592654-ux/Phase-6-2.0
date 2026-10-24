@@ -230,6 +230,13 @@ export const en: Messages = {
     currentPassword: 'Current password',
     newPassword: 'New password',
     passwordChanged: 'Password changed. Other devices were signed out.',
+    deleteTitle: 'Delete account',
+    deleteIntro:
+      'Deletes your account with all packages, vocabulary, photos and settings. This cannot be undone.',
+    deleteStart: 'Delete account …',
+    deletePassword: 'Password to confirm',
+    deleteConfirm: 'Delete permanently',
+    deleteCancel: 'Cancel',
   },
   ai: {
     title: 'AI',
