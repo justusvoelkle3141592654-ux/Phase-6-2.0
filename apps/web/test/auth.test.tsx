@@ -57,30 +57,13 @@ describe('Anmeldung', () => {
     );
   });
 
-  it('registriert mit Code, Sprache und Zeitzone', async () => {
-    const calls = mockApi({
-      'GET /auth/me': signedOut,
-      'POST /auth/register': () => ({ status: 201, body: { user: USER } }),
-    });
+  it('bietet keine Registrierung an: Accounts legt der Superuser an', async () => {
+    mockApi({ 'GET /auth/me': signedOut });
     renderApp('/');
-    fireEvent.click(await screen.findByRole('button', { name: /Registrieren/ }));
-    expect(screen.getByRole('heading', { level: 1, name: 'Account anlegen' })).toBeTruthy();
-    type('E-Mail', 'anna@example.org');
-    type('Passwort', 'geheim123');
-    type('Registrierungscode', 'ABCD-EFGH-JKMN');
-    fireEvent.click(screen.getByRole('button', { name: 'Account anlegen' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Heute' })).toBeTruthy();
-    const body = calls.find((c) => c.key === 'POST /auth/register')?.body as Record<
-      string,
-      unknown
-    >;
-    expect(body).toMatchObject({
-      email: 'anna@example.org',
-      password: 'geheim123',
-      registrationCode: 'ABCD-EFGH-JKMN',
-      uiLanguage: 'de',
-    });
-    expect(typeof body.timezone).toBe('string');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Anmelden' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Registrieren/ })).toBeNull();
+    expect(screen.queryByLabelText('Registrierungscode')).toBeNull();
+    expect(screen.getByText('Einen Account bekommst du vom Superuser.')).toBeTruthy();
   });
 });
 
@@ -116,27 +99,6 @@ describe('Offline-Modus', () => {
       email: 'anna@example.org',
       password: 'geheim123',
     });
-  });
-
-  it('registriert ohne Registrierungscode', async () => {
-    const calls = mockApi({
-      'GET /auth/me': signedOut,
-      'GET /auth/mode': offlineMode,
-      'POST /auth/register': () => ({ status: 201, body: { user: USER } }),
-    });
-    renderApp('/');
-    await screen.findByRole('button', { name: 'offline@local.test' });
-    fireEvent.click(screen.getByRole('button', { name: /Registrieren/ }));
-    expect(screen.queryByLabelText('Registrierungscode')).toBeNull();
-    type('E-Mail', 'neu@example.org');
-    type('Passwort', 'geheim123');
-    fireEvent.click(screen.getByRole('button', { name: 'Account anlegen' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Heute' })).toBeTruthy();
-    const body = calls.find((c) => c.key === 'POST /auth/register')?.body as Record<
-      string,
-      unknown
-    >;
-    expect(body.registrationCode).toBeUndefined();
   });
 });
 

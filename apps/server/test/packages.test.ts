@@ -1,14 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { todayIn } from '@wordflow/shared';
-import { ORIGIN, register, sessionCookie, testApp } from './helpers';
+import { adminHeaders, ORIGIN, register, sessionCookie, testApp } from './helpers';
 
 let app: FastifyInstance;
 let headers: Record<string, string>;
 
 beforeEach(async () => {
   app = await testApp();
-  headers = { origin: ORIGIN, cookie: `wordflow_session=${sessionCookie(await register(app))}` };
+  // The superuser maintains the packages.
+  headers = await adminHeaders(app);
 });
 afterEach(async () => {
   await app.close();
@@ -133,7 +134,7 @@ describe('Vokabeln', () => {
     expect(res.json().package.counts).toMatchObject({ total: 2, inactive: 0, active: 2, due: 2 });
   });
 
-  it('trennt die Daten der Accounts', async () => {
+  it('Pakete sind für alle sichtbar, nur der Superuser darf sie ändern', async () => {
     const pkg = await createPackage();
     const [v] = (
       await req('POST', `/packages/${pkg.id}/vocab`, { items: [{ word: 'x', translation: 'y' }] })
@@ -142,10 +143,15 @@ describe('Vokabeln', () => {
       origin: ORIGIN,
       cookie: `wordflow_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
     };
-    expect((await req('GET', '/packages', undefined, bob)).json().packages).toHaveLength(0);
-    expect((await req('GET', `/packages/${pkg.id}`, undefined, bob)).statusCode).toBe(404);
-    expect((await req('PATCH', `/vocab/${v.id}`, { word: 'z' }, bob)).statusCode).toBe(404);
-    expect((await req('DELETE', `/packages/${pkg.id}`, undefined, bob)).statusCode).toBe(404);
+    expect((await req('GET', '/packages', undefined, bob)).json().packages).toHaveLength(1);
+    expect((await req('GET', `/packages/${pkg.id}`, undefined, bob)).statusCode).toBe(200);
+    expect((await req('POST', '/packages', { name: 'B', language: 'en' }, bob)).statusCode).toBe(
+      403,
+    );
+    expect((await req('PATCH', `/packages/${pkg.id}`, { name: 'z' }, bob)).statusCode).toBe(403);
+    expect((await req('PATCH', `/vocab/${v.id}`, { word: 'z' }, bob)).statusCode).toBe(403);
+    expect((await req('DELETE', `/vocab/${v.id}`, undefined, bob)).statusCode).toBe(403);
+    expect((await req('DELETE', `/packages/${pkg.id}`, undefined, bob)).statusCode).toBe(403);
     expect(
       (
         await req(
@@ -155,6 +161,43 @@ describe('Vokabeln', () => {
           bob,
         )
       ).statusCode,
-    ).toBe(404);
+    ).toBe(403);
+  });
+
+  it('mehrere Accounts lernen dieselben Vokabeln mit eigenem Fortschritt', async () => {
+    const pkg = await createPackage();
+    const [a, b] = (
+      await req('POST', `/packages/${pkg.id}/vocab`, {
+        items: [
+          { word: 'a', translation: 'A' },
+          { word: 'b', translation: 'B' },
+        ],
+      })
+    ).json().vocab;
+    const login = async (email: string) => ({
+      origin: ORIGIN,
+      cookie: `wordflow_session=${sessionCookie(await register(app, { email }))}`,
+    });
+    const anna = await login('anna@example.org');
+    const bob = await login('bob@example.org');
+
+    expect((await req('POST', `/vocab/${a.id}/activate`, undefined, anna)).statusCode).toBe(200);
+    expect(
+      (await req('POST', `/packages/${pkg.id}/activate`, undefined, bob)).json(),
+    ).toMatchObject({ activated: 2 });
+
+    const annaView = (await req('GET', `/packages/${pkg.id}`, undefined, anna)).json();
+    expect(annaView.package.counts).toMatchObject({ total: 2, inactive: 1, active: 1 });
+    expect(annaView.vocab.map((v: { active: boolean }) => v.active)).toEqual([true, false]);
+    const bobView = (await req('GET', `/packages/${pkg.id}`, undefined, bob)).json();
+    expect(bobView.package.counts).toMatchObject({ total: 2, inactive: 0, active: 2 });
+    // The superuser has activated nothing.
+    expect((await req('GET', `/packages/${pkg.id}`)).json().package.counts.inactive).toBe(2);
+
+    const off = await req('POST', `/vocab/${b.id}/deactivate`, undefined, bob);
+    expect(off.json().vocab.active).toBe(false);
+    expect(
+      (await req('GET', `/packages/${pkg.id}`, undefined, bob)).json().package.counts.inactive,
+    ).toBe(1);
   });
 });

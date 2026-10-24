@@ -37,8 +37,6 @@ interface Draft {
   intervals: string[];
   wrongMode: WrongMode;
   check: TaskModelValue | null;
-  summarySame: boolean;
-  summary: TaskModelValue | null;
   vision: TaskModelValue | null;
 }
 
@@ -96,7 +94,8 @@ function WizardSteps({
 }: {
   user: UserDto;
   settings: UserSettings;
-  ai: AiConfigDto;
+  /** Only for the superuser, who sets up the AI for everyone. */
+  ai: AiConfigDto | null;
 }) {
   const { m, lang, setLang } = useI18n();
   const updateProfile = useUpdateProfile();
@@ -111,28 +110,120 @@ function WizardSteps({
     timeout: String(settings.aiTimeoutMs / 1000),
     intervals: settings.intervals.map(String),
     wrongMode: settings.wrongMode,
-    check: ai.tasks.check,
-    summarySame:
-      !ai.tasks.summary ||
-      (ai.tasks.summary.providerId === ai.tasks.check?.providerId &&
-        ai.tasks.summary.model === ai.tasks.check?.model),
-    summary: ai.tasks.summary,
-    vision: ai.tasks.vision,
+    check: ai?.tasks.check ?? null,
+    vision: ai?.tasks.vision ?? null,
   }));
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
   const setCheck = useCallback((v: TaskModelValue) => setDraft((d) => ({ ...d, check: v })), []);
-  const setSummary = useCallback(
-    (v: TaskModelValue) => setDraft((d) => ({ ...d, summary: v })),
-    [],
-  );
   const setVision = useCallback((v: TaskModelValue) => setDraft((d) => ({ ...d, vision: v })), []);
-  const providerName = (id?: number) => ai.providers.find((p) => p.id === id)?.name ?? '';
-  const checkProvider = ai.providers.find((p) => p.id === draft.check?.providerId);
-  const summary = draft.summarySame ? draft.check : draft.summary;
+  const providers = ai?.providers ?? [];
+  const providerName = (id?: number) => providers.find((p) => p.id === id)?.name ?? '';
+  const checkProvider = providers.find((p) => p.id === draft.check?.providerId);
 
   const timeoutMs = parseTimeout(draft.timeout);
   const intervals = parseIntervals(draft.intervals);
+
+  const aiSteps: Step[] = [
+    {
+      title: m.setup.checkProvider.title,
+      text: m.setup.checkProvider.text,
+      body: (
+        <div className="space-y-4">
+          <ChoiceList
+            label={m.ai.provider}
+            options={providers.map((p) => ({
+              value: String(p.id),
+              label:
+                p.kind === 'pollinations' ? `${p.name} · ${m.setup.checkProvider.preset}` : p.name,
+            }))}
+            value={String(draft.check?.providerId ?? '')}
+            onChange={(id) =>
+              set(
+                'check',
+                Number(id) === draft.check?.providerId
+                  ? draft.check
+                  : { providerId: Number(id), model: '', reasoning: null },
+              )
+            }
+          />
+          {addingProvider ? (
+            <div className="rounded-2xl border border-rule p-4">
+              <ProviderForm
+                embedded
+                onCancel={() => setAddingProvider(false)}
+                onDone={(p) => {
+                  setAddingProvider(false);
+                  set('check', { providerId: p.id, model: '', reasoning: null });
+                }}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setAddingProvider(true)}
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              {m.ai.addProvider}
+            </button>
+          )}
+          <p className="hint">{m.setup.checkProvider.others}</p>
+        </div>
+      ),
+      valid: Boolean(draft.check?.providerId),
+    },
+    {
+      title: m.setup.checkModel.title,
+      text: m.setup.checkModel.text,
+      body: (
+        <div className="space-y-4">
+          <TaskModelPicker
+            task="check"
+            providers={providers}
+            value={draft.check}
+            onChange={setCheck}
+            fixedProvider
+          />
+          {checkProvider && draft.check?.model && (
+            <TestButton provider={checkProvider} model={draft.check.model} />
+          )}
+        </div>
+      ),
+      valid: Boolean(draft.check?.model),
+      save: () => setTask.mutateAsync({ task: 'check', ...draft.check! }),
+    },
+    {
+      title: m.setup.vision.title,
+      text: m.setup.vision.text,
+      body: (
+        <div className="space-y-4">
+          <TaskModelPicker
+            task="vision"
+            providers={providers}
+            value={
+              draft.vision ??
+              (draft.check
+                ? { providerId: draft.check.providerId, model: '', reasoning: null }
+                : null)
+            }
+            onChange={setVision}
+          />
+          <p className="hint">{m.setup.optional}</p>
+        </div>
+      ),
+      save: () =>
+        draft.vision?.model
+          ? setTask.mutateAsync({ task: 'vision', ...draft.vision })
+          : Promise.resolve(),
+    },
+    {
+      ...m.setup.timeout,
+      body: <TimeoutField value={draft.timeout} onChange={(v) => set('timeout', v)} />,
+      valid: timeoutMs !== null,
+      save: () => updateSettings.mutateAsync({ aiTimeoutMs: timeoutMs! }),
+    },
+  ];
 
   const steps: Step[] = [
     {
@@ -186,131 +277,7 @@ function WizardSteps({
       ),
       save: () => updateProfile.mutateAsync({ timezone: draft.timezone }),
     },
-    {
-      title: m.setup.checkProvider.title,
-      text: m.setup.checkProvider.text,
-      body: (
-        <div className="space-y-4">
-          <ChoiceList
-            label={m.ai.provider}
-            options={ai.providers.map((p) => ({
-              value: String(p.id),
-              label:
-                p.kind === 'pollinations' ? `${p.name} · ${m.setup.checkProvider.preset}` : p.name,
-            }))}
-            value={String(draft.check?.providerId ?? '')}
-            onChange={(id) =>
-              set(
-                'check',
-                Number(id) === draft.check?.providerId
-                  ? draft.check
-                  : { providerId: Number(id), model: '', reasoning: null },
-              )
-            }
-          />
-          {addingProvider ? (
-            <div className="rounded-2xl border border-rule p-4">
-              <ProviderForm
-                embedded
-                onCancel={() => setAddingProvider(false)}
-                onDone={(p) => {
-                  setAddingProvider(false);
-                  set('check', { providerId: p.id, model: '', reasoning: null });
-                }}
-              />
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setAddingProvider(true)}
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              {m.ai.addProvider}
-            </button>
-          )}
-          <p className="hint">{m.setup.checkProvider.others}</p>
-        </div>
-      ),
-      valid: Boolean(draft.check?.providerId),
-    },
-    {
-      title: m.setup.checkModel.title,
-      text: m.setup.checkModel.text,
-      body: (
-        <div className="space-y-4">
-          <TaskModelPicker
-            task="check"
-            providers={ai.providers}
-            value={draft.check}
-            onChange={setCheck}
-            fixedProvider
-          />
-          {checkProvider && draft.check?.model && (
-            <TestButton provider={checkProvider} model={draft.check.model} />
-          )}
-        </div>
-      ),
-      valid: Boolean(draft.check?.model),
-      save: () => setTask.mutateAsync({ task: 'check', ...draft.check! }),
-    },
-    {
-      title: m.setup.summary.title,
-      text: m.setup.summary.text,
-      body: (
-        <div className="space-y-4">
-          <ChoiceList
-            label={m.ai.taskNames.summary}
-            options={[
-              { value: 'same', label: `${m.ai.sameAsCheck} (${draft.check?.model ?? ''})` },
-              { value: 'other', label: m.setup.summary.other },
-            ]}
-            value={draft.summarySame ? 'same' : 'other'}
-            onChange={(v) => set('summarySame', v === 'same')}
-          />
-          {!draft.summarySame && (
-            <TaskModelPicker
-              task="summary"
-              providers={ai.providers}
-              value={draft.summary}
-              onChange={setSummary}
-            />
-          )}
-        </div>
-      ),
-      valid: Boolean(summary?.model),
-      save: () => setTask.mutateAsync({ task: 'summary', ...summary! }),
-    },
-    {
-      title: m.setup.vision.title,
-      text: m.setup.vision.text,
-      body: (
-        <div className="space-y-4">
-          <TaskModelPicker
-            task="vision"
-            providers={ai.providers}
-            value={
-              draft.vision ??
-              (draft.check
-                ? { providerId: draft.check.providerId, model: '', reasoning: null }
-                : null)
-            }
-            onChange={setVision}
-          />
-          <p className="hint">{m.setup.optional}</p>
-        </div>
-      ),
-      save: () =>
-        draft.vision?.model
-          ? setTask.mutateAsync({ task: 'vision', ...draft.vision })
-          : Promise.resolve(),
-    },
-    {
-      ...m.setup.timeout,
-      body: <TimeoutField value={draft.timeout} onChange={(v) => set('timeout', v)} />,
-      valid: timeoutMs !== null,
-      save: () => updateSettings.mutateAsync({ aiTimeoutMs: timeoutMs! }),
-    },
+    ...(ai ? aiSteps : []),
     {
       ...m.setup.learning,
       body: (
@@ -329,23 +296,23 @@ function WizardSteps({
           <ValueRow label={m.fields.language} value={LANGUAGE_NAMES[lang]} />
           <ValueRow label={m.fields.name} value={draft.name.trim() || m.fields.noName} />
           <ValueRow label={m.fields.timezone} value={draft.timezone.replaceAll('_', ' ')} />
-          <ValueRow
-            label={m.ai.taskNames.check}
-            value={`${providerName(draft.check?.providerId)} · ${draft.check?.model ?? ''}`}
-          />
-          <ValueRow
-            label={m.ai.taskNames.summary}
-            value={`${providerName(summary?.providerId)} · ${summary?.model ?? ''}`}
-          />
-          <ValueRow
-            label={m.fields.visionModel}
-            value={
-              draft.vision?.model
-                ? `${providerName(draft.vision.providerId)} · ${draft.vision.model}`
-                : m.setup.vision.none
-            }
-          />
-          <ValueRow label={m.fields.timeout} value={`${draft.timeout} ${m.fields.seconds}`} />
+          {ai && (
+            <>
+              <ValueRow
+                label={m.ai.taskNames.check}
+                value={`${providerName(draft.check?.providerId)} · ${draft.check?.model ?? ''}`}
+              />
+              <ValueRow
+                label={m.fields.visionModel}
+                value={
+                  draft.vision?.model
+                    ? `${providerName(draft.vision.providerId)} · ${draft.vision.model}`
+                    : m.setup.vision.none
+                }
+              />
+              <ValueRow label={m.fields.timeout} value={`${draft.timeout} ${m.fields.seconds}`} />
+            </>
+          )}
           <ValueRow
             label={m.fields.intervals}
             value={`${draft.intervals.join(' · ')} ${m.fields.days}`}
@@ -448,16 +415,17 @@ function WizardSteps({
   );
 }
 
-/** Ten-step setup shown right after registration, until `setupCompleted`. */
+/** Setup shown on the first sign-in, until `setupCompleted`. AI steps only for the superuser. */
 export function SetupWizard({ user }: { user: UserDto }) {
   const { m } = useI18n();
+  const admin = user.role === 'admin';
   const settings = useSettings();
-  const ai = useAiConfig();
+  const ai = useAiConfig(admin);
   const error = settings.error ?? ai.error;
   return (
     <CenteredLayout width="max-w-xl" showLanguage={false}>
-      {settings.data && ai.data ? (
-        <WizardSteps user={user} settings={settings.data} ai={ai.data} />
+      {settings.data && (!admin || ai.data) ? (
+        <WizardSteps user={user} settings={settings.data} ai={admin ? ai.data! : null} />
       ) : error ? (
         <Notice tone="error">{errorMessage(m, error)}</Notice>
       ) : (

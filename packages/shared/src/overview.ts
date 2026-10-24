@@ -33,16 +33,6 @@ export interface OverviewDto {
   todayStats: TodayStats;
 }
 
-export interface SummaryDto {
-  text: string | null;
-  /** Why there is no (fresh) text: no attempts today, no model set up, or the AI failed. */
-  reason?: 'no_attempts' | 'no_model' | 'failed';
-  /** Number of answers the text is based on. */
-  attempts: number;
-  /** True when the text is older than the latest answers (generation failed). */
-  stale?: boolean;
-}
-
 /** Words that will be due on a day if nothing is learned until then. */
 export interface DueDayDto {
   day: string;

@@ -24,26 +24,35 @@ export function useUploadJob(id: number) {
   });
 }
 
+export interface PhotoUpload {
+  files: File[];
+  onProgress?: (done: number) => void;
+}
+
+/** Shrinks the photos and puts them into a form (field "photos"). */
+async function photoForm({ files, onProgress }: PhotoUpload): Promise<FormData> {
+  const form = new FormData();
+  let done = 0;
+  for (const file of files) {
+    const blob = await resizePhoto(file);
+    const name = file.name.replace(/\.[^.]+$/, '') + (blob.type === 'image/jpeg' ? '.jpg' : '');
+    form.append('photos', blob, name || 'photo.jpg');
+    onProgress?.(++done);
+  }
+  return form;
+}
+
+/** "Erkennen": uploads photos for AI recognition. */
 export function useUploadPhotos() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      files,
-      onProgress,
-    }: {
-      files: File[];
-      onProgress?: (done: number) => void;
-    }) => {
-      const form = new FormData();
-      let done = 0;
-      for (const file of files) {
-        const blob = await resizePhoto(file);
-        const name = file.name.replace(/\.[^.]+$/, '') + (blob.type === 'image/jpeg' ? '.jpg' : '');
-        form.append('photos', blob, name || 'photo.jpg');
-        onProgress?.(++done);
-      }
-      return (await api<{ job: UploadJobDto }>('/uploads', { method: 'POST', form })).job;
-    },
+    mutationFn: async (input: PhotoUpload) =>
+      (
+        await api<{ job: UploadJobDto }>('/uploads', {
+          method: 'POST',
+          form: await photoForm(input),
+        })
+      ).job,
     onSuccess: (job) => {
       qc.setQueryData(['uploads', job.id], job);
       void qc.invalidateQueries({ queryKey: ['uploads'], exact: true });
@@ -92,5 +101,28 @@ export function usePackagePhotos(packageId: number) {
     queryKey: ['packages', packageId, 'photos'],
     queryFn: async () =>
       (await api<{ photos: PackagePhotoDto[] }>(`/packages/${packageId}/photos`)).photos,
+  });
+}
+
+/** "Hochladen": attaches photos to a package, without recognition. */
+export function useAttachPhotos(packageId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: PhotoUpload) =>
+      (
+        await api<{ job: UploadJobDto }>(`/packages/${packageId}/photos`, {
+          method: 'POST',
+          form: await photoForm(input),
+        })
+      ).job,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['packages', packageId, 'photos'] }),
+  });
+}
+
+export function useDeletePhoto(packageId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (pageId: number) => api<void>(`/uploads/pages/${pageId}`, { method: 'DELETE' }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['packages', packageId, 'photos'] }),
   });
 }

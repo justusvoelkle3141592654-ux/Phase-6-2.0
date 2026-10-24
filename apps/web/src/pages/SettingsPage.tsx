@@ -9,6 +9,9 @@ import {
 import { LanguageSwitch } from '../components/LanguageSwitch';
 import { Notice } from '../components/Notice';
 import { AiSettings } from '../components/ai/AiSettings';
+import { AccountsAdmin } from '../components/admin/AccountsAdmin';
+import { BackupAdmin } from '../components/admin/BackupAdmin';
+import { UpdateAdmin } from '../components/admin/UpdateAdmin';
 import {
   AutoNextFields,
   IntervalsField,
@@ -102,7 +105,7 @@ function AccountSection({ user }: { user: UserDto }) {
   );
 }
 
-function LearningSection({ settings }: { settings: UserSettings }) {
+function LearningSection({ settings, admin }: { settings: UserSettings; admin: boolean }) {
   const { m } = useI18n();
   const [intervals, setIntervals] = useState(settings.intervals.map(String));
   const [wrongMode, setWrongMode] = useState<WrongMode>(settings.wrongMode);
@@ -115,12 +118,18 @@ function LearningSection({ settings }: { settings: UserSettings }) {
   const update = useUpdateSettings();
   const parsedIntervals = parseIntervals(intervals);
   const timeoutMs = parseTimeout(timeout);
-  const valid = parsedIntervals !== null && timeoutMs !== null;
+  const valid = parsedIntervals !== null && (!admin || timeoutMs !== null);
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!valid) return;
-    update.mutate({ intervals: parsedIntervals, wrongMode, aiTimeoutMs: timeoutMs, ...autoNext });
+    update.mutate({
+      intervals: parsedIntervals,
+      wrongMode,
+      // The AI time limit is part of the AI setup, which only the superuser changes.
+      ...(admin ? { aiTimeoutMs: timeoutMs! } : {}),
+      ...autoNext,
+    });
   };
   const edit =
     <T,>(setter: (value: T) => void) =>
@@ -138,7 +147,7 @@ function LearningSection({ settings }: { settings: UserSettings }) {
         <IntervalsField value={intervals} onChange={edit(setIntervals)} />
         <WrongModeField value={wrongMode} onChange={edit(setWrongMode)} />
         <AutoNextFields value={autoNext} onChange={edit(setAutoNext)} />
-        <TimeoutField value={timeout} onChange={edit(setTimeoutValue)} />
+        {admin && <TimeoutField value={timeout} onChange={edit(setTimeoutValue)} />}
         {update.isSuccess && <Notice tone="ok">{m.account.saved}</Notice>}
         {update.isError && <Notice tone="error">{errorMessage(m, update.error)}</Notice>}
         <button type="submit" className="btn btn-primary" disabled={update.isPending || !valid}>
@@ -348,6 +357,7 @@ export function SettingsPage() {
   const user = useMe().data;
   const settings = useSettings(Boolean(user));
   if (!user) return null;
+  const admin = user.role === 'admin';
   return (
     <>
       <PageHeader title={m.settings.title} />
@@ -360,11 +370,14 @@ export function SettingsPage() {
           />
         </section>
         <AccountSection user={user} />
-        {settings.data && <LearningSection settings={settings.data} />}
+        {settings.data && <LearningSection settings={settings.data} admin={admin} />}
         {settings.data && <ReminderSection settings={settings.data} />}
-        <AiSettings />
+        {admin && <AiSettings />}
+        {admin && <AccountsAdmin />}
+        {admin && <BackupAdmin />}
+        {admin && <UpdateAdmin />}
         <PasswordSection />
-        <DeleteAccountSection />
+        {!admin && <DeleteAccountSection />}
       </div>
     </>
   );

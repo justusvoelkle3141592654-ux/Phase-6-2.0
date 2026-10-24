@@ -15,10 +15,12 @@ describe('App-Rahmen', () => {
     mockApi({ 'GET /auth/me': () => ({ status: 200, body: { user: USER } }) });
     renderApp('/');
     await screen.findByRole('heading', { level: 1, name: 'Heute' });
-    for (const label of ['Start', 'Hochladen', 'Pakete', 'Lernen', 'Einstellungen']) {
+    for (const label of ['Start', 'Pakete', 'Lernen', 'Deklinationen', 'Einstellungen']) {
       // Desktop and mobile navigation both render the tab.
       expect(screen.getAllByRole('link', { name: label })).toHaveLength(2);
     }
+    // Uploading moved into the packages.
+    expect(screen.queryByRole('link', { name: 'Hochladen' })).toBeNull();
   });
 
   it('zeigt die Seite zum aktiven Tab', async () => {

@@ -68,10 +68,10 @@ export const PROVIDER_PRESETS: Record<ProviderKind, ProviderPreset> = {
 };
 
 /** Tasks that each get their own provider and model. */
-export const AI_TASKS = ['check', 'summary', 'vision'] as const;
+export const AI_TASKS = ['check', 'vision'] as const;
 export type AiTask = (typeof AI_TASKS)[number];
 
-/** Preset for answer checking and daily summary (no API key needed). */
+/** Preset for answer checking (no API key needed). */
 export const DEFAULT_TEXT_MODEL = 'openai/gpt-oss-20b';
 export const DEFAULT_AI_PROVIDER = PROVIDER_PRESETS.pollinations.label;
 

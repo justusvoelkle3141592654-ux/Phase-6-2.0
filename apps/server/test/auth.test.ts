@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { ORIGIN, register, sessionCookie, testApp, TEST_CODE } from './helpers';
+import { adminHeaders, ORIGIN, register, sessionCookie, testApp } from './helpers';
 
 let app: FastifyInstance;
 beforeEach(async () => {
@@ -20,14 +20,30 @@ function login(payload: Record<string, unknown>) {
   return app.inject({ method: 'POST', url: '/api/auth/login', headers: json, payload });
 }
 
-describe('Registrierung', () => {
-  it('legt einen Account an und meldet per Cookie an', async () => {
+describe('Superuser und Accounts', () => {
+  it('legt beim Start den Superuser admin@wordflow.com / admin an', async () => {
+    const res = await login({ email: 'admin@wordflow.com', password: 'admin' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().user).toMatchObject({ email: 'admin@wordflow.com', role: 'admin' });
+  });
+
+  it('Selbst-Registrierung ist abgeschaltet', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      headers: json,
+      payload: { email: 'neu@example.org', password: 'geheim123', registrationCode: 'X' },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'registration_disabled' });
+  });
+
+  it('vom Superuser angelegte Accounts melden sich per Cookie an', async () => {
     const res = await register(app, { uiLanguage: 'en', timezone: 'Europe/Vienna' });
-    expect(res.statusCode).toBe(201);
+    expect(res.statusCode).toBe(200);
     expect(res.json().user).toMatchObject({
       email: 'anna@example.org',
-      uiLanguage: 'en',
-      timezone: 'Europe/Vienna',
+      role: 'user',
       setupCompleted: false,
     });
     expect(res.json().token).toBeUndefined();
@@ -38,23 +54,16 @@ describe('Registrierung', () => {
 
     const who = await me({ cookie: `wordflow_session=${cookie!.value}` });
     expect(who.statusCode).toBe(200);
-    expect(who.json().user.email).toBe('anna@example.org');
+    expect(who.json().user).toMatchObject({
+      email: 'anna@example.org',
+      uiLanguage: 'en',
+      timezone: 'Europe/Vienna',
+    });
   });
 
   it('speichert E-Mails klein geschrieben und ohne Leerzeichen', async () => {
     const res = await register(app, { email: '  Anna@Example.ORG ' });
     expect(res.json().user.email).toBe('anna@example.org');
-  });
-
-  it('lehnt einen falschen Registrierungscode ab', async () => {
-    const res = await register(app, { registrationCode: 'FALSCH' });
-    expect(res.statusCode).toBe(403);
-    expect(res.json()).toEqual({ error: 'invalid_registration_code' });
-  });
-
-  it('akzeptiert den Code unabhängig von Groß-/Kleinschreibung', async () => {
-    const res = await register(app, { registrationCode: TEST_CODE.toLowerCase() });
-    expect(res.statusCode).toBe(201);
   });
 
   it('lehnt doppelte E-Mail-Adressen ab', async () => {
@@ -64,20 +73,26 @@ describe('Registrierung', () => {
     expect(res.json()).toEqual({ error: 'email_taken' });
   });
 
-  it('prüft E-Mail, Passwortlänge und Zeitzone', async () => {
-    const res = await register(app, {
-      email: 'keine-mail',
-      password: 'kurz',
-      timezone: 'Mars/Olymp',
-    });
+  it('prüft E-Mail und Passwortlänge', async () => {
+    const res = await register(app, { email: 'keine-mail', password: 'kurz' });
     expect(res.statusCode).toBe(400);
     expect(res.json()).toMatchObject({ error: 'validation_error' });
-    expect(res.json().fields).toEqual(expect.arrayContaining(['email', 'password', 'timezone']));
+    expect(res.json().fields).toEqual(expect.arrayContaining(['email', 'password']));
+  });
+
+  it('der Superuser kann seinen Account nicht löschen', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/auth/me',
+      headers: await adminHeaders(app),
+      payload: { password: 'admin' },
+    });
+    expect(res.statusCode).toBe(403);
   });
 });
 
 describe('Offline-Modus', () => {
-  it('meldet ohne Registrierungscode mit Standard-Account an', async () => {
+  it('meldet mit Standard-Account an; Registrierung bleibt gesperrt', async () => {
     const localApp = await testApp({ offlineMode: true });
     const info = await localApp.inject({ method: 'GET', url: '/api/auth/mode', headers: json });
     expect(info.statusCode).toBe(200);
@@ -87,14 +102,9 @@ describe('Offline-Modus', () => {
       method: 'POST',
       url: '/api/auth/register',
       headers: json,
-      payload: {
-        email: 'guest@example.org',
-        password: 'geheim123',
-        uiLanguage: 'de',
-        timezone: 'Europe/Berlin',
-      },
+      payload: { email: 'guest@example.org', password: 'geheim123' },
     });
-    expect(registerRes.statusCode).toBe(201);
+    expect(registerRes.statusCode).toBe(403);
 
     const loginRes = await localApp.inject({
       method: 'POST',
@@ -109,14 +119,10 @@ describe('Offline-Modus', () => {
 
   it('listet die lokalen Accounts und prüft deren Passwort', async () => {
     const localApp = await testApp({ offlineMode: true });
-    await localApp.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      headers: json,
-      payload: { email: 'guest@example.org', password: 'geheim123' },
-    });
+    await register(localApp, { email: 'guest@example.org' });
     const info = await localApp.inject({ method: 'GET', url: '/api/auth/mode', headers: json });
     expect(info.json().accounts).toEqual([
+      { email: 'admin@wordflow.com', name: 'Superuser' },
       { email: 'offline@local.test', name: '' },
       { email: 'guest@example.org', name: '' },
     ]);
@@ -325,7 +331,7 @@ describe('Schutz vor Cross-Site-Anfragen', () => {
       headers: { origin: 'https://localhost' },
       payload: { email: 'anna@example.org', password: 'geheim123', client: 'app' },
     });
-    expect(reg.statusCode).toBe(201);
+    expect(reg.statusCode).toBe(200);
     expect(login.statusCode).toBe(200);
     expect(login.json().token).toBeTruthy();
   });

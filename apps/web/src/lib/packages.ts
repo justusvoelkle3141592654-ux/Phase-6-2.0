@@ -96,6 +96,16 @@ export function useActivateVocab() {
   });
 }
 
+/** Removes a word from the own learning plan. */
+export function useDeactivateVocab() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (id: number) =>
+      api<{ vocab: VocabDto }>(`/vocab/${id}/deactivate`, { method: 'POST' }),
+    onSuccess: invalidate,
+  });
+}
+
 export function useActivatePackage(id: number) {
   const invalidate = useInvalidate();
   return useMutation({

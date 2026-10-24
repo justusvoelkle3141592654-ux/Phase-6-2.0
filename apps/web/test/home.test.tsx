@@ -43,11 +43,12 @@ describe('Startseite', () => {
     expect(screen.getByLabelText('Stufe 1: 5')).toBeTruthy();
     expect(screen.getByLabelText('Gelernt: 4')).toBeTruthy();
     expect(screen.getByText('Inaktiv: 7')).toBeTruthy();
-    expect(screen.getByText(/Sobald du heute gelernt hast/)).toBeTruthy();
+    // The daily AI summary was removed.
+    expect(screen.queryByText('Tageszusammenfassung')).toBeNull();
     expect(calls.some((c) => c.key === 'GET /overview/summary')).toBe(false);
   });
 
-  it('zeigt Tageswerte, schwierige Vokabeln und die KI-Zusammenfassung', async () => {
+  it('zeigt Tageswerte und schwierige Vokabeln', async () => {
     mockApi({
       'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
       'GET /overview': () => ({
@@ -67,10 +68,6 @@ describe('Startseite', () => {
           },
         },
       }),
-      'GET /overview/summary': () => ({
-        status: 200,
-        body: { text: 'Starker Tag! Übe bellum noch einmal.', attempts: 20 },
-      }),
     });
     renderApp('/');
     expect(await screen.findByText('Heute ist nichts mehr fällig.')).toBeTruthy();
@@ -78,34 +75,20 @@ describe('Startseite', () => {
     expect(screen.getByText('75 %')).toBeTruthy();
     expect(screen.getByText('3,4 s')).toBeTruthy();
     expect(screen.getByText('3× falsch')).toBeTruthy();
-    expect(await screen.findByText('Starker Tag! Übe bellum noch einmal.')).toBeTruthy();
   });
 
-  it('erklärt, wenn kein Modell für die Zusammenfassung eingerichtet ist', async () => {
+  it('ohne aktivierte Vokabeln: Hinweis auf die Pakete', async () => {
     mockApi({
       'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
       'GET /overview': () => ({
         status: 200,
-        body: { ...BASE, todayStats: { ...STATS, attempts: 3, correct: 3, accuracy: 1 } },
-      }),
-      'GET /overview/summary': () => ({
-        status: 200,
-        body: { text: null, reason: 'no_model', attempts: 3 },
+        body: { ...BASE, due: 0, stages: [0, 0, 0, 0, 0, 0], learned: 0, inactive: 30 },
       }),
     });
     renderApp('/');
-    expect(await screen.findByText(/kein KI-Modell eingerichtet/)).toBeTruthy();
-  });
-
-  it('ohne Vokabeln: Hinweis zum Hochladen', async () => {
-    mockApi({
-      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
-      'GET /overview': () => ({
-        status: 200,
-        body: { ...BASE, due: 0, stages: [0, 0, 0, 0, 0, 0], learned: 0, inactive: 0 },
-      }),
-    });
-    renderApp('/');
-    expect(await screen.findByRole('link', { name: /Fotos hochladen/ })).toBeTruthy();
+    expect(await screen.findByText(/Noch keine Vokabeln aktiviert/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Zu den Paketen/ }).getAttribute('href')).toBe(
+      '/packages',
+    );
   });
 });

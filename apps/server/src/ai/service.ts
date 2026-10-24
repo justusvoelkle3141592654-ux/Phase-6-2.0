@@ -10,7 +10,13 @@ import {
   type ProviderDto,
 } from '@wordflow/shared';
 import type { Db } from '../db';
-import { latencySamples, providerConfigs, taskModels, type ProviderConfig } from '../db/schema';
+import {
+  latencySamples,
+  providerConfigs,
+  taskModels,
+  users,
+  type ProviderConfig,
+} from '../db/schema';
 import { SecretBox } from './crypto';
 import {
   createProvider,
@@ -52,9 +58,12 @@ function percentile(values: number[], p: number): number | null {
   return sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)]!;
 }
 
-/** Everything about a user's AI setup: providers, task models, calls with latency tracking. */
+/**
+ * The AI setup: providers, task models, calls with latency tracking. There is one
+ * setup for everyone, owned by the superuser; `userId` arguments only say who asks.
+ */
 export class AiService {
-  private readonly box: SecretBox;
+  private box: SecretBox;
 
   constructor(
     private readonly db: Db,
@@ -63,8 +72,26 @@ export class AiService {
     this.box = new SecretBox(appSecret);
   }
 
-  /** New accounts get Pollinations with openai/gpt-oss-20b for checking and summary. */
-  ensureDefaults(userId: number) {
+  /** New key after a backup was restored. */
+  setSecret(appSecret: string) {
+    this.box = new SecretBox(appSecret);
+  }
+
+  /** Account whose AI setup applies: the superuser (falls back to the caller without one). */
+  ownerId(userId: number): number {
+    const admin = this.db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.role, 'admin'))
+      .orderBy(users.id)
+      .limit(1)
+      .get();
+    return admin?.id ?? userId;
+  }
+
+  /** The setup starts with Pollinations and openai/gpt-oss-20b for checking. */
+  ensureDefaults(caller: number) {
+    const userId = this.ownerId(caller);
     const existing = this.db
       .select({ id: providerConfigs.id })
       .from(providerConfigs)
@@ -84,16 +111,15 @@ export class AiService {
         })
         .returning()
         .get();
-      for (const task of ['check', 'summary'] as const) {
-        tx.insert(taskModels)
-          .values({ userId, task, providerId: p.id, model: DEFAULT_TEXT_MODEL })
-          .run();
-      }
+      tx.insert(taskModels)
+        .values({ userId, task: 'check', providerId: p.id, model: DEFAULT_TEXT_MODEL })
+        .run();
     });
   }
 
-  config(userId: number): AiConfigDto {
-    this.ensureDefaults(userId);
+  config(caller: number): AiConfigDto {
+    this.ensureDefaults(caller);
+    const userId = this.ownerId(caller);
     const providers = this.db
       .select()
       .from(providerConfigs)
@@ -107,7 +133,8 @@ export class AiService {
     return { providers: providers.map(toProviderDto), tasks };
   }
 
-  getProvider(userId: number, id: number): ProviderConfig | undefined {
+  getProvider(caller: number, id: number): ProviderConfig | undefined {
+    const userId = this.ownerId(caller);
     return this.db
       .select()
       .from(providerConfigs)
@@ -127,8 +154,9 @@ export class AiService {
     });
   }
 
-  binding(userId: number, task: AiTask): TaskBinding | null {
-    this.ensureDefaults(userId);
+  binding(caller: number, task: AiTask): TaskBinding | null {
+    this.ensureDefaults(caller);
+    const userId = this.ownerId(caller);
     const row = this.db
       .select({ tm: taskModels, config: providerConfigs })
       .from(taskModels)
@@ -189,13 +217,13 @@ export class AiService {
     }
   }
 
-  /** Median and slowest values of the last 100 calls per task. */
-  latencyStats(userId: number): LatencyStatsDto[] {
-    return (['check', 'summary', 'vision', 'test'] as const).map((task) => {
+  /** Median and slowest values of the last 100 calls per task, over all accounts. */
+  latencyStats(): LatencyStatsDto[] {
+    return (['check', 'vision', 'test'] as const).map((task) => {
       const rows = this.db
         .select()
         .from(latencySamples)
-        .where(and(eq(latencySamples.userId, userId), eq(latencySamples.task, task)))
+        .where(eq(latencySamples.task, task))
         .orderBy(desc(latencySamples.id))
         .limit(100)
         .all();

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { extractJson, parseRecognition } from '../src/uploads/recognize';
-import { ORIGIN, register, sessionCookie, testApp } from './helpers';
+import { adminHeaders, ORIGIN, register, sessionCookie, testApp } from './helpers';
 import { json, mockServer, openAiStream, stream } from './mock-ai';
 
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4, 0xff, 0xd9]);
@@ -49,7 +49,7 @@ describe('Hochladen und Erkennen', () => {
         stream(res, 'text/event-stream', openAiStream(replies.shift() ?? '', 1)),
     });
     app = await testApp();
-    headers = { origin: ORIGIN, cookie: `wordflow_session=${sessionCookie(await register(app))}` };
+    headers = await adminHeaders(app);
     const provider = (
       await app.inject({
         method: 'POST',
@@ -146,41 +146,55 @@ describe('Hochladen und Erkennen', () => {
     expect(res.statusCode).toBe(415);
   });
 
-  it('speichert als neues Paket; Fotos bleiben beim Paket einsehbar', async () => {
+  async function createPackage(name = 'Lektion 4') {
+    return (
+      await app.inject({
+        method: 'POST',
+        url: '/api/packages',
+        headers,
+        payload: { name, language: 'la' },
+      })
+    ).json().package;
+  }
+
+  function userHeaders(email = 'bob@example.org') {
+    return register(app, { email }).then((res) => ({
+      origin: ORIGIN,
+      cookie: `wordflow_session=${sessionCookie(res)}`,
+    }));
+  }
+
+  it('speichert ins Paket; die Fotos sehen alle Accounts', async () => {
     replies = [ENTRIES];
+    const pkg = await createPackage();
     const job = await waitForJob((await upload()).json().job.id);
     const saved = await app.inject({
       method: 'POST',
       url: `/api/uploads/${job.id}/save`,
       headers,
       payload: {
-        target: { newPackage: { name: 'Lektion 4', language: 'la' } },
+        packageId: pkg.id,
         items: [
           { word: 'amicus', extra: 'amici m.', translation: 'Freund; Kamerad' },
           { word: 'hostis', translation: 'Feind' },
         ],
       },
     });
-    expect(saved.statusCode).toBe(200);
-    const { packageId } = saved.json();
+    expect(saved.json()).toEqual({ packageId: pkg.id, count: 2 });
     const detail = (
-      await app.inject({ method: 'GET', url: `/api/packages/${packageId}`, headers })
+      await app.inject({ method: 'GET', url: `/api/packages/${pkg.id}`, headers })
     ).json();
-    expect(detail.package).toMatchObject({
-      name: 'Lektion 4',
-      language: 'la',
-      direction: 'foreign_native',
-    });
     expect(detail.vocab.map((v: { word: string; active: boolean }) => [v.word, v.active])).toEqual([
       ['amicus', false],
       ['hostis', false],
     ]);
 
+    const bob = await userHeaders();
     const photos = (
-      await app.inject({ method: 'GET', url: `/api/packages/${packageId}/photos`, headers })
+      await app.inject({ method: 'GET', url: `/api/packages/${pkg.id}/photos`, headers: bob })
     ).json().photos;
     expect(photos).toHaveLength(1);
-    const photo = await app.inject({ method: 'GET', url: photos[0].photoUrl, headers });
+    const photo = await app.inject({ method: 'GET', url: photos[0].photoUrl, headers: bob });
     expect(photo.statusCode).toBe(200);
     expect(photo.headers['content-type']).toBe('image/jpeg');
     expect(photo.rawPayload.equals(JPEG)).toBe(true);
@@ -191,27 +205,58 @@ describe('Hochladen und Erkennen', () => {
     ).toHaveLength(0);
   });
 
-  it('speichert in ein bestehendes Paket', async () => {
+  it('speichert nicht in unbekannte Pakete', async () => {
     replies = [ENTRIES];
     const job = await waitForJob((await upload()).json().job.id);
-    const pkg = (
-      await app.inject({
-        method: 'POST',
-        url: '/api/packages',
-        headers,
-        payload: { name: 'Alt', language: 'la' },
-      })
-    ).json().package;
     const res = await app.inject({
       method: 'POST',
       url: `/api/uploads/${job.id}/save`,
       headers,
-      payload: {
-        target: { packageId: pkg.id },
-        items: [{ word: 'amicus', translation: 'Freund' }],
-      },
+      payload: { packageId: 999, items: [{ word: 'amicus', translation: 'Freund' }] },
     });
-    expect(res.json()).toEqual({ packageId: pkg.id, count: 1 });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('Hochladen hängt Fotos ohne Erkennung ans Paket; ✕ löscht ein Foto', async () => {
+    const pkg = await createPackage();
+    const { body, contentType } = await multipart([
+      { type: 'image/jpeg', data: JPEG },
+      { type: 'image/png', data: JPEG },
+    ]);
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/packages/${pkg.id}/photos`,
+      headers: { ...headers, 'content-type': contentType },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().job).toMatchObject({ packageId: pkg.id });
+    expect(res.json().job.pages.map((p: { status: string }) => p.status)).toEqual(['done', 'done']);
+    expect(replies).toEqual([]);
+
+    const list = async () =>
+      (await app.inject({ method: 'GET', url: `/api/packages/${pkg.id}/photos`, headers })).json()
+        .photos as Array<{ id: number; photoUrl: string }>;
+    const [first, second] = await list();
+
+    const bob = await userHeaders();
+    const forbidden = await app.inject({
+      method: 'DELETE',
+      url: `/api/uploads/pages/${first!.id}`,
+      headers: bob,
+    });
+    expect(forbidden.statusCode).toBe(403);
+
+    const del = await app.inject({
+      method: 'DELETE',
+      url: `/api/uploads/pages/${first!.id}`,
+      headers,
+    });
+    expect(del.statusCode).toBe(204);
+    expect((await list()).map((p) => p.id)).toEqual([second!.id]);
+    expect((await app.inject({ method: 'GET', url: first!.photoUrl, headers })).statusCode).toBe(
+      404,
+    );
   });
 
   it('löscht offene Uploads samt Fotos', async () => {
@@ -224,16 +269,24 @@ describe('Hochladen und Erkennen', () => {
     expect((await app.inject({ method: 'GET', url: photoUrl, headers })).statusCode).toBe(404);
   });
 
-  it('Fotos und Uploads anderer Accounts sind nicht erreichbar', async () => {
+  it('normale Accounts können nicht hochladen und sehen keine offenen Uploads', async () => {
     replies = [ENTRIES];
     const job = await waitForJob((await upload()).json().job.id);
-    const bob = {
-      origin: ORIGIN,
-      cookie: `wordflow_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
-    };
+    const bob = await userHeaders();
+    const { body, contentType } = await multipart([{ type: 'image/jpeg', data: JPEG }]);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/api/uploads',
+          headers: { ...bob, 'content-type': contentType },
+          payload: body,
+        })
+      ).statusCode,
+    ).toBe(403);
     expect(
       (await app.inject({ method: 'GET', url: `/api/uploads/${job.id}`, headers: bob })).statusCode,
-    ).toBe(404);
+    ).toBe(403);
     expect(
       (await app.inject({ method: 'GET', url: job.pages[0].photoUrl, headers: bob })).statusCode,
     ).toBe(404);
@@ -243,12 +296,9 @@ describe('Hochladen und Erkennen', () => {
           method: 'POST',
           url: `/api/uploads/${job.id}/save`,
           headers: bob,
-          payload: {
-            target: { newPackage: { name: 'x', language: 'en' } },
-            items: [{ word: 'a', translation: 'b' }],
-          },
+          payload: { packageId: 1, items: [{ word: 'a', translation: 'b' }] },
         })
       ).statusCode,
-    ).toBe(404);
+    ).toBe(403);
   });
 });

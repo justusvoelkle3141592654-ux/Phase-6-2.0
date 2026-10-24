@@ -4,7 +4,6 @@ import type {
   ChangePasswordInput,
   DeleteAccountInput,
   LoginInput,
-  RegisterInput,
   UpdateProfileInput,
   UserDto,
 } from '@wordflow/shared';
@@ -14,6 +13,11 @@ import { getToken, isApp, setToken } from './platform';
 const CLIENT = isApp ? 'app' : 'web';
 
 export const ME_KEY = ['me'] as const;
+
+/** True when the superuser is signed in. */
+export function useIsAdmin(): boolean {
+  return useMe().data?.role === 'admin';
+}
 
 /** Current user, or null when signed out. */
 export function useMe() {
@@ -40,21 +44,6 @@ export function useLogin() {
   return useMutation({
     mutationFn: async (input: LoginInput) => {
       const res = await api<AuthResponse>('/auth/login', {
-        method: 'POST',
-        body: { ...input, client: CLIENT },
-      });
-      if (res.token) await setToken(res.token);
-      return res;
-    },
-    onSuccess: ({ user }) => qc.setQueryData(ME_KEY, user),
-  });
-}
-
-export function useRegister() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: RegisterInput) => {
-      const res = await api<AuthResponse>('/auth/register', {
         method: 'POST',
         body: { ...input, client: CLIENT },
       });

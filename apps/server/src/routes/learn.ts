@@ -8,7 +8,7 @@ import {
   type LearnCard,
 } from '@wordflow/shared';
 import type { Db } from '../db';
-import { attempts, packages, vocab } from '../db/schema';
+import { attempts, packages, userVocab, vocab } from '../db/schema';
 import { decide, rememberCorrection, type AiCheck, type Decision } from '../learn/decide';
 import { getSettings } from './settings';
 import { parseBody } from './parse';
@@ -40,20 +40,20 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
     const user = request.user!;
     const packageId = Number((request.query as { packageId?: string }).packageId) || null;
     const rows = db
-      .select({ vocab, pkg: packages })
-      .from(vocab)
+      .select({ vocab, pkg: packages, progress: userVocab })
+      .from(userVocab)
+      .innerJoin(vocab, eq(vocab.id, userVocab.vocabId))
       .innerJoin(packages, eq(packages.id, vocab.packageId))
       .where(
         and(
-          eq(vocab.userId, user.id),
-          eq(vocab.active, true),
-          eq(vocab.learned, false),
-          lte(vocab.dueDate, todayIn(user.timezone)),
+          eq(userVocab.userId, user.id),
+          eq(userVocab.learned, false),
+          lte(userVocab.dueDate, todayIn(user.timezone)),
           packageId ? eq(vocab.packageId, packageId) : undefined,
         ),
       )
       .all();
-    const cards: LearnCard[] = rows.map(({ vocab: v, pkg }) => ({
+    const cards: LearnCard[] = rows.map(({ vocab: v, pkg, progress }) => ({
       vocabId: v.id,
       packageId: pkg.id,
       packageName: pkg.name,
@@ -62,7 +62,7 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
       word: v.word,
       extra: v.extra,
       translation: v.translation,
-      stage: v.stage,
+      stage: progress.stage,
     }));
     return { cards: shuffle(cards) };
   });
@@ -71,12 +71,14 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
     const input = parseBody(answerSchema, request.body, reply);
     if (!input) return;
     const user = request.user!;
-    const word = db
-      .select()
-      .from(vocab)
-      .where(and(eq(vocab.id, input.vocabId), eq(vocab.userId, user.id)))
+    const row = db
+      .select({ word: vocab, progress: userVocab })
+      .from(userVocab)
+      .innerJoin(vocab, eq(vocab.id, userVocab.vocabId))
+      .where(and(eq(userVocab.vocabId, input.vocabId), eq(userVocab.userId, user.id)))
       .get();
-    if (!word || !word.active || word.learned) return reply.code(404).send({ error: 'not_found' });
+    if (!row || row.progress.learned) return reply.code(404).send({ error: 'not_found' });
+    const { word, progress } = row;
 
     const language = db
       .select({ language: packages.language })
@@ -89,9 +91,12 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
         : await decide(db, word, input.direction, input.answer, aiCheckFor?.(user.id, language));
 
     const today = todayIn(user.timezone);
-    const next = applyAnswer(word.stage, decision.correct, getSettings(db, user.id), today);
+    const next = applyAnswer(progress.stage, decision.correct, getSettings(db, user.id), today);
     const attempt = db.transaction((tx) => {
-      tx.update(vocab).set(next).where(eq(vocab.id, word.id)).run();
+      tx.update(userVocab)
+        .set(next)
+        .where(and(eq(userVocab.userId, user.id), eq(userVocab.vocabId, word.id)))
+        .run();
       return tx
         .insert(attempts)
         .values({
@@ -103,7 +108,7 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
           decidedBy: decision.decidedBy,
           msToFirstKey: input.msToFirstKey ?? null,
           msTotal: input.msTotal ?? null,
-          stageBefore: word.stage,
+          stageBefore: progress.stage,
           stageAfter: next.stage,
           repeat: input.repeat ?? false,
           day: today,
@@ -118,7 +123,7 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
       decidedBy: decision.decidedBy,
       typoOf: decision.typoOf,
       aiFailed: decision.aiFailed,
-      stageBefore: word.stage,
+      stageBefore: progress.stage,
       stageAfter: next.stage,
       learned: next.learned,
       canOverride: decision.canOverride,
@@ -145,7 +150,7 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
     const latest = db
       .select({ id: attempts.id })
       .from(attempts)
-      .where(eq(attempts.vocabId, attempt.vocabId))
+      .where(and(eq(attempts.vocabId, attempt.vocabId), eq(attempts.userId, user.id)))
       .orderBy(desc(attempts.id))
       .limit(1)
       .get();
@@ -163,7 +168,10 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
       todayIn(user.timezone),
     );
     db.transaction((tx) => {
-      tx.update(vocab).set(next).where(eq(vocab.id, attempt.vocabId)).run();
+      tx.update(userVocab)
+        .set(next)
+        .where(and(eq(userVocab.userId, user.id), eq(userVocab.vocabId, attempt.vocabId)))
+        .run();
       tx.update(attempts)
         .set({ correct: true, decidedBy: 'correction', stageAfter: next.stage })
         .where(eq(attempts.id, attempt.id))

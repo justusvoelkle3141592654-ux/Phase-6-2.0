@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
@@ -7,7 +6,8 @@ import {
   changePasswordSchema,
   deleteAccountSchema,
   loginSchema,
-  registerSchema,
+  SUPERUSER_DEFAULT_PASSWORD,
+  SUPERUSER_EMAIL,
   updateProfileSchema,
   type AuthResponse,
   type UserDto,
@@ -23,16 +23,11 @@ export function toUserDto(user: User): UserDto {
     id: user.id,
     email: user.email,
     name: user.name,
+    role: user.role,
     uiLanguage: user.uiLanguage,
     timezone: user.timezone,
     setupCompleted: user.setupCompleted,
   };
-}
-
-function sameCode(a: string, b: string): boolean {
-  const ha = crypto.createHash('sha256').update(a.trim().toUpperCase()).digest();
-  const hb = crypto.createHash('sha256').update(b.trim().toUpperCase()).digest();
-  return crypto.timingSafeEqual(ha, hb);
 }
 
 /** Rate limit for endpoints that check passwords or codes. */
@@ -58,12 +53,50 @@ export async function ensureOfflineUser(db: Db): Promise<User> {
   return user;
 }
 
+/**
+ * Creates the superuser (admin@wordflow.com / admin) if missing, or promotes an
+ * existing account with that address.
+ */
+export async function ensureSuperuser(db: Db): Promise<User> {
+  const existing = db.select().from(users).where(eq(users.email, SUPERUSER_EMAIL)).get();
+  if (existing) {
+    if (existing.role === 'admin') return existing;
+    return db
+      .update(users)
+      .set({ role: 'admin' })
+      .where(eq(users.id, existing.id))
+      .returning()
+      .get();
+  }
+  return db
+    .insert(users)
+    .values({
+      email: SUPERUSER_EMAIL,
+      name: 'Superuser',
+      passwordHash: await hashPassword(SUPERUSER_DEFAULT_PASSWORD),
+      role: 'admin',
+      uiLanguage: 'de',
+      timezone: 'Europe/Berlin',
+    })
+    .returning()
+    .get();
+}
+
+/** Removes an account with all its data and photos. */
+export async function deleteUser(db: Db, dataDir: string, userId: number) {
+  // Foreign keys cascade: sessions, learning progress, settings, attempts.
+  db.delete(users).where(eq(users.id, userId)).run();
+  await fs.promises.rm(path.join(dataDir, 'uploads', String(userId)), {
+    recursive: true,
+    force: true,
+  });
+}
+
 export const authRoutes: FastifyPluginAsync<{
   db: Db;
-  registrationCode: string;
   offlineMode: boolean;
   dataDir: string;
-}> = async (app, { db, registrationCode, offlineMode, dataDir }) => {
+}> = async (app, { db, offlineMode, dataDir }) => {
   function signIn(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -94,26 +127,9 @@ export const authRoutes: FastifyPluginAsync<{
     };
   });
 
-  app.post('/auth/register', limited, async (request, reply) => {
-    const input = parse(registerSchema, request.body, reply);
-    if (!input) return;
-    if (!offlineMode && !sameCode(input.registrationCode ?? '', registrationCode)) {
-      return reply.code(403).send({ error: 'invalid_registration_code' });
-    }
-    if (db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).get()) {
-      return reply.code(409).send({ error: 'email_taken' });
-    }
-    const user = db
-      .insert(users)
-      .values({
-        email: input.email,
-        passwordHash: await hashPassword(input.password),
-        uiLanguage: input.uiLanguage,
-        timezone: input.timezone,
-      })
-      .returning()
-      .get();
-    return reply.code(201).send(signIn(request, reply, user, input.client));
+  // Accounts are created by the superuser only.
+  app.post('/auth/register', limited, async (_request, reply) => {
+    return reply.code(403).send({ error: 'registration_disabled' });
   });
 
   app.post('/auth/login', limited, async (request, reply) => {
@@ -179,15 +195,11 @@ export const authRoutes: FastifyPluginAsync<{
     const input = parse(deleteAccountSchema, request.body, reply);
     if (!input) return;
     const user = request.user!;
+    if (user.role === 'admin') return reply.code(403).send({ error: 'forbidden' });
     if (!(await verifyPassword(user.passwordHash, input.password))) {
       return reply.code(403).send({ error: 'wrong_password' });
     }
-    // Foreign keys cascade: sessions, packages, vocab, settings, AI configs, uploads.
-    db.delete(users).where(eq(users.id, user.id)).run();
-    await fs.promises.rm(path.join(dataDir, 'uploads', String(user.id)), {
-      recursive: true,
-      force: true,
-    });
+    await deleteUser(db, dataDir, user.id);
     app.clearSessionCookie(request, reply);
     return reply.code(204).send();
   });

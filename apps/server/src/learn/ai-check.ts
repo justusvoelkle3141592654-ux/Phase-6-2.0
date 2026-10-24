@@ -40,7 +40,7 @@ export function aiCheckFor(
 ): AiCheck | undefined {
   const binding = ai.binding(userId, 'check');
   if (!binding) return undefined;
-  const timeoutMs = getSettings(db, userId).aiTimeoutMs ?? DEFAULT_AI_TIMEOUT_MS;
+  const timeoutMs = getSettings(db, ai.ownerId(userId)).aiTimeoutMs ?? DEFAULT_AI_TIMEOUT_MS;
   return async ({ vocab, direction, answer, solution }) => {
     const prompt = direction === 'foreign_native' ? vocab.word : vocab.translation;
     try {
