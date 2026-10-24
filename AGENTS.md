@@ -57,8 +57,12 @@ README.md        User‑facing documentation
 - **Fastify** routes are mounted under `/api`; unknown non‑API GET routes serve `index.html` when `webDist` is set.
 - **Session cookie** name: `wordflow_session` (httpOnly, sameSite=lax, secure on HTTPS).
 - Environment variables are read via `loadConfig` in `apps/server/src/config.ts`. Missing values are generated and stored in `data/secrets.json` (mode 600) – do **not** edit this file manually.
-- **Registration code** is generated on first start if `REGISTRATION_CODE` is empty; shown in logs.
-- **Offline mode**: set `OFFLINE_MODE=true` to start with a default account (`offline@local.test` / `offline`). Registration needs no code, and `GET /api/auth/mode` lists all accounts (email + name) so the sign-in page can offer them; passwords are still checked.
+- **Superuser** `admin@wordflow.com` / `admin` (`role = 'admin'`) is created on every start if missing (`ensureSuperuser`). Self-registration is disabled (`POST /api/auth/register` → 403); the superuser manages accounts, packages, AI settings, backups and updates under `/api/admin/*` (`requireAdmin`).
+- **Shared packages**: `packages`/`vocab` have no owner; per-account learning progress lives in `user_vocab` (a row = activated). All accounts read packages; only the superuser writes them.
+- **AI setup** is global: `AiService` always uses the superuser's `provider_configs`/`task_models`.
+- **Migrations run with foreign keys off** (`runMigrations` in `db/index.ts`), because table rebuilds inside the migrator's transaction would otherwise cascade-delete rows. `drizzle-kit` in the repo (0.18) cannot `generate`; write migrations by hand (SQL + `meta/_journal.json`).
+- **Update button** runs `scripts/update.mjs` as a detached process (downloads `rcode125/Phase-6-2.0@master`, keeps `data/`, `.env`, `node_modules/`).
+- **Offline mode**: set `OFFLINE_MODE=true` to also create a default account (`offline@local.test` / `offline`); `GET /api/auth/mode` lists all accounts (email + name) so the sign-in page can offer them; passwords are still checked.
 - **AI providers** are configured per account; the server stores encrypted API keys using `APP_SECRET` (generated if absent).
 - **Prettier** formatting is enforced via `npm run format`.
 

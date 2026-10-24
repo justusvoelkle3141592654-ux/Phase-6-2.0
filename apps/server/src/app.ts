@@ -6,19 +6,20 @@ import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
-import type { AppConfig } from './config';
+import { REPO_ROOT, type AppConfig } from './config';
 import { openDatabase } from './db';
 import { loadSecrets } from './secrets';
 import { authPlugin } from './auth/plugin';
 import { deleteExpiredSessions } from './auth/sessions';
-import { authRoutes, ensureOfflineUser } from './routes/auth';
+import { authRoutes, ensureOfflineUser, ensureSuperuser } from './routes/auth';
+import { adminRoutes } from './routes/admin';
 import { healthRoutes } from './routes/health';
 import { settingsRoutes } from './routes/settings';
 import { packageRoutes } from './routes/packages';
 import { learnRoutes } from './routes/learn';
 import { aiRoutes } from './routes/ai';
 import { overviewRoutes } from './routes/overview';
-import { MAX_PHOTO_BYTES, MAX_PHOTOS, uploadRoutes } from './routes/uploads';
+import { adoptPackagePhotos, MAX_PHOTO_BYTES, MAX_PHOTOS, uploadRoutes } from './routes/uploads';
 import { AiService } from './ai/service';
 import { aiCheckFor } from './learn/ai-check';
 
@@ -38,19 +39,28 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
       `Neue Schlüssel erzeugt und in ${path.join(config.dataDir, 'secrets.json')} gespeichert.`,
     );
   }
-  if (!config.registrationCode && !config.offlineMode) {
-    app.log.info(`Registrierungscode: ${secrets.registrationCode}`);
-  }
   if (config.offlineMode) {
     app.log.info('Offline-Modus aktiv: Ein Standard-Account wird ohne Registrierung gestartet.');
   }
 
-  const db = openDatabase(config.dbFile ?? path.join(config.dataDir, 'wordflow.db'));
+  const dbFile = config.dbFile ?? path.join(config.dataDir, 'wordflow.db');
+  const db = openDatabase(dbFile);
   deleteExpiredSessions(db);
+  const superuser = await ensureSuperuser(db);
+  await adoptPackagePhotos(db, config.dataDir, superuser.id);
   if (config.offlineMode) {
     await ensureOfflineUser(db);
   }
   const ai = new AiService(db, secrets.appSecret);
+  const afterRestore = async () => {
+    const admin = await ensureSuperuser(db);
+    await adoptPackagePhotos(db, config.dataDir, admin.id);
+    const restored = loadSecrets(config.dataDir, {
+      registrationCode: config.registrationCode,
+      appSecret: config.appSecret,
+    });
+    ai.setSecret(restored.appSecret);
+  };
   app.addHook('onClose', async () => db.$client.close());
 
   app.setErrorHandler((error: { statusCode?: number }, request, reply) => {
@@ -85,7 +95,6 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
       await api.register(healthRoutes);
       await api.register(authRoutes, {
         db,
-        registrationCode: secrets.registrationCode,
         offlineMode: config.offlineMode,
         dataDir: config.dataDir,
       });
@@ -100,7 +109,15 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
         },
       });
       await api.register(aiRoutes, { db, ai });
-      await api.register(overviewRoutes, { db, ai });
+      await api.register(overviewRoutes, { db });
+      await api.register(adminRoutes, {
+        db,
+        dataDir: config.dataDir,
+        dbFile,
+        repoRoot: REPO_ROOT,
+        afterRestore,
+        fetchImpl: config.updateFetch,
+      });
       await api.register(uploadRoutes, { db, ai, dataDir: config.dataDir });
     },
     { prefix: '/api' },

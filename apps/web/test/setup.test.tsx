@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, within } from '@testing-library/react';
-import { mockApi, renderApp, SETTINGS, USER } from './utils';
+import { ADMIN, mockApi, renderApp, SETTINGS, USER } from './utils';
 
 beforeEach(() => {
   localStorage.clear();
@@ -10,7 +10,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const NEW_USER = { ...USER, setupCompleted: false };
+// The superuser also sets up the AI for everyone.
+const NEW_USER = { ...ADMIN, name: '', setupCompleted: false };
 const POLLINATIONS = {
   id: 1,
   kind: 'pollinations',
@@ -24,7 +25,6 @@ const AI_CONFIG = {
   providers: [POLLINATIONS],
   tasks: {
     check: { providerId: 1, model: 'openai/gpt-oss-20b', reasoning: null },
-    summary: { providerId: 1, model: 'openai/gpt-oss-20b', reasoning: null },
     vision: null,
   },
 };
@@ -33,13 +33,13 @@ const MODELS = [
   { id: 'google/gemini-3.7-flash', vision: true, reasoning: null },
 ];
 
-function api() {
+function api(user = NEW_USER) {
   return mockApi({
-    'GET /auth/me': () => ({ status: 200, body: { user: NEW_USER } }),
+    'GET /auth/me': () => ({ status: 200, body: { user } }),
     'GET /settings': () => ({ status: 200, body: { settings: SETTINGS } }),
     'PATCH /auth/me': (body) => ({
       status: 200,
-      body: { user: { ...NEW_USER, ...(body as object) } },
+      body: { user: { ...user, ...(body as object) } },
     }),
     'PATCH /settings': (body) => ({
       status: 200,
@@ -47,7 +47,7 @@ function api() {
     }),
     'POST /setup/complete': () => ({
       status: 200,
-      body: { user: { ...NEW_USER, setupCompleted: true } },
+      body: { user: { ...user, setupCompleted: true } },
     }),
     'GET /ai/config': () => ({ status: 200, body: AI_CONFIG }),
     'GET /ai/providers/1/models': () => ({ status: 200, body: { models: MODELS } }),
@@ -56,7 +56,6 @@ function api() {
       body: { models: MODELS.filter((m) => m.vision) },
     }),
     'PUT /ai/tasks/check': () => ({ status: 200, body: AI_CONFIG }),
-    'PUT /ai/tasks/summary': () => ({ status: 200, body: AI_CONFIG }),
     'PUT /ai/tasks/vision': () => ({ status: 200, body: AI_CONFIG }),
   });
 }
@@ -65,9 +64,9 @@ async function next() {
   fireEvent.click(screen.getByRole('button', { name: /^(Weiter|Fertig)$/ }));
 }
 
-async function expectStep(n: number, title: string) {
+async function expectStep(n: number, title: string, total = 9) {
   expect(await screen.findByRole('heading', { level: 1, name: title })).toBeTruthy();
-  expect(screen.getByText(`Schritt ${n} von 10`)).toBeTruthy();
+  expect(screen.getByText(`Schritt ${n} von ${total}`)).toBeTruthy();
 }
 
 describe('Einrichtungsassistent', () => {
@@ -78,7 +77,7 @@ describe('Einrichtungsassistent', () => {
     expect(screen.queryByRole('link', { name: 'Start' })).toBeNull();
   });
 
-  it('führt durch alle zehn Schritte und speichert die Eingaben', async () => {
+  it('führt den Superuser durch alle neun Schritte und speichert die Eingaben', async () => {
     const calls = api();
     renderApp('/');
 
@@ -108,15 +107,7 @@ describe('Einrichtungsassistent', () => {
     expect(model.selected).toBe(true);
     await next();
 
-    await expectStep(6, 'KI für die Tageszusammenfassung');
-    expect(
-      screen
-        .getByRole('radio', { name: /Wie bei der Antwortprüfung/ })
-        .getAttribute('aria-checked'),
-    ).toBe('true');
-    await next();
-
-    await expectStep(7, 'Bilderkennung');
+    await expectStep(6, 'Bilderkennung');
     const vision = (await screen.findByRole('option', {
       name: 'google/gemini-3.7-flash',
     })) as HTMLOptionElement;
@@ -124,16 +115,16 @@ describe('Einrichtungsassistent', () => {
     expect(vision.selected).toBe(true);
     await next();
 
-    await expectStep(8, 'Zeitlimit der KI-Prüfung');
+    await expectStep(7, 'Zeitlimit der KI-Prüfung');
     fireEvent.change(screen.getByLabelText('Zeitlimit'), { target: { value: '3000' } });
     await next();
 
-    await expectStep(9, 'Lernen');
+    await expectStep(8, 'Lernen');
     fireEvent.change(screen.getByLabelText('Stufe 2'), { target: { value: '3' } });
     fireEvent.click(screen.getByRole('radio', { name: 'Eine Stufe zurück' }));
     await next();
 
-    await expectStep(10, 'Fertig');
+    await expectStep(9, 'Fertig');
     const summary = screen.getByRole('heading', { level: 1, name: 'Fertig' }).parentElement!;
     expect(within(summary).getByText('Anna')).toBeTruthy();
     expect(within(summary).getByText('3 · 10 · 20 · 40 · 80 Tage')).toBeTruthy();
@@ -157,9 +148,6 @@ describe('Einrichtungsassistent', () => {
     expect(bodies('PUT /ai/tasks/check')).toEqual([
       { providerId: 1, model: 'openai/gpt-oss-20b', reasoning: null },
     ]);
-    expect(bodies('PUT /ai/tasks/summary')).toEqual([
-      { providerId: 1, model: 'openai/gpt-oss-20b', reasoning: null },
-    ]);
     expect(bodies('PUT /ai/tasks/vision')).toEqual([
       { providerId: 1, model: 'google/gemini-3.7-flash', reasoning: null },
     ]);
@@ -167,9 +155,9 @@ describe('Einrichtungsassistent', () => {
 
   it('lässt ungültige Intervalle nicht zu', async () => {
     api();
-    localStorage.setItem(`wordflow.setupStep.${USER.id}`, '8');
+    localStorage.setItem(`wordflow.setupStep.${ADMIN.id}`, '7');
     renderApp('/');
-    await expectStep(9, 'Lernen');
+    await expectStep(8, 'Lernen');
     fireEvent.change(screen.getByLabelText('Stufe 4'), { target: { value: '0' } });
     expect((screen.getByRole('button', { name: 'Weiter' }) as HTMLButtonElement).disabled).toBe(
       true,
@@ -192,7 +180,25 @@ describe('Einrichtungsassistent', () => {
     await expectStep(1, 'Sprache');
     fireEvent.click(screen.getByRole('radio', { name: 'English' }));
     expect(await screen.findByRole('heading', { level: 1, name: 'Language' })).toBeTruthy();
-    expect(screen.getByText('Step 1 of 10')).toBeTruthy();
+    expect(screen.getByText('Step 1 of 9')).toBeTruthy();
     expect(calls.find((c) => c.key === 'PATCH /auth/me')?.body).toEqual({ uiLanguage: 'en' });
+  });
+
+  it('normale Accounts sehen keine KI-Schritte', async () => {
+    const calls = api({ ...USER, setupCompleted: false });
+    renderApp('/');
+    await expectStep(1, 'Sprache', 5);
+    await next();
+    await expectStep(2, 'Name', 5);
+    await next();
+    await expectStep(3, 'Zeitzone', 5);
+    await next();
+    await expectStep(4, 'Lernen', 5);
+    await next();
+    await expectStep(5, 'Fertig', 5);
+    expect(screen.queryByText('Antwortprüfung')).toBeNull();
+    await next();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Heute' })).toBeTruthy();
+    expect(calls.some((c) => c.key.includes('/ai/'))).toBe(false);
   });
 });

@@ -57,6 +57,13 @@
       "when": 1792836565443,
       "tag": "0007_auto_next",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792847380986,
+      "tag": "0008_superuser",
+      "breakpoints": true
     }
   ]
 }

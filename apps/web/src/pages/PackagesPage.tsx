@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ChevronRight, Plus } from 'lucide-react';
+import { OpenUploads } from '../components/OpenUploads';
 import { Notice } from '../components/Notice';
 import { PackageForm } from '../components/PackageForm';
 import { EmptyState, PageHeader } from '../components/Page';
@@ -8,6 +9,7 @@ import { useI18n } from '../i18n';
 import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';
 import { languageName } from '../lib/languages';
+import { useIsAdmin } from '../lib/auth';
 import { useCreatePackage, usePackages } from '../lib/packages';
 
 export function PackagesPage() {
@@ -16,12 +18,14 @@ export function PackagesPage() {
   const create = useCreatePackage();
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
+  const admin = useIsAdmin();
 
   return (
     <>
       <PageHeader
         title={m.packages.title}
         actions={
+          admin &&
           !creating && (
             <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
               <Plus className="size-4.5" aria-hidden="true" />
@@ -59,7 +63,7 @@ export function PackagesPage() {
       ) : packages.isError ? (
         <Notice tone="error">{errorMessage(m, packages.error)}</Notice>
       ) : packages.data.length === 0 ? (
-        !creating && <EmptyState>{m.packages.empty}</EmptyState>
+        !creating && <EmptyState>{admin ? m.packages.empty : m.packages.emptyUser}</EmptyState>
       ) : (
         <ul className="divide-y divide-rule overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-card)]">
           {packages.data.map((pkg) => (
@@ -88,6 +92,7 @@ export function PackagesPage() {
           ))}
         </ul>
       )}
+      {admin && <OpenUploads />}
     </>
   );
 }

@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ChevronLeft, GraduationCap, Pencil, Trash2 } from 'lucide-react';
+import { Camera, ChevronLeft, GraduationCap, Pencil, ScanText, Trash2, Undo2 } from 'lucide-react';
 import type { PackageDto, VocabDto } from '@wordflow/shared';
 import { Notice } from '../components/Notice';
 import { PackageForm } from '../components/PackageForm';
@@ -9,17 +9,21 @@ import { useI18n } from '../i18n';
 import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';
 import { languageName } from '../lib/languages';
+import { useIsAdmin } from '../lib/auth';
 import {
   useActivatePackage,
   useActivateVocab,
   useAddVocab,
+  useDeactivateVocab,
   useDeletePackage,
   useDeleteVocab,
   usePackage,
   useUpdatePackage,
   useUpdateVocab,
 } from '../lib/packages';
+import { useAttachPhotos, useUploadPhotos } from '../lib/uploads';
 import { PackagePhotos } from '../components/PackagePhotos';
+import { PhotoPicker } from '../components/PhotoPicker';
 
 interface VocabFields {
   word: string;
@@ -38,6 +42,7 @@ function VocabForm({
   onSubmit,
   onCancel,
   showHints,
+  extraActions,
 }: {
   idPrefix: string;
   initial?: VocabFields;
@@ -46,6 +51,8 @@ function VocabForm({
   onSubmit: (fields: VocabFields, reset: () => void) => void;
   onCancel?: () => void;
   showHints?: boolean;
+  /** More buttons next to the submit button. */
+  extraActions?: ReactNode;
 }) {
   const { m } = useI18n();
   const [fields, setFields] = useState(initial);
@@ -113,6 +120,7 @@ function VocabForm({
         <button type="submit" className="btn btn-primary" disabled={!valid || pending}>
           {submitLabel}
         </button>
+        {extraActions}
         {onCancel && (
           <button type="button" className="btn btn-ghost" onClick={onCancel}>
             {m.packages.cancel}
@@ -123,12 +131,13 @@ function VocabForm({
   );
 }
 
-function VocabRow({ vocab }: { vocab: VocabDto }) {
+function VocabRow({ vocab, admin }: { vocab: VocabDto; admin: boolean }) {
   const { m } = useI18n();
   const [editing, setEditing] = useState(false);
   const update = useUpdateVocab();
   const remove = useDeleteVocab();
   const activate = useActivateVocab();
+  const deactivate = useDeactivateVocab();
 
   if (editing) {
     return (
@@ -168,32 +177,51 @@ function VocabRow({ vocab }: { vocab: VocabDto }) {
             {m.packages.activate}
           </button>
         )}
-        <button
-          type="button"
-          className="btn btn-ghost min-h-9 px-2.5"
-          aria-label={`${m.packages.edit}: ${vocab.word}`}
-          onClick={() => setEditing(true)}
-        >
-          <Pencil className="size-4" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost min-h-9 px-2.5"
-          aria-label={`${m.packages.delete}: ${vocab.word}`}
-          disabled={remove.isPending}
-          onClick={() => {
-            if (window.confirm(fill(m.packages.deleteVocabConfirm, { word: vocab.word })))
-              remove.mutate(vocab.id);
-          }}
-        >
-          <Trash2 className="size-4" aria-hidden="true" />
-        </button>
+        {vocab.active && (
+          <button
+            type="button"
+            className="btn btn-ghost min-h-9 px-2.5"
+            aria-label={`${m.packages.deactivate}: ${vocab.word}`}
+            title={m.packages.deactivate}
+            disabled={deactivate.isPending}
+            onClick={() => {
+              if (window.confirm(fill(m.packages.deactivateConfirm, { word: vocab.word })))
+                deactivate.mutate(vocab.id);
+            }}
+          >
+            <Undo2 className="size-4" aria-hidden="true" />
+          </button>
+        )}
+        {admin && (
+          <>
+            <button
+              type="button"
+              className="btn btn-ghost min-h-9 px-2.5"
+              aria-label={`${m.packages.edit}: ${vocab.word}`}
+              onClick={() => setEditing(true)}
+            >
+              <Pencil className="size-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost min-h-9 px-2.5"
+              aria-label={`${m.packages.delete}: ${vocab.word}`}
+              disabled={remove.isPending}
+              onClick={() => {
+                if (window.confirm(fill(m.packages.deleteVocabConfirm, { word: vocab.word })))
+                  remove.mutate(vocab.id);
+              }}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+            </button>
+          </>
+        )}
       </div>
     </li>
   );
 }
 
-function PackageHeader({ pkg }: { pkg: PackageDto }) {
+function PackageHeader({ pkg, admin }: { pkg: PackageDto; admin: boolean }) {
   const { m } = useI18n();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -232,34 +260,155 @@ function PackageHeader({ pkg }: { pkg: PackageDto }) {
             {m.learn.start} ({pkg.counts.due})
           </Link>
         )}
-        <button type="button" className="btn btn-secondary" onClick={() => setEditing(true)}>
-          <Pencil className="size-4" aria-hidden="true" />
-          {m.packages.edit}
-        </button>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={remove.isPending}
-          onClick={() => {
-            if (window.confirm(fill(m.packages.deletePackageConfirm, { name: pkg.name }))) {
-              remove.mutate(undefined, { onSuccess: () => void navigate('/packages') });
-            }
-          }}
-        >
-          <Trash2 className="size-4" aria-hidden="true" />
-          {m.packages.delete}
-        </button>
+        {admin && (
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setEditing(true)}>
+              <Pencil className="size-4" aria-hidden="true" />
+              {m.packages.edit}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={remove.isPending}
+              onClick={() => {
+                if (window.confirm(fill(m.packages.deletePackageConfirm, { name: pkg.name }))) {
+                  remove.mutate(undefined, { onSuccess: () => void navigate('/packages') });
+                }
+              }}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+              {m.packages.delete}
+            </button>
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+/** Superuser: add words by hand, attach photos ("Hochladen") or recognise them ("Erkennen"). */
+function AddSection({ packageId }: { packageId: number }) {
+  const { m } = useI18n();
+  const navigate = useNavigate();
+  const add = useAddVocab(packageId);
+  const attach = useAttachPhotos(packageId);
+  const recognize = useUploadPhotos();
+  const [picker, setPicker] = useState<'upload' | 'recognize' | null>(null);
+  const [attached, setAttached] = useState<number | null>(null);
+
+  const open = (kind: 'upload' | 'recognize') => {
+    attach.reset();
+    recognize.reset();
+    setAttached(null);
+    setPicker(kind);
+  };
+
+  return (
+    <>
+      <section className="panel mb-6" aria-labelledby="add-title">
+        <h2 id="add-title" className="mb-4 text-lg font-bold">
+          {m.packages.addTitle}
+        </h2>
+        <VocabForm
+          idPrefix="add"
+          submitLabel={m.packages.add}
+          pending={add.isPending}
+          showHints
+          onSubmit={(fields, reset) => add.mutate([fields], { onSuccess: reset })}
+          extraActions={
+            <>
+              <button type="button" className="btn btn-secondary" onClick={() => open('upload')}>
+                <Camera className="size-4.5" aria-hidden="true" />
+                {m.packages.uploadPhotos}
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => open('recognize')}>
+                <ScanText className="size-4.5" aria-hidden="true" />
+                {m.packages.recognize}
+              </button>
+            </>
+          }
+        />
+        {add.isError && (
+          <div className="mt-3">
+            <Notice tone="error">{errorMessage(m, add.error)}</Notice>
+          </div>
+        )}
+        {attached !== null && (
+          <div className="mt-3">
+            <Notice tone="ok">{fill(m.packages.photosAttached, { n: attached })}</Notice>
+          </div>
+        )}
+      </section>
+
+      {picker === 'upload' && (
+        <PhotoPicker
+          title={m.packages.uploadPhotos}
+          intro={m.packages.uploadIntro}
+          submitLabel={m.packages.uploadStart}
+          pending={attach.isPending}
+          error={attach.error}
+          onCancel={() => setPicker(null)}
+          onSubmit={(input, done) =>
+            attach.mutate(input, {
+              onSuccess: (job) => {
+                done();
+                setPicker(null);
+                setAttached(job.pages.length);
+              },
+            })
+          }
+        />
+      )}
+      {picker === 'recognize' && (
+        <PhotoPicker
+          title={m.packages.recognize}
+          intro={m.upload.empty}
+          submitLabel={m.upload.start}
+          pending={recognize.isPending}
+          error={recognize.error}
+          onCancel={() => setPicker(null)}
+          onSubmit={(input, done) =>
+            recognize.mutate(input, {
+              onSuccess: (job) => {
+                done();
+                void navigate(`/upload/${job.id}?package=${packageId}`);
+              },
+            })
+          }
+        />
+      )}
+    </>
+  );
+}
+
+function VocabList({ items, admin }: { items: VocabDto[]; admin: boolean }) {
+  return (
+    <ul className="divide-y divide-rule overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-card)]">
+      {items.map((v) => (
+        <VocabRow key={v.id} vocab={v} admin={admin} />
+      ))}
+    </ul>
   );
 }
 
 export function PackageDetailPage() {
   const { m } = useI18n();
   const id = Number(useParams().id);
+  const admin = useIsAdmin();
   const query = usePackage(id);
-  const add = useAddVocab(id);
   const activateAll = useActivatePackage(id);
+
+  const activateAllButton = (n: number) =>
+    n > 0 && (
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={() => activateAll.mutate()}
+        disabled={activateAll.isPending}
+      >
+        {fill(m.packages.activateAll, { n })}
+      </button>
+    );
 
   return (
     <>
@@ -276,61 +425,77 @@ export function PackageDetailPage() {
         <Notice tone="error">{errorMessage(m, query.error)}</Notice>
       ) : (
         <>
-          <PackageHeader pkg={query.data.package} />
+          <PackageHeader pkg={query.data.package} admin={admin} />
 
-          <section className="panel mb-6" aria-labelledby="add-title">
-            <h2 id="add-title" className="mb-4 text-lg font-bold">
-              {m.packages.addTitle}
-            </h2>
-            <VocabForm
-              idPrefix="add"
-              submitLabel={m.packages.add}
-              pending={add.isPending}
-              showHints
-              onSubmit={(fields, reset) => add.mutate([fields], { onSuccess: reset })}
-            />
-            {add.isError && (
-              <div className="mt-3">
-                <Notice tone="error">{errorMessage(m, add.error)}</Notice>
-              </div>
-            )}
-          </section>
+          {admin && <AddSection packageId={id} />}
 
-          <section aria-labelledby="vocab-title">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <h2 id="vocab-title" className="text-lg font-bold">
+          {query.data.vocab.length === 0 ? (
+            <section aria-labelledby="vocab-title">
+              <h2 id="vocab-title" className="mb-3 text-lg font-bold">
                 {m.packages.vocabList}
               </h2>
-              {query.data.package.counts.inactive > 0 && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => activateAll.mutate()}
-                  disabled={activateAll.isPending}
-                >
-                  {fill(m.packages.activateAll, { n: query.data.package.counts.inactive })}
-                </button>
-              )}
-            </div>
-            {query.data.package.counts.inactive > 0 && (
-              <p className="mb-3 text-sm text-ink-soft">{m.packages.activateHint}</p>
-            )}
-            {query.data.vocab.length === 0 ? (
               <p className="rounded-[var(--radius-card)] border border-dashed border-rule-strong px-6 py-10 text-center text-ink-soft">
-                {m.packages.noVocab}
+                {admin ? m.packages.noVocab : m.packages.noVocabUser}
               </p>
-            ) : (
-              <ul className="divide-y divide-rule overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-card)]">
-                {query.data.vocab.map((v) => (
-                  <VocabRow key={v.id} vocab={v} />
-                ))}
-              </ul>
-            )}
-          </section>
+            </section>
+          ) : admin ? (
+            <section aria-labelledby="vocab-title">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <h2 id="vocab-title" className="text-lg font-bold">
+                  {m.packages.vocabList}
+                </h2>
+                {activateAllButton(query.data.package.counts.inactive)}
+              </div>
+              {query.data.package.counts.inactive > 0 && (
+                <p className="mb-3 text-sm text-ink-soft">{m.packages.activateHint}</p>
+              )}
+              <VocabList items={query.data.vocab} admin />
+            </section>
+          ) : (
+            <UserVocabSections
+              items={query.data.vocab}
+              activateAll={activateAllButton(query.data.package.counts.inactive)}
+            />
+          )}
 
           <PackagePhotos packageId={id} />
         </>
       )}
     </>
+  );
+}
+
+/** Normal accounts: own (activated) words apart from the superuser's not yet activated ones. */
+function UserVocabSections({ items, activateAll }: { items: VocabDto[]; activateAll: ReactNode }) {
+  const { m } = useI18n();
+  const mine = items.filter((v) => v.active);
+  const offered = items.filter((v) => !v.active);
+  return (
+    <div className="space-y-8">
+      <section aria-labelledby="mine-title">
+        <h2 id="mine-title" className="mb-3 text-lg font-bold">
+          {fill(m.packages.mine, { n: mine.length })}
+        </h2>
+        {mine.length === 0 ? (
+          <p className="rounded-[var(--radius-card)] border border-dashed border-rule-strong px-6 py-8 text-center text-ink-soft">
+            {m.packages.mineEmpty}
+          </p>
+        ) : (
+          <VocabList items={mine} admin={false} />
+        )}
+      </section>
+      {offered.length > 0 && (
+        <section aria-labelledby="offered-title">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 id="offered-title" className="text-lg font-bold">
+              {fill(m.packages.offered, { n: offered.length })}
+            </h2>
+            {activateAll}
+          </div>
+          <p className="mb-3 text-sm text-ink-soft">{m.packages.offeredHint}</p>
+          <VocabList items={offered} admin={false} />
+        </section>
+      )}
+    </div>
   );
 }

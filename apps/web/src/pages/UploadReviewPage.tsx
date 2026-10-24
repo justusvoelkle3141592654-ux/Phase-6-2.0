@@ -1,13 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ChevronLeft, Maximize2, Plus, RotateCcw, Trash2 } from 'lucide-react';
-import {
-  DIRECTIONS,
-  LANGUAGE_PRESETS,
-  type Direction,
-  type RecognizedEntry,
-  type UploadPageDto,
-} from '@wordflow/shared';
+import type { RecognizedEntry, UploadPageDto } from '@wordflow/shared';
 import { AuthImage } from '../components/AuthImage';
 import { Lightbox } from '../components/Lightbox';
 import { Notice } from '../components/Notice';
@@ -15,7 +9,6 @@ import { PageHeader } from '../components/Page';
 import { useI18n } from '../i18n';
 import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';
-import { isPreset } from '../lib/languages';
 import { usePackages } from '../lib/packages';
 import { useDeleteUpload, useRetryPage, useSaveUpload, useUploadJob } from '../lib/uploads';
 
@@ -35,17 +28,6 @@ const toRow = (e: RecognizedEntry): Row => ({
 });
 const emptyRow = (): Row => ({ key: nextKey++, word: '', extra: '', translation: '' });
 const complete = (r: Row) => r.word.trim() !== '' && r.translation.trim() !== '';
-
-/** Most frequent language code of the recognised entries. */
-function guessLanguage(pages: UploadPageDto[]): string {
-  const counts = new Map<string, number>();
-  for (const e of pages.flatMap((p) => p.entries)) {
-    const code = e.language?.toLowerCase().slice(0, 2);
-    if (code) counts.set(code, (counts.get(code) ?? 0) + 1);
-  }
-  const best = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-  return best && isPreset(best) ? best : 'en';
-}
 
 function PageEditor({
   page,
@@ -177,16 +159,15 @@ export function UploadReviewPage() {
   const { m } = useI18n();
   const navigate = useNavigate();
   const id = Number(useParams().id);
+  const [search] = useSearchParams();
+  const fromPackage = Number(search.get('package')) || null;
   const job = useUploadJob(id);
   const packages = usePackages();
   const save = useSaveUpload(id);
   const discard = useDeleteUpload(id);
   const [rows, setRows] = useState<Record<number, Row[]>>({});
-  const [mode, setMode] = useState<'new' | 'existing'>('new');
-  const [name, setName] = useState('');
-  const [language, setLanguage] = useState<string | null>(null);
-  const [direction, setDirection] = useState<Direction>('foreign_native');
-  const [packageId, setPackageId] = useState<number | null>(null);
+  const [packageId, setPackageId] = useState<number | null>(fromPackage);
+  const backTo = fromPackage ? `/packages/${fromPackage}` : '/packages';
 
   // Take over the recognition result of each page once it is done (keeps edits).
   const pages = job.data?.pages;
@@ -203,7 +184,6 @@ export function UploadReviewPage() {
       }
       return changed ? next : current;
     });
-    if (pages.some((p) => p.status === 'done')) setLanguage((l) => l ?? guessLanguage(pages));
   }, [pages]);
 
   if (job.isPending) return <p className="text-ink-soft">{m.common.loading}</p>;
@@ -220,26 +200,18 @@ export function UploadReviewPage() {
   const running = job.data.pages.some((p) => p.status === 'pending' || p.status === 'processing');
   const existing = packages.data ?? [];
   const chosenPackage = packageId ?? existing[0]?.id ?? null;
-  const lang = language ?? 'en';
-  const canSave =
-    items.length > 0 &&
-    (mode === 'new' ? name.trim() !== '' : chosenPackage !== null) &&
-    job.data.packageId === null;
+  const canSave = items.length > 0 && chosenPackage !== null && job.data.packageId === null;
 
   const onSave = () => {
-    const target =
-      mode === 'new'
-        ? { newPackage: { name: name.trim(), language: lang, direction } }
-        : { packageId: chosenPackage! };
     save.mutate(
-      { target, items },
+      { packageId: chosenPackage!, items },
       { onSuccess: (res) => void navigate(`/packages/${res.packageId}`) },
     );
   };
 
   return (
     <>
-      <Link to="/upload" className="btn btn-ghost -ml-3 mb-2 px-3">
+      <Link to={backTo} className="btn btn-ghost -ml-3 mb-2 px-3">
         <ChevronLeft className="size-4.5" aria-hidden="true" />
         {m.upload.back}
       </Link>
@@ -262,89 +234,23 @@ export function UploadReviewPage() {
           <h2 id="save-title" className="text-lg font-bold">
             {m.upload.saveTitle}
           </h2>
-          <div role="radiogroup" aria-label={m.upload.target} className="segmented">
-            {(['new', 'existing'] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={mode === value}
-                onClick={() => setMode(value)}
-                disabled={value === 'existing' && existing.length === 0}
-              >
-                {value === 'new' ? m.upload.newPackage : m.upload.existingPackage}
-              </button>
-            ))}
+          <div>
+            <label className="label" htmlFor="save-package">
+              {m.upload.choosePackage}
+            </label>
+            <select
+              id="save-package"
+              className="field"
+              value={chosenPackage ?? ''}
+              onChange={(e) => setPackageId(Number(e.target.value))}
+            >
+              {existing.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
           </div>
-
-          {mode === 'new' ? (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="sm:col-span-3">
-                <label className="label" htmlFor="save-name">
-                  {m.packages.name}
-                </label>
-                <input
-                  id="save-name"
-                  className="field"
-                  placeholder={m.packages.namePlaceholder}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor="save-language">
-                  {m.packages.language}
-                </label>
-                <select
-                  id="save-language"
-                  className="field"
-                  value={lang}
-                  onChange={(e) => setLanguage(e.target.value)}
-                >
-                  {LANGUAGE_PRESETS.map((code) => (
-                    <option key={code} value={code}>
-                      {m.packages.languages[code]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="sm:col-span-2">
-                <label className="label" htmlFor="save-direction">
-                  {m.packages.direction}
-                </label>
-                <select
-                  id="save-direction"
-                  className="field"
-                  value={direction}
-                  onChange={(e) => setDirection(e.target.value as Direction)}
-                >
-                  {DIRECTIONS.map((d) => (
-                    <option key={d} value={d}>
-                      {m.packages.directions[d]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <label className="label" htmlFor="save-package">
-                {m.upload.choosePackage}
-              </label>
-              <select
-                id="save-package"
-                className="field"
-                value={chosenPackage ?? ''}
-                onChange={(e) => setPackageId(Number(e.target.value))}
-              >
-                {existing.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
 
           {running && <p className="text-sm text-ink-soft">{m.upload.stillRunning}</p>}
           <p className="text-sm text-ink-soft">{m.upload.saveHint}</p>
@@ -364,7 +270,7 @@ export function UploadReviewPage() {
               disabled={discard.isPending}
               onClick={() => {
                 if (window.confirm(m.upload.discardConfirm)) {
-                  discard.mutate(undefined, { onSuccess: () => void navigate('/upload') });
+                  discard.mutate(undefined, { onSuccess: () => void navigate(backTo) });
                 }
               }}
             >

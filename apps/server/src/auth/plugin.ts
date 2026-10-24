@@ -13,6 +13,8 @@ declare module 'fastify' {
   interface FastifyInstance {
     /** preHandler that answers 401 unless the request is signed in. */
     requireAuth: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    /** preHandler that answers 401/403 unless the superuser is signed in. */
+    requireAdmin: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
     setSessionCookie: (request: FastifyRequest, reply: FastifyReply, token: string) => void;
     clearSessionCookie: (request: FastifyRequest, reply: FastifyReply) => void;
   }
@@ -109,6 +111,10 @@ export const authPlugin = fp<{ db: Db; corsOrigins: string[] }>(
 
     app.decorate('requireAuth', async (request: FastifyRequest, reply: FastifyReply) => {
       if (!request.user) return reply.code(401).send({ error: 'unauthorized' });
+    });
+    app.decorate('requireAdmin', async (request: FastifyRequest, reply: FastifyReply) => {
+      if (!request.user) return reply.code(401).send({ error: 'unauthorized' });
+      if (request.user.role !== 'admin') return reply.code(403).send({ error: 'forbidden' });
     });
   },
 );

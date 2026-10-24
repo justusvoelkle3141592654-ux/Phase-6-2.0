@@ -19,7 +19,7 @@ import { parseBody } from './parse';
 const TEST_TIMEOUT_MS = 30_000;
 
 export const aiRoutes: FastifyPluginAsync<{ db: Db; ai: AiService }> = async (app, { db, ai }) => {
-  app.addHook('preHandler', app.requireAuth);
+  app.addHook('preHandler', app.requireAdmin);
 
   function ownProvider(request: FastifyRequest, reply: FastifyReply): ProviderConfig | null {
     const id = Number((request.params as { id: string }).id);
@@ -159,5 +159,5 @@ export const aiRoutes: FastifyPluginAsync<{ db: Db; ai: AiService }> = async (ap
     return ai.config(request.user!.id);
   });
 
-  app.get('/ai/latency', async (request) => ({ stats: ai.latencyStats(request.user!.id) }));
+  app.get('/ai/latency', async () => ({ stats: ai.latencyStats() }));
 };

@@ -11,15 +11,15 @@ prüft getippte Antworten. Mehrere Accounts auf einem Server, die Daten sind get
 git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git wordflow
 cd wordflow
 docker compose up -d
-docker compose logs wordflow | grep Registrierungscode
 ```
 
-Dann <http://localhost:3000> öffnen (im Heimnetz `http://<IP-des-Servers>:3000`), mit dem
-Registrierungscode einen Account anlegen und dem Einrichtungsassistenten folgen.
+Dann <http://localhost:3000> öffnen (im Heimnetz `http://<IP-des-Servers>:3000`), als Superuser
+`admin@wordflow.com` / `admin` anmelden, dem Einrichtungsassistenten folgen und unter
+Einstellungen → Accounts die Accounts der Lernenden anlegen.
 
-Für ein lokales Test-Setup ohne Konto-Registrierung kann `OFFLINE_MODE=true` in `.env` gesetzt
-werden. Dann startet der Server mit einem Standard-Offline-Account (`offline@local.test` / `offline`)
-und der Login-Dialog bietet eine Auswahl aller lokalen Accounts.
+Für ein lokales Test-Setup kann `OFFLINE_MODE=true` in `.env` gesetzt werden. Dann gibt es
+zusätzlich einen Standard-Offline-Account (`offline@local.test` / `offline`), und der Login-Dialog
+bietet eine Auswahl aller lokalen Accounts.
 
 Die **Android-App** liegt fertig unter [`release/`](release/) bzw. bei den GitHub-Releases
 (siehe [Android-App](#android-app)).
@@ -75,7 +75,6 @@ cd /opt/wordflow && sudo npm ci && sudo npm run build
 sudo mkdir -p /opt/wordflow/data && sudo chown -R wordflow:wordflow /opt/wordflow/data
 sudo cp deploy/wordflow.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now wordflow
-journalctl -u wordflow | grep Registrierungscode
 ```
 
 ### HTTPS über einen Reverse-Proxy
@@ -104,8 +103,8 @@ Datenbank-Migrationen laufen beim Start automatisch.
 ### Sichern
 
 Alles Wichtige liegt im Datenordner (`data/` bzw. Volume `wordflow-data`): `wordflow.db` (Datenbank),
-`uploads/` (Fotos) und `secrets.json` (Registrierungscode und Hauptschlüssel). Für eine konsistente
-Sicherung den Dienst kurz stoppen oder mit `sqlite3 data/wordflow.db ".backup sicherung.db"` sichern.
+`uploads/` (Fotos) und `secrets.json` (Hauptschlüssel). Am einfachsten sichert der Superuser alles
+unter Einstellungen → Datenbank sichern als ZIP und spielt es dort auch wieder ein.
 **Ohne `secrets.json` (bzw. `APP_SECRET`) lassen sich gespeicherte API-Schlüssel nicht mehr
 entschlüsseln.**
 
@@ -140,60 +139,61 @@ npm run db:generate -w @wordflow/server
 Alle Einstellungen laufen über Umgebungsvariablen oder eine `.env`-Datei im Projektordner
 (Vorlage: `.env.example`).
 
-| Variable            | Standard     | Bedeutung                                                            |
-| ------------------- | ------------ | -------------------------------------------------------------------- |
-| `PORT`              | `3000`       | Port des Servers                                                     |
-| `HOST`              | `0.0.0.0`    | Netzwerkadresse, auf der der Server lauscht                          |
-| `DATA_DIR`          | `data`       | Ordner für Datenbank, Fotos und erzeugte Schlüssel                   |
-| `TRUST_PROXY`       | `false`      | `true`, wenn ein Reverse-Proxy davor HTTPS übernimmt                 |
-| `CORS_ORIGINS`      | –            | Zusätzlich erlaubte Origins, kommagetrennt (Android-App ist erlaubt) |
-| `LOG_LEVEL`         | `info`       | `fatal`, `error`, `warn`, `info`, `debug`, `trace` oder `silent`     |
-| `REGISTRATION_CODE` | wird erzeugt | Code, den man zum Registrieren braucht (siehe unten)                 |
-| `OFFLINE_MODE`      | `false`      | Startet ohne Registrierungscode mit Offline-Standardaccount          |
-| `APP_SECRET`        | wird erzeugt | Hauptschlüssel für die Verschlüsselung gespeicherter API-Schlüssel   |
+| Variable       | Standard     | Bedeutung                                                            |
+| -------------- | ------------ | -------------------------------------------------------------------- |
+| `PORT`         | `3000`       | Port des Servers                                                     |
+| `HOST`         | `0.0.0.0`    | Netzwerkadresse, auf der der Server lauscht                          |
+| `DATA_DIR`     | `data`       | Ordner für Datenbank, Fotos und erzeugte Schlüssel                   |
+| `TRUST_PROXY`  | `false`      | `true`, wenn ein Reverse-Proxy davor HTTPS übernimmt                 |
+| `CORS_ORIGINS` | –            | Zusätzlich erlaubte Origins, kommagetrennt (Android-App ist erlaubt) |
+| `LOG_LEVEL`    | `info`       | `fatal`, `error`, `warn`, `info`, `debug`, `trace` oder `silent`     |
+| `OFFLINE_MODE` | `false`      | Legt zusätzlich einen Offline-Standardaccount an, listet Accounts    |
+| `APP_SECRET`   | wird erzeugt | Hauptschlüssel für die Verschlüsselung gespeicherter API-Schlüssel   |
 
-## Accounts
+## Accounts und Superuser
 
-Jede Person legt sich selbst einen Account an (E-Mail + Passwort). Damit sich nicht jeder
-registrieren kann, braucht man dafür den **Registrierungscode** des Servers. Es werden keine
-E-Mails verschickt.
+Beim Start legt der Server den **Superuser** an, falls er fehlt: **`admin@wordflow.com` /
+`admin`**. Bitte das Passwort nach der ersten Anmeldung unter Einstellungen → Passwort ändern.
 
-- Ist `REGISTRATION_CODE` nicht gesetzt, erzeugt der Server beim ersten Start einen Code
-  (z. B. `U4JM-E3E5-KVHH`), speichert ihn in `data/secrets.json` und schreibt ihn bei jedem Start
-  ins Log (`Registrierungscode: …`). Groß-/Kleinschreibung spielt bei der Eingabe keine Rolle.
-- Mit `OFFLINE_MODE=true` wird der Server in einem lokalen Modus gestartet: Die Registrierung
-  braucht keinen Code, ein Standardkonto `offline@local.test` / `offline` wird automatisch angelegt,
-  und die Anmeldeseite listet alle Accounts auf dem Server zur Auswahl (Passwort weiterhin nötig).
+- **Nur der Superuser legt Accounts an** (Einstellungen → Accounts): hinzufügen, bearbeiten,
+  Passwort setzen, löschen. Eine Selbst-Registrierung gibt es nicht mehr. Ein neues Passwort meldet
+  den Account überall ab. Der Superuser selbst lässt sich nicht löschen.
+- **Pakete gehören allen:** Nur der Superuser legt Pakete an, ändert und löscht sie und fügt Vokabeln
+  hinzu. Alle Accounts sehen alle Pakete und aktivieren die Vokabeln, die sie lernen wollen. Jeder
+  Account hat dabei seinen eigenen Lernstand. Im Paket stehen „Meine Vokabeln (aktiv)“ und
+  „Vokabeln vom Superuser (inaktiv)“ getrennt.
+- **KI-Einstellungen** (Anbieter, Modelle, Zeitlimit) stellt nur der Superuser ein. Sie gelten für alle.
+- **Datenbank sichern** (Einstellungen): Export als ZIP mit Datenbank, Fotos und `secrets.json`.
+  Der Import ersetzt alle Daten; danach müssen sich alle neu anmelden.
+- **Update** (Einstellungen): Holt den neuesten Stand von GitHub (`rcode125/Phase-6-2.0`, Branch
+  `master`) und kopiert ihn über das Projekt. `data/`, `.env`, `node_modules/`, `.git/`, `release/`
+  und `apps/web/android/` bleiben unberührt. Bei geänderten Abhängigkeiten läuft `npm install`.
+  Im Dev-Modus (`npm run dev`) lädt der Server danach selbst neu; mit `NODE_ENV=production` wird
+  zusätzlich gebaut, dann den Dienst neu starten. Das Protokoll steht in `data/update.log`.
+- Mit `OFFLINE_MODE=true` wird zusätzlich ein Standardkonto `offline@local.test` / `offline`
+  angelegt, und die Anmeldeseite listet alle Accounts zur Auswahl (Passwort weiterhin nötig).
   Nur für Geräte im eigenen Netz gedacht, da die E-Mail-Adressen sichtbar sind.
-- Dasselbe gilt für `APP_SECRET`. Mit diesem Schlüssel werden die API-Schlüssel der
-  KI-Anbieter verschlüsselt. **`data/secrets.json` sichern und nicht verlieren**, sonst müssen
-  alle API-Schlüssel neu eingegeben werden. Die Datei ist nur für den Besitzer lesbar (Rechte 600).
+- `APP_SECRET` verschlüsselt die API-Schlüssel der KI-Anbieter. **`data/secrets.json` sichern und
+  nicht verlieren**, sonst müssen alle API-Schlüssel neu eingegeben werden.
 - Anmeldung im Browser über ein Cookie (`wordflow_session`, HttpOnly). Die Android-App bekommt
   stattdessen einen Token. Sitzungen laufen nach 90 Tagen ohne Nutzung ab.
-- Anmelden, Registrieren und Passwort ändern sind auf 10 Versuche pro Minute begrenzt.
+- Anmelden und Passwort ändern sind auf 10 Versuche pro Minute begrenzt.
 - Wer das Passwort ändert, wird auf allen anderen Geräten abgemeldet.
 
 ## Einrichtungsassistent
 
-Nach der Registrierung führt ein Assistent in zehn Schritten durch die Einrichtung:
-
-1. Sprache (Deutsch/Englisch)
-2. Name (optional)
-3. Zeitzone (legt fest, wann ein neuer Tag beginnt)
-4. KI-Anbieter für die Antwortprüfung (voreingestellt: Pollinations.ai)
-5. Modell für die Antwortprüfung (voreingestellt: `openai/gpt-oss-20b`)
-6. KI für die Tageszusammenfassung
-7. Bilderkennung (bildfähiges Modell)
-8. Zeitlimit der KI-Prüfung (Standard: 2 Sekunden)
-9. Lernen: Intervalle der Stufen 2–6 (Standard: 5 / 10 / 20 / 40 / 80 Tage) und Verhalten bei falschen Antworten
-10. Übersicht und Fertig
+Bei der ersten Anmeldung führt ein Assistent durch die Einrichtung: Sprache, Name, Zeitzone,
+Lernen (Intervalle der Stufen 2–6, Standard 5 / 10 / 20 / 40 / 80 Tage, und Verhalten bei falschen
+Antworten) und Übersicht. Beim Superuser kommen die KI-Schritte dazu: Anbieter und Modell für die
+Antwortprüfung (voreingestellt Pollinations.ai mit `openai/gpt-oss-20b`), Bilderkennung und
+Zeitlimit der KI-Prüfung (Standard: 2 Sekunden).
 
 Alle Werte lassen sich später in den Einstellungen ändern.
 
 ## KI-Anbieter
 
-Jeder Account richtet seine KI selbst ein (Assistent nach der Registrierung, später unter
-Einstellungen → KI). Pro Aufgabe – **Antwortprüfung**, **Tageszusammenfassung**, **Bilderkennung** –
+Der Superuser richtet die KI für alle ein (Assistent bei der ersten Anmeldung, später unter
+Einstellungen → KI). Pro Aufgabe – **Antwortprüfung** und **Bilderkennung** –
 gibt es einen eigenen Anbieter und ein eigenes Modell. Die Modelllisten werden live vom Anbieter
 geladen; der Modellname kann auch eingetippt werden.
 
@@ -207,8 +207,8 @@ geladen; der Modellname kann auch eingetippt werden.
 | Ollama (online)            | Ollama                        | `https://ollama.com`                    | nötig     |
 | Eigener Server             | OpenAI-kompatibel oder Ollama | frei, z. B. `http://192.168.1.50:11434` | optional  |
 
-- **Standard für neue Accounts:** Pollinations.ai mit `openai/gpt-oss-20b` für Antwortprüfung und
-  Zusammenfassung, ohne API-Schlüssel. Laut Pollinations-Doku brauchen Anfragen einen Schlüssel
+- **Standard:** Pollinations.ai mit `openai/gpt-oss-20b` für die Antwortprüfung, ohne
+  API-Schlüssel. Laut Pollinations-Doku brauchen Anfragen einen Schlüssel
   (`sk_…` von enter.pollinations.ai); meldet „Verbindung testen“ Fehler 401 oder 402, den Schlüssel
   beim Anbieter eintragen.
 - **Bilderkennung:** `openai/gpt-oss-20b` kann keine Bilder lesen. Das Bildmodell wird aus den
@@ -226,14 +226,14 @@ geladen; der Modellname kann auch eingetippt werden.
 - Heute fällige Vokabeln (mit Knopf „Jetzt lernen“), Anzahl je Stufe, gelernte und inaktive
   Vokabeln – funktioniert ohne KI.
 - Heute gelernt: Abfragen, Trefferquote, Zeit pro Karte, schwierige Vokabeln.
-- **KI-Tageszusammenfassung:** entsteht aus zusammengefassten Kennzahlen (keine einzelnen
-  Antworten), wird zwischengespeichert und nur neu erzeugt, wenn neue Abfragen dazugekommen sind.
 - „Heute“ richtet sich nach der Zeitzone des Accounts.
 
 ## Hochladen und Erkennung
 
-1. Unter **Hochladen** Fotos aufnehmen („Foto aufnehmen“) oder mehrere aus der Galerie wählen
-   (bis zu 20 auf einmal). Die Fotos werden vor dem Hochladen im Browser auf höchstens
+1. Der Superuser öffnet unter **Pakete** ein Paket (oder legt mit „Neues Paket“ eins an). Neben
+   „Hinzufügen“ (manuell) gibt es **Hochladen** (Fotos nur ans Paket hängen, ohne Erkennung) und
+   **Erkennen** (Fotos aufnehmen oder bis zu 20 aus der Galerie wählen, die KI liest die Vokabeln).
+   Fotos eines Pakets lassen sich mit dem ✕ wieder löschen. Die Fotos werden vor dem Hochladen im Browser auf höchstens
    2000 Pixel lange Kante verkleinert (JPEG).
 2. Der Server liest jedes Foto mit dem eingestellten **Bildmodell** (Einstellungen → KI →
    Bilderkennung). Ergebnis je Eintrag: Wort, Zusatz (z. B. Stammformen, Genus), Übersetzung(en),
@@ -307,7 +307,7 @@ mit deinem WordFlow-Server; iOS gibt es nicht.
 1. Server-Adresse eingeben:
    - im Heimnetz z. B. `http://192.168.1.20:3000` (Klartext-HTTP ist in der App erlaubt),
    - über das Internet z. B. `https://wordflow.example.org` (hinter einem Reverse-Proxy mit HTTPS).
-2. Anmelden oder registrieren (Registrierungscode wie im Browser). Die App bekommt einen Token,
+2. Anmelden (Accounts legt der Superuser an). Die App bekommt einen Token,
    der in den Capacitor Preferences gespeichert wird; Cookies werden nicht verwendet.
 3. Unter **Einstellungen → Erinnerung** eine Uhrzeit wählen. Die App plant lokale
    Benachrichtigungen für die nächsten 30 Tage, an denen Vokabeln fällig sind, und plant sie bei
@@ -354,6 +354,8 @@ deploy            systemd-Dienst und Caddyfile
 - [x] 5. KI-Anbieter und Einrichtungsassistent: Pollinations, Anthropic, OpenAI, OpenRouter, Ollama (lokal/online), eigener Server
 - [x] 6. KI-Antwortprüfung: Zeitlimit mit lokalem Fallback und „Ich hatte recht“, Cache, Latenzstatistik, Vorwärmen
 - [x] 7. Hochladen und Erkennung: mehrere Fotos, Kamera/Galerie, Verkleinern, Vorschau mit Korrektur, Fotos bleiben beim Paket
-- [x] 8. Startseite: fällige Vokabeln, Stufenübersicht, Tageswerte, KI-Tageszusammenfassung
+- [x] 8. Startseite: fällige Vokabeln, Stufenübersicht, Tageswerte
 - [x] 9. Android-App (APK): Server-Adresse, Token-Anmeldung, Erinnerungen, GitHub-Actions-Build
 - [x] 10. Betrieb: Dockerfile, Docker Compose (Ollama und Caddy optional), systemd, HTTPS, README
+- [x] 11. Superuser: Accountverwaltung, geteilte Pakete mit eigenem Lernstand je Account, zentrale KI,
+      ZIP-Backup/Import, Update von GitHub

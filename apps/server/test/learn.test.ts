@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { addDays, todayIn } from '@wordflow/shared';
-import { ORIGIN, register, sessionCookie, testApp } from './helpers';
+import { adminHeaders, ORIGIN, register, sessionCookie, testApp } from './helpers';
 
 let app: FastifyInstance;
 let headers: Record<string, string>;
@@ -9,10 +9,7 @@ const today = () => todayIn('Europe/Berlin');
 
 beforeEach(async () => {
   app = await testApp();
-  headers = {
-    origin: ORIGIN,
-    cookie: `wordflow_session=${sessionCookie(await register(app, { timezone: 'Europe/Berlin' }))}`,
-  };
+  headers = await adminHeaders(app);
   // These tests run without AI (no network): remove the preset checking model.
   await app.inject({ method: 'DELETE', url: '/api/ai/tasks/check', headers });
 });

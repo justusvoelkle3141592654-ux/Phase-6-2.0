@@ -14,8 +14,13 @@ import { api } from './api';
 
 export const AI_CONFIG_KEY = ['ai', 'config'] as const;
 
-export function useAiConfig() {
-  return useQuery({ queryKey: AI_CONFIG_KEY, queryFn: () => api<AiConfigDto>('/ai/config') });
+/** The AI setup (superuser only). */
+export function useAiConfig(enabled = true) {
+  return useQuery({
+    queryKey: AI_CONFIG_KEY,
+    queryFn: () => api<AiConfigDto>('/ai/config'),
+    enabled,
+  });
 }
 
 export function useModels(providerId: number | null, vision: boolean) {

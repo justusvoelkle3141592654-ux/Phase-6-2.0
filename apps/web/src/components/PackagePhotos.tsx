@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { fill } from '../lib/format';
-import { usePackagePhotos } from '../lib/uploads';
+import { useIsAdmin } from '../lib/auth';
+import { useDeletePhoto, usePackagePhotos } from '../lib/uploads';
 import { AuthImage } from './AuthImage';
 import { Lightbox } from './Lightbox';
 
@@ -9,6 +11,8 @@ import { Lightbox } from './Lightbox';
 export function PackagePhotos({ packageId }: { packageId: number }) {
   const { m } = useI18n();
   const photos = usePackagePhotos(packageId);
+  const admin = useIsAdmin();
+  const remove = useDeletePhoto(packageId);
   const [open, setOpen] = useState<string | null>(null);
   if (!photos.data || photos.data.length === 0) return null;
   return (
@@ -18,7 +22,7 @@ export function PackagePhotos({ packageId }: { packageId: number }) {
       </h2>
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
         {photos.data.map((p, i) => (
-          <li key={p.id}>
+          <li key={p.id} className="relative">
             <button
               type="button"
               className="block w-full overflow-hidden rounded-xl"
@@ -31,6 +35,19 @@ export function PackagePhotos({ packageId }: { packageId: number }) {
                 className="aspect-[3/4] w-full object-cover"
               />
             </button>
+            {admin && (
+              <button
+                type="button"
+                className="glass absolute top-1.5 right-1.5 grid size-8 place-items-center rounded-full"
+                aria-label={`${m.upload.deletePhoto}: ${fill(m.upload.photo, { n: i + 1 })}`}
+                disabled={remove.isPending}
+                onClick={() => {
+                  if (window.confirm(m.upload.deletePhotoConfirm)) remove.mutate(p.id);
+                }}
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
+            )}
           </li>
         ))}
       </ul>

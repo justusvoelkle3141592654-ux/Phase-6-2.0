@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { checkPrompt, parseVerdict } from '../src/learn/ai-check';
-import { ORIGIN, register, sessionCookie, testApp } from './helpers';
+import { adminHeaders, ORIGIN, register, sessionCookie, testApp } from './helpers';
 import { json, mockServer, openAiStream, stream } from './mock-ai';
 
 describe('KI-Urteil lesen', () => {
@@ -46,7 +46,7 @@ describe('KI-Antwortprüfung im Lernen', () => {
       },
     });
     app = await testApp();
-    headers = { origin: ORIGIN, cookie: `wordflow_session=${sessionCookie(await register(app))}` };
+    headers = await adminHeaders(app);
     const provider = (
       await app.inject({
         method: 'POST',

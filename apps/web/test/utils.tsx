@@ -13,6 +13,16 @@ export const USER: UserDto = {
   uiLanguage: 'de',
   timezone: 'Europe/Berlin',
   setupCompleted: true,
+  role: 'user',
+};
+
+/** The superuser: maintains packages, AI, accounts, backup and updates. */
+export const ADMIN: UserDto = {
+  ...USER,
+  id: 99,
+  email: 'admin@wordflow.com',
+  name: 'Superuser',
+  role: 'admin',
 };
 
 export const SETTINGS: UserSettings = {
