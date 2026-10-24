@@ -55,6 +55,11 @@ export const changePasswordSchema = z.object({
 });
 export type ChangePasswordInput = z.input<typeof changePasswordSchema>;
 
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
+});
+export type DeleteAccountInput = z.input<typeof deleteAccountSchema>;
+
 export interface UserDto {
   id: number;
   email: string;

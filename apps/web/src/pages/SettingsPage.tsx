@@ -1,10 +1,16 @@
 import { useState, type FormEvent } from 'react';
 import { LogOut } from 'lucide-react';
-import { PASSWORD_MIN_LENGTH, type UserDto, type UserSettings, type WrongMode } from '@wordflow/shared';
+import {
+  PASSWORD_MIN_LENGTH,
+  type UserDto,
+  type UserSettings,
+  type WrongMode,
+} from '@wordflow/shared';
 import { LanguageSwitch } from '../components/LanguageSwitch';
 import { Notice } from '../components/Notice';
 import { AiSettings } from '../components/ai/AiSettings';
 import {
+  AutoNextFields,
   IntervalsField,
   parseIntervals,
   parseTimeout,
@@ -14,7 +20,13 @@ import {
 } from '../components/SettingsFields';
 import { PageHeader } from '../components/Page';
 import { useI18n } from '../i18n';
-import { useChangePassword, useLogout, useMe, useUpdateProfile } from '../lib/auth';
+import {
+  useChangePassword,
+  useDeleteAccount,
+  useLogout,
+  useMe,
+  useUpdateProfile,
+} from '../lib/auth';
 import { errorMessage } from '../lib/errors';
 import { useSettings, useUpdateSettings } from '../lib/settings';
 import { isApp } from '../lib/platform';
@@ -95,6 +107,11 @@ function LearningSection({ settings }: { settings: UserSettings }) {
   const [intervals, setIntervals] = useState(settings.intervals.map(String));
   const [wrongMode, setWrongMode] = useState<WrongMode>(settings.wrongMode);
   const [timeout, setTimeoutValue] = useState(String(settings.aiTimeoutMs / 1000));
+  const [autoNext, setAutoNext] = useState({
+    autoNextCorrectMs: settings.autoNextCorrectMs,
+    autoNextTypoMs: settings.autoNextTypoMs,
+    autoNextWrongMs: settings.autoNextWrongMs,
+  });
   const update = useUpdateSettings();
   const parsedIntervals = parseIntervals(intervals);
   const timeoutMs = parseTimeout(timeout);
@@ -103,7 +120,7 @@ function LearningSection({ settings }: { settings: UserSettings }) {
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!valid) return;
-    update.mutate({ intervals: parsedIntervals, wrongMode, aiTimeoutMs: timeoutMs });
+    update.mutate({ intervals: parsedIntervals, wrongMode, aiTimeoutMs: timeoutMs, ...autoNext });
   };
   const edit =
     <T,>(setter: (value: T) => void) =>
@@ -120,6 +137,7 @@ function LearningSection({ settings }: { settings: UserSettings }) {
       <form className="space-y-6" onSubmit={onSubmit}>
         <IntervalsField value={intervals} onChange={edit(setIntervals)} />
         <WrongModeField value={wrongMode} onChange={edit(setWrongMode)} />
+        <AutoNextFields value={autoNext} onChange={edit(setAutoNext)} />
         <TimeoutField value={timeout} onChange={edit(setTimeoutValue)} />
         {update.isSuccess && <Notice tone="ok">{m.account.saved}</Notice>}
         {update.isError && <Notice tone="error">{errorMessage(m, update.error)}</Notice>}
@@ -260,6 +278,69 @@ function PasswordSection() {
   );
 }
 
+function DeleteAccountSection() {
+  const { m } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const remove = useDeleteAccount();
+
+  const onSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    remove.mutate({ password });
+  };
+
+  const cancel = () => {
+    setOpen(false);
+    setPassword('');
+    remove.reset();
+  };
+
+  return (
+    <section className="panel space-y-4" aria-labelledby="delete-title">
+      <h2 id="delete-title" className="text-xl font-bold">
+        {m.account.deleteTitle}
+      </h2>
+      <p className="text-ink-soft">{m.account.deleteIntro}</p>
+      {!open ? (
+        <button type="button" className="btn btn-danger" onClick={() => setOpen(true)}>
+          {m.account.deleteStart}
+        </button>
+      ) : (
+        <form className="space-y-4" onSubmit={onSubmit}>
+          <div>
+            <label className="label" htmlFor="delete-password">
+              {m.account.deletePassword}
+            </label>
+            <input
+              id="delete-password"
+              className="field"
+              type="password"
+              autoComplete="current-password"
+              required
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {remove.isError && <Notice tone="error">{errorMessage(m, remove.error)}</Notice>}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="submit"
+              className="btn btn-danger"
+              disabled={remove.isPending || !password}
+            >
+              {m.account.deleteConfirm}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={cancel}>
+              {m.account.deleteCancel}
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
+
 export function SettingsPage() {
   const { m } = useI18n();
   const update = useUpdateProfile();
@@ -283,6 +364,7 @@ export function SettingsPage() {
         {settings.data && <ReminderSection settings={settings.data} />}
         <AiSettings />
         <PasswordSection />
+        <DeleteAccountSection />
       </div>
     </>
   );

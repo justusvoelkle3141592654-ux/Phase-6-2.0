@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Monochrome notification icon: the "G" of the app icon. -->
+<!-- Monochrome notification icon: the "W" of the app icon. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -11,5 +11,5 @@
         android:strokeWidth="6"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M43,22.5A14,14 0,1 0,46 32h-13" />
+        android:pathData="M14,20l8,24 10,-16 10,16 8,-24" />
 </vector>

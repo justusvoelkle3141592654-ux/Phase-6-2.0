@@ -84,6 +84,62 @@ describe('Anmeldung', () => {
   });
 });
 
+describe('Offline-Modus', () => {
+  const offlineMode = () => ({
+    status: 200,
+    body: {
+      offlineMode: true,
+      email: 'offline@local.test',
+      password: 'offline',
+      accounts: [
+        { email: 'offline@local.test', name: '' },
+        { email: 'anna@example.org', name: 'Anna' },
+      ],
+    },
+  });
+
+  it('listet lokale Accounts und meldet mit gewähltem Account an', async () => {
+    const calls = mockApi({
+      'GET /auth/me': signedOut,
+      'GET /auth/mode': offlineMode,
+      'POST /auth/login': () => ({ status: 200, body: { user: USER } }),
+    });
+    renderApp('/packages');
+    fireEvent.click(await screen.findByRole('button', { name: 'Anna · anna@example.org' }));
+    expect((screen.getByLabelText('E-Mail') as HTMLInputElement).value).toBe('anna@example.org');
+    expect(screen.getByRole('button', { name: 'offline@local.test' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Offline weiter' })).toBeNull();
+    type('Passwort', 'geheim123');
+    fireEvent.click(screen.getByRole('button', { name: 'Anmelden' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Vokabelpakete' })).toBeTruthy();
+    expect(calls.find((c) => c.key === 'POST /auth/login')?.body).toMatchObject({
+      email: 'anna@example.org',
+      password: 'geheim123',
+    });
+  });
+
+  it('registriert ohne Registrierungscode', async () => {
+    const calls = mockApi({
+      'GET /auth/me': signedOut,
+      'GET /auth/mode': offlineMode,
+      'POST /auth/register': () => ({ status: 201, body: { user: USER } }),
+    });
+    renderApp('/');
+    await screen.findByRole('button', { name: 'offline@local.test' });
+    fireEvent.click(screen.getByRole('button', { name: /Registrieren/ }));
+    expect(screen.queryByLabelText('Registrierungscode')).toBeNull();
+    type('E-Mail', 'neu@example.org');
+    type('Passwort', 'geheim123');
+    fireEvent.click(screen.getByRole('button', { name: 'Account anlegen' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Heute' })).toBeTruthy();
+    const body = calls.find((c) => c.key === 'POST /auth/register')?.body as Record<
+      string,
+      unknown
+    >;
+    expect(body.registrationCode).toBeUndefined();
+  });
+});
+
 describe('Einstellungen: Account', () => {
   it('zeigt nach dem Abmelden die Anmeldeseite', async () => {
     const calls = mockApi({
@@ -99,6 +155,35 @@ describe('Einstellungen: Account', () => {
     // The UI must not ask the server again: "signed out" is set locally.
     expect(calls.filter((c) => c.key === 'GET /auth/me')).toHaveLength(1);
     expect(calls.filter((c) => c.key === 'GET /settings')).toHaveLength(1);
+  });
+
+  it('löscht den Account nach Passwort-Bestätigung', async () => {
+    const calls = mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'DELETE /auth/me': () => ({ status: 204 }),
+    });
+    renderApp('/settings');
+    await screen.findByText('anna@example.org');
+    fireEvent.click(screen.getByRole('button', { name: 'Account löschen …' }));
+    type('Passwort zur Bestätigung', 'geheim123');
+    fireEvent.click(screen.getByRole('button', { name: 'Endgültig löschen' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Anmelden' })).toBeTruthy();
+    expect(calls.find((c) => c.key === 'DELETE /auth/me')?.body).toEqual({
+      password: 'geheim123',
+    });
+  });
+
+  it('zeigt beim Löschen ein falsches Passwort an', async () => {
+    mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'DELETE /auth/me': () => ({ status: 403, body: { error: 'wrong_password' } }),
+    });
+    renderApp('/settings');
+    await screen.findByText('anna@example.org');
+    fireEvent.click(screen.getByRole('button', { name: 'Account löschen …' }));
+    type('Passwort zur Bestätigung', 'falsch');
+    fireEvent.click(screen.getByRole('button', { name: 'Endgültig löschen' }));
+    expect(await screen.findByText('Das aktuelle Passwort stimmt nicht.')).toBeTruthy();
   });
 
   it('ändert das Passwort', async () => {

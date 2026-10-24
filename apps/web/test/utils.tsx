@@ -19,6 +19,9 @@ export const SETTINGS: UserSettings = {
   intervals: [5, 10, 20, 40, 80],
   wrongMode: 'reset',
   aiTimeoutMs: 2000,
+  autoNextCorrectMs: 1300,
+  autoNextTypoMs: 1300,
+  autoNextWrongMs: 0,
   reminderTime: null,
 };
 

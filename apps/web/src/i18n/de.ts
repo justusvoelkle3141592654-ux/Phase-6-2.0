@@ -204,6 +204,9 @@ export const de = {
     register: 'Account anlegen',
     toRegister: 'Noch keinen Account? Registrieren',
     toLogin: 'Schon registriert? Anmelden',
+    offlineRegisterIntro: 'Offline-Modus: Neue Accounts brauchen keinen Registrierungscode.',
+    offlineAccounts: 'Accounts auf diesem Gerät',
+    offlineAccountsHint: 'Account wählen und Passwort eingeben.',
     errors: {
       invalid_credentials: 'E-Mail oder Passwort stimmt nicht.',
       invalid_registration_code: 'Der Registrierungscode stimmt nicht.',
@@ -226,6 +229,13 @@ export const de = {
     currentPassword: 'Aktuelles Passwort',
     newPassword: 'Neues Passwort',
     passwordChanged: 'Passwort geändert. Andere Geräte wurden abgemeldet.',
+    deleteTitle: 'Account löschen',
+    deleteIntro:
+      'Löscht deinen Account mit allen Paketen, Vokabeln, Fotos und Einstellungen. Das lässt sich nicht rückgängig machen.',
+    deleteStart: 'Account löschen …',
+    deletePassword: 'Passwort zur Bestätigung',
+    deleteConfirm: 'Endgültig löschen',
+    deleteCancel: 'Abbrechen',
   },
   ai: {
     title: 'KI',
@@ -376,6 +386,13 @@ export const de = {
     seconds: 'Sekunden',
     timeout: 'Zeitlimit',
     timeoutHint: 'Zwischen 0,5 und 30 Sekunden. Standard: 2 Sekunden.',
+    autoNextLegend: 'Nächste Karte nach einer getippten Antwort',
+    autoNextCorrect: 'Richtig',
+    autoNextTypo: 'Tippfehler (halb falsch)',
+    autoNextWrong: 'Falsch',
+    autoNextOff: 'Aus',
+    autoNextHint:
+      'Wie lange die Lösung sichtbar bleibt, bevor die nächste Karte kommt. „Aus“ wartet, bis du „Weiter“ drückst.',
     intervals: 'Intervalle',
     intervalsLegend: 'Intervalle (in Tagen)',
     stage: 'Stufe {n}',

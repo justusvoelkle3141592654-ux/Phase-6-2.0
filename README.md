@@ -19,7 +19,7 @@ Registrierungscode einen Account anlegen und dem Einrichtungsassistenten folgen.
 
 Für ein lokales Test-Setup ohne Konto-Registrierung kann `OFFLINE_MODE=true` in `.env` gesetzt
 werden. Dann startet der Server mit einem Standard-Offline-Account (`offline@local.test` / `offline`)
-und der Login-Dialog bietet einen direkten „Continue offline“-Button.
+und der Login-Dialog bietet eine Auswahl aller lokalen Accounts.
 
 Die **Android-App** liegt fertig unter [`release/`](release/) bzw. bei den GitHub-Releases
 (siehe [Android-App](#android-app)).
@@ -161,9 +161,10 @@ E-Mails verschickt.
 - Ist `REGISTRATION_CODE` nicht gesetzt, erzeugt der Server beim ersten Start einen Code
   (z. B. `U4JM-E3E5-KVHH`), speichert ihn in `data/secrets.json` und schreibt ihn bei jedem Start
   ins Log (`Registrierungscode: …`). Groß-/Kleinschreibung spielt bei der Eingabe keine Rolle.
-- Mit `OFFLINE_MODE=true` wird der Server in einem lokalen Ein-Benutzer-Modus gestartet: Dann
-  funktionieren Login und Registrierung ohne Code, und ein Standardkonto `offline@local.test` /
-  `offline` wird automatisch angelegt.
+- Mit `OFFLINE_MODE=true` wird der Server in einem lokalen Modus gestartet: Die Registrierung
+  braucht keinen Code, ein Standardkonto `offline@local.test` / `offline` wird automatisch angelegt,
+  und die Anmeldeseite listet alle Accounts auf dem Server zur Auswahl (Passwort weiterhin nötig).
+  Nur für Geräte im eigenen Netz gedacht, da die E-Mail-Adressen sichtbar sind.
 - Dasselbe gilt für `APP_SECRET`. Mit diesem Schlüssel werden die API-Schlüssel der
   KI-Anbieter verschlüsselt. **`data/secrets.json` sichern und nicht verlieren**, sonst müssen
   alle API-Schlüssel neu eingegeben werden. Die Datei ist nur für den Besitzer lesbar (Rechte 600).
@@ -289,10 +290,13 @@ mit deinem WordFlow-Server; iOS gibt es nicht.
 - **Fertiges APK:** im Repository unter [`release/`](release/) (z. B. `release/WordFlow-1.0.0.apk`) und
   auf GitHub unter **Releases** (Tag `v1.0.0`). Herunterladen, auf dem Handy öffnen und die
   Installation aus „unbekannten Quellen“ erlauben.
-- **Automatisch gebaut:** Bei jedem Push, der die Oberfläche ändert, baut der Workflow
-  **Android-APK** (`.github/workflows/android.yml`) ein signiertes APK (Actions → Android-APK →
-  Lauf → Artifacts). Von Hand gestartet („Run workflow“ mit _publish_) legt er das APK zusätzlich
-  unter `release/` ab und aktualisiert das Release.
+- **Automatisch gebaut:** Der Workflow **Android-Release** (`.github/workflows/android-release.yml`)
+  baut ein signiertes APK, legt es als `release/WordFlow-<version>.apk` ins Repository und
+  veröffentlicht es als GitHub-Release. Er startet
+  - mit einem Tag, das mit `v` beginnt: `git tag v1.2.0 && git push origin v1.2.0`
+    (Version kommt aus dem Tag), oder
+  - von Hand unter Actions → Android-Release → **Run workflow** (Version eingeben oder leer lassen
+    für die Version aus `apps/web/package.json`).
 - **Updates:** Alle APKs sind mit demselben Schlüssel signiert (`apps/web/android/app/wordflow-release.keystore`),
   deshalb installiert sich eine neuere Version über die alte, die Daten bleiben erhalten. Der
   Schlüssel liegt im Repository – für den privaten Gebrauch in Ordnung, für eine

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AuthResponse,
   ChangePasswordInput,
+  DeleteAccountInput,
   LoginInput,
   RegisterInput,
   UpdateProfileInput,
@@ -64,6 +65,13 @@ export function useRegister() {
   });
 }
 
+/** Keeps the `me` query (the UI depends on it) and sets it to "signed out";
+ * everything else belonged to the previous account and is dropped. */
+function signedOut(qc: ReturnType<typeof useQueryClient>) {
+  qc.removeQueries({ predicate: (q) => q.queryKey[0] !== ME_KEY[0] });
+  qc.setQueryData(ME_KEY, null);
+}
+
 export function useLogout() {
   const qc = useQueryClient();
   return useMutation({
@@ -71,12 +79,18 @@ export function useLogout() {
       await api<void>('/auth/logout', { method: 'POST' });
       await setToken(null);
     },
-    onSuccess: () => {
-      // Keep the `me` query (the UI depends on it) and set it to "signed out";
-      // everything else belonged to the previous account and is dropped.
-      qc.removeQueries({ predicate: (q) => q.queryKey[0] !== ME_KEY[0] });
-      qc.setQueryData(ME_KEY, null);
+    onSuccess: () => signedOut(qc),
+  });
+}
+
+export function useDeleteAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: DeleteAccountInput) => {
+      await api<void>('/auth/me', { method: 'DELETE', body: input });
+      await setToken(null);
     },
+    onSuccess: () => signedOut(qc),
   });
 }
 

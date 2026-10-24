@@ -4,7 +4,9 @@ import { build } from 'esbuild';
 import { readFileSync, rmSync, cpSync, existsSync } from 'node:fs';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
-const external = Object.keys(pkg.dependencies ?? {}).filter((name) => !name.startsWith('@wordflow/'));
+const external = Object.keys(pkg.dependencies ?? {}).filter(
+  (name) => !name.startsWith('@wordflow/'),
+);
 
 rmSync('dist', { recursive: true, force: true });
 await build({

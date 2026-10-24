@@ -43,8 +43,8 @@ export const en: Messages = {
     summaryFailed: 'The summary could not be created right now.',
     summaryStale: 'As of before your latest answers.',
     retry: 'Try again',
-    },
-    upload: {
+  },
+  upload: {
     title: 'Upload vocabulary',
     empty:
       'Take photos of pages from your vocabulary notebook. The words are recognised automatically.',
@@ -205,6 +205,9 @@ export const en: Messages = {
     register: 'Create account',
     toRegister: 'No account yet? Register',
     toLogin: 'Already registered? Sign in',
+    offlineRegisterIntro: 'Offline mode: new accounts need no registration code.',
+    offlineAccounts: 'Accounts on this device',
+    offlineAccountsHint: 'Pick an account and enter its password.',
     errors: {
       invalid_credentials: 'Email or password is incorrect.',
       invalid_registration_code: 'The registration code is incorrect.',
@@ -227,6 +230,13 @@ export const en: Messages = {
     currentPassword: 'Current password',
     newPassword: 'New password',
     passwordChanged: 'Password changed. Other devices were signed out.',
+    deleteTitle: 'Delete account',
+    deleteIntro:
+      'Deletes your account with all packages, vocabulary, photos and settings. This cannot be undone.',
+    deleteStart: 'Delete account …',
+    deletePassword: 'Password to confirm',
+    deleteConfirm: 'Delete permanently',
+    deleteCancel: 'Cancel',
   },
   ai: {
     title: 'AI',
@@ -369,6 +379,13 @@ export const en: Messages = {
     seconds: 'seconds',
     timeout: 'Time limit',
     timeoutHint: 'Between 0.5 and 30 seconds. Default: 2 seconds.',
+    autoNextLegend: 'Next card after a typed answer',
+    autoNextCorrect: 'Correct',
+    autoNextTypo: 'Typo (half wrong)',
+    autoNextWrong: 'Wrong',
+    autoNextOff: 'Off',
+    autoNextHint:
+      'How long the solution stays visible before the next card appears. “Off” waits until you press “Next”.',
     intervals: 'Intervals',
     intervalsLegend: 'Intervals (in days)',
     stage: 'Stage {n}',
@@ -401,7 +418,8 @@ export const en: Messages = {
     reminderOff: 'Off',
     reminderOn: 'Daily at',
     reminderAppOnly: 'Only works in the Android app.',
-    reminderDenied: 'Notifications are not allowed for WordFlow. Allow them in the Android settings.',
+    reminderDenied:
+      'Notifications are not allowed for WordFlow. Allow them in the Android settings.',
     notificationBody: '{n} words are due.',
     notificationBodyOne: '1 word is due.',
   },
@@ -411,4 +429,3 @@ export const en: Messages = {
     comingSoon: 'Coming in one of the next steps.',
   },
 };
-

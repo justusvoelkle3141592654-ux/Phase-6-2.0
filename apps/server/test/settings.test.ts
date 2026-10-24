@@ -20,6 +20,9 @@ describe('Einstellungen', () => {
       intervals: [5, 10, 20, 40, 80],
       wrongMode: 'reset',
       aiTimeoutMs: 2000,
+      autoNextCorrectMs: 1300,
+      autoNextTypoMs: 1300,
+      autoNextWrongMs: 0,
       reminderTime: null,
     });
   });
@@ -33,6 +36,9 @@ describe('Einstellungen', () => {
         intervals: [1, 3, 7, 14, 30],
         wrongMode: 'back',
         aiTimeoutMs: 3000,
+        autoNextCorrectMs: 500,
+        autoNextTypoMs: 4000,
+        autoNextWrongMs: 6000,
         reminderTime: '18:30',
       },
     });
@@ -42,6 +48,9 @@ describe('Einstellungen', () => {
       intervals: [1, 3, 7, 14, 30],
       wrongMode: 'back',
       aiTimeoutMs: 3000,
+      autoNextCorrectMs: 500,
+      autoNextTypoMs: 4000,
+      autoNextWrongMs: 6000,
       reminderTime: '18:30',
     });
   });
@@ -55,6 +64,7 @@ describe('Einstellungen', () => {
         intervals: [5, 10, 0],
         wrongMode: 'egal',
         aiTimeoutMs: 100,
+        autoNextTypoMs: 20000,
         reminderTime: '25:00',
       },
     });

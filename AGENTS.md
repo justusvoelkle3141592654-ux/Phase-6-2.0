@@ -1,9 +1,11 @@
 # AGENTS.md – WordFlow project instructions
 
 ## Overview
+
 WordFlow is a self‑hosted vocabulary trainer with a Fastify API, a React/Vite web UI, and an Android app (Capacitor). It stores data in SQLite, supports AI providers for answer checking, and can run offline.
 
 ## Dev environment
+
 - **Node**: >=22.12 (as required by `package.json`)
 - **npm**: use the bundled version
 - Run `npm ci` at the repository root to install all workspaces.
@@ -11,24 +13,26 @@ WordFlow is a self‑hosted vocabulary trainer with a Fastify API, a React/Vite 
 - Native modules (`better-sqlite3`, `@node-rs/argon2`) may need Python, make, a C++ compiler (see Dockerfile comment lines 5‑7).
 
 ## Build & test
-| Task | Exact command |
-|------|----------------|
-| Install dependencies | `npm ci` |
-| Development (watch server + Vite) | `npm run dev` |
-| Production build (web & server) | `npm run build` |
-| Start production server | `npm start` |
-| Run all tests (server, web, shared) | `npm test` |
-| Type‑check all TypeScript packages | `npm run typecheck` |
-| Code formatting (Prettier) | `npm run format` |
+
+| Task                                 | Exact command                             |
+| ------------------------------------ | ----------------------------------------- |
+| Install dependencies                 | `npm ci`                                  |
+| Development (watch server + Vite)    | `npm run dev`                             |
+| Production build (web & server)      | `npm run build`                           |
+| Start production server              | `npm start`                               |
+| Run all tests (server, web, shared)  | `npm test`                                |
+| Type‑check all TypeScript packages   | `npm run typecheck`                       |
+| Code formatting (Prettier)           | `npm run format`                          |
 | Generate a new DB migration (server) | `npm run db:generate -w @wordflow/server` |
-| Build web only | `npm run build -w @wordflow/web` |
-| Build server only | `npm run build -w @wordflow/server` |
-| Run web tests only | `npm run test -w @wordflow/web` |
-| Run server tests only | `npm run test -w @wordflow/server` |
+| Build web only                       | `npm run build -w @wordflow/web`          |
+| Build server only                    | `npm run build -w @wordflow/server`       |
+| Run web tests only                   | `npm run test -w @wordflow/web`           |
+| Run server tests only                | `npm run test -w @wordflow/server`        |
 
 All workspace scripts are invoked via the top‑level wrappers (`--workspaces --if-present`).
 
 ## Docker & deployment
+
 - Build image: `docker build -t wordflow .`
 - Run container (port 3000): `docker compose up -d`
 - Optional profiles:
@@ -37,6 +41,7 @@ All workspace scripts are invoked via the top‑level wrappers (`--workspaces --
 - Volumes: `wordflow-data` holds `data/` (SQLite DB, uploads, `secrets.json`).
 
 ## Project structure
+
 ```
 apps/server      Fastify backend, DB, AI integration
 apps/web         React UI built with Vite (also the Capacitor Android project)
@@ -47,16 +52,18 @@ README.md        User‑facing documentation
 ```
 
 ## Conventions
+
 - **TypeScript** with `tsconfig.base.json` (strict, noEmit). All source files are under `src/` (or `test/`).
 - **Fastify** routes are mounted under `/api`; unknown non‑API GET routes serve `index.html` when `webDist` is set.
 - **Session cookie** name: `wordflow_session` (httpOnly, sameSite=lax, secure on HTTPS).
 - Environment variables are read via `loadConfig` in `apps/server/src/config.ts`. Missing values are generated and stored in `data/secrets.json` (mode 600) – do **not** edit this file manually.
 - **Registration code** is generated on first start if `REGISTRATION_CODE` is empty; shown in logs.
-- **Offline mode**: set `OFFLINE_MODE=true` to start with a default account (`offline@local.test` / `offline`).
+- **Offline mode**: set `OFFLINE_MODE=true` to start with a default account (`offline@local.test` / `offline`). Registration needs no code, and `GET /api/auth/mode` lists all accounts (email + name) so the sign-in page can offer them; passwords are still checked.
 - **AI providers** are configured per account; the server stores encrypted API keys using `APP_SECRET` (generated if absent).
 - **Prettier** formatting is enforced via `npm run format`.
 
 ## Pitfalls & gotchas
+
 - The server expects a `.env` file (or env vars). Missing `DATA_DIR` or `APP_SECRET` will be auto‑generated, but the generated secret is stored in `data/secrets.json`; losing that file invalidates saved API keys.
 - Port 3000 must be free unless using Docker (which maps it). Conflicts cause the server to abort on start.
 - Native modules may fail to compile on a fresh system; install build essentials (`build-essential` on Debian/Ubuntu) before `npm ci`.

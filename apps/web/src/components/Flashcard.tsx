@@ -6,18 +6,23 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { Check, RotateCcw, X } from 'lucide-react';
-import type { AnswerResult } from '@wordflow/shared';
+import {
+  DEFAULT_AUTO_NEXT_CORRECT_MS,
+  DEFAULT_AUTO_NEXT_TYPO_MS,
+  DEFAULT_AUTO_NEXT_WRONG_MS,
+  type AnswerResult,
+} from '@wordflow/shared';
 import { useI18n } from '../i18n';
 import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';
 import { languageName } from '../lib/languages';
 import { useAnswer, useOverride } from '../lib/learn';
+import { useSettings } from '../lib/settings';
 import type { SessionItem } from '../lib/session';
 import { Notice } from './Notice';
 import { StageMeter } from './StageBadge';
 
 const SWIPE_THRESHOLD = 110;
-const AUTO_NEXT_MS = 1300;
 
 type Phase = 'front' | 'checking' | 'back';
 
@@ -60,6 +65,7 @@ export function Flashcard({
   const nextRef = useRef<HTMLButtonElement>(null);
   const answer = useAnswer();
   const override = useOverride();
+  const settings = useSettings().data;
 
   const selfGrading = phase === 'back' && result === null;
   const elapsed = (at: number | null) => (at === null ? null : Math.round(at - shownAt.current));
@@ -68,12 +74,19 @@ export function Flashcard({
     if (canHover()) inputRef.current?.focus();
   }, []);
 
-  // Correct typed answers move on automatically.
+  // Typed answers move on automatically after the delay set for their outcome (0 = wait for "Next").
+  const autoNextMs = !result
+    ? 0
+    : !result.correct
+      ? (settings?.autoNextWrongMs ?? DEFAULT_AUTO_NEXT_WRONG_MS)
+      : result.typoOf
+        ? (settings?.autoNextTypoMs ?? DEFAULT_AUTO_NEXT_TYPO_MS)
+        : (settings?.autoNextCorrectMs ?? DEFAULT_AUTO_NEXT_CORRECT_MS);
   useEffect(() => {
-    if (!result?.correct || result.decidedBy === 'self') return;
-    const timer = setTimeout(() => onNext(result), AUTO_NEXT_MS);
+    if (!result || result.decidedBy === 'self' || autoNextMs <= 0) return;
+    const timer = setTimeout(() => onNext(result), autoNextMs);
     return () => clearTimeout(timer);
-  }, [result, onNext]);
+  }, [result, onNext, autoNextMs]);
 
   useEffect(() => {
     if (phase === 'back' && result && !result.correct) nextRef.current?.focus();

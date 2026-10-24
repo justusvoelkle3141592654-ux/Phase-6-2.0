@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { PASSWORD_MIN_LENGTH } from '@wordflow/shared';
 import { CenteredLayout } from '../components/CenteredLayout';
 import { Notice } from '../components/Notice';
@@ -17,6 +17,10 @@ function browserTimezone(): string | undefined {
   }
 }
 
+type OfflineAccount = { email: string; name: string };
+type ModeResponse = { offlineMode: boolean; accounts?: OfflineAccount[] };
+type OfflineInfo = { accounts: OfflineAccount[] };
+
 /** Sign-in and registration. */
 export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {}) {
   const { m, lang } = useI18n();
@@ -24,17 +28,18 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
-  const [offlineAccount, setOfflineAccount] = useState<{ email: string; password: string } | null>(null);
+  const [offline, setOffline] = useState<OfflineInfo | null>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
   const login = useLogin();
   const register = useRegister();
   const pending = login.isPending || register.isPending;
   const error = mode === 'login' ? login.error : register.error;
 
   useEffect(() => {
-    void api<{ offlineMode: boolean; email?: string; password?: string }>('/auth/mode')
+    void api<ModeResponse>('/auth/mode')
       .then((data) => {
         if (!data.offlineMode) return;
-        setOfflineAccount({ email: data.email ?? 'offline@local.test', password: data.password ?? 'offline' });
+        setOffline({ accounts: data.accounts ?? [] });
       })
       .catch(() => undefined);
   }, []);
@@ -47,7 +52,7 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
       register.mutate({
         email,
         password,
-        registrationCode: code,
+        registrationCode: offline ? undefined : code,
         uiLanguage: lang,
         timezone: browserTimezone(),
       });
@@ -60,6 +65,7 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
     setMode(mode === 'login' ? 'register' : 'login');
   };
 
+  const accounts = offline?.accounts ?? [];
   const title = mode === 'login' ? m.auth.loginTitle : m.auth.registerTitle;
 
   return (
@@ -67,7 +73,11 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
       <div className="panel sm:p-8">
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         <p className="mt-1.5 text-ink-soft">
-          {mode === 'login' ? m.auth.loginIntro : m.auth.registerIntro}
+          {mode === 'login'
+            ? m.auth.loginIntro
+            : offline
+              ? m.auth.offlineRegisterIntro
+              : m.auth.registerIntro}
         </p>
         <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
           <div>
@@ -94,6 +104,7 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
               id="auth-password"
               className="field"
               type="password"
+              ref={passwordRef}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               minLength={mode === 'register' ? PASSWORD_MIN_LENGTH : undefined}
               required
@@ -108,7 +119,7 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
             )}
           </div>
 
-          {mode === 'register' && (
+          {mode === 'register' && !offline && (
             <div>
               <label className="label" htmlFor="auth-code">
                 {m.auth.registrationCode}
@@ -128,21 +139,6 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
 
           {error && <Notice tone="error">{errorMessage(m, error)}</Notice>}
 
-          {offlineAccount && mode === 'login' && (
-            <button
-              type="button"
-              className="btn btn-secondary w-full"
-              onClick={() => {
-                setEmail(offlineAccount.email);
-                setPassword(offlineAccount.password);
-                login.mutate({ email: offlineAccount.email, password: offlineAccount.password });
-              }}
-              disabled={pending}
-            >
-              Continue offline
-            </button>
-          )}
-
           <div className="space-y-2 pt-2">
             <button type="submit" className="btn btn-primary w-full" disabled={pending}>
               {mode === 'login' ? m.auth.login : m.auth.register}
@@ -152,6 +148,35 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
             </button>
           </div>
         </form>
+        {offline && mode === 'login' && accounts.length > 0 && (
+          <section className="mt-6" aria-labelledby="offline-accounts">
+            <h2 id="offline-accounts" className="text-sm font-semibold">
+              {m.auth.offlineAccounts}
+            </h2>
+            <p className="hint">{m.auth.offlineAccountsHint}</p>
+            <ul className="mt-2 space-y-2">
+              {accounts.map((account) => (
+                <li key={account.email}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost w-full justify-start text-left"
+                    aria-pressed={email === account.email}
+                    onClick={() => {
+                      login.reset();
+                      setEmail(account.email);
+                      setPassword('');
+                      passwordRef.current?.focus();
+                    }}
+                  >
+                    <span className="truncate">
+                      {account.name ? `${account.name} · ${account.email}` : account.email}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {onChangeServer && (
           <p className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-ink-soft">
             <span className="break-all">{fill(m.app.server, { url: getServerUrl() ?? '' })}</span>

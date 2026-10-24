@@ -87,6 +87,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
         db,
         registrationCode: secrets.registrationCode,
         offlineMode: config.offlineMode,
+        dataDir: config.dataDir,
       });
       await api.register(settingsRoutes, { db });
       await api.register(packageRoutes, { db });

@@ -3,8 +3,11 @@ import { Check } from 'lucide-react';
 import {
   AI_TIMEOUT_MAX_MS,
   AI_TIMEOUT_MIN_MS,
+  AUTO_NEXT_MAX_MS,
+  DEFAULT_AI_TIMEOUT_MS,
   INTERVAL_MAX_DAYS,
   WRONG_MODES,
+  type UserSettings,
   type WrongMode,
 } from '@wordflow/shared';
 import { useI18n } from '../i18n';
@@ -76,7 +79,63 @@ export function TimezoneSelect({
   );
 }
 
-/** Seconds as text so the field can be edited freely; see `parseTimeout`. */
+/** Range slider for a duration, with the current value in seconds next to the label. */
+export function SecondsSlider({
+  id,
+  label,
+  valueMs,
+  minMs,
+  maxMs,
+  stepMs,
+  offLabel,
+  describedBy,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  valueMs: number;
+  minMs: number;
+  maxMs: number;
+  stepMs: number;
+  /** Shown instead of "0 seconds" when the slider is at 0. */
+  offLabel?: string;
+  describedBy?: string;
+  onChange: (ms: number) => void;
+}) {
+  const { m, lang } = useI18n();
+  const seconds = (ms: number) => (ms / 1000).toLocaleString(lang, { maximumFractionDigits: 1 });
+  const shown = valueMs === 0 && offLabel ? offLabel : `${seconds(valueMs)} ${m.fields.seconds}`;
+  return (
+    <div>
+      <div className="mb-1 flex items-baseline justify-between gap-3">
+        <label htmlFor={id} className="font-semibold">
+          {label}
+        </label>
+        <output htmlFor={id} className="font-semibold tabular-nums">
+          {shown}
+        </output>
+      </div>
+      <input
+        id={id}
+        type="range"
+        className="h-6 w-full cursor-pointer accent-ink"
+        min={minMs}
+        max={maxMs}
+        step={stepMs}
+        value={valueMs}
+        aria-valuetext={shown}
+        aria-describedby={describedBy}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+      <div className="flex justify-between text-xs text-ink-soft tabular-nums" aria-hidden="true">
+        <span>{minMs === 0 && offLabel ? offLabel : `${seconds(minMs)} s`}</span>
+        <span>{seconds(maxMs)} s</span>
+      </div>
+    </div>
+  );
+}
+
+/** Seconds as text (the setup wizard shows it in its summary); see `parseTimeout`. */
 export function TimeoutField({
   value,
   onChange,
@@ -87,28 +146,67 @@ export function TimeoutField({
   const { m } = useI18n();
   return (
     <div>
-      <label className="label" htmlFor="ai-timeout">
-        {m.fields.timeout}
-      </label>
-      <div className="flex items-center gap-3">
-        <input
+      <div className="rounded-2xl bg-surface-2 px-4 py-3.5">
+        <SecondsSlider
           id="ai-timeout"
-          className="field w-28 tabular-nums"
-          type="number"
-          inputMode="decimal"
-          min={AI_TIMEOUT_MIN_MS / 1000}
-          max={AI_TIMEOUT_MAX_MS / 1000}
-          step={0.5}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          aria-describedby="ai-timeout-hint"
+          label={m.fields.timeout}
+          valueMs={parseTimeout(value) ?? DEFAULT_AI_TIMEOUT_MS}
+          minMs={AI_TIMEOUT_MIN_MS}
+          maxMs={AI_TIMEOUT_MAX_MS}
+          stepMs={500}
+          describedBy="ai-timeout-hint"
+          onChange={(ms) => onChange(String(ms / 1000))}
         />
-        <span className="text-ink-soft">{m.fields.seconds}</span>
       </div>
       <p id="ai-timeout-hint" className="hint">
         {m.fields.timeoutHint}
       </p>
     </div>
+  );
+}
+
+export type AutoNextValues = Pick<
+  UserSettings,
+  'autoNextCorrectMs' | 'autoNextTypoMs' | 'autoNextWrongMs'
+>;
+
+/** One slider per outcome: how long the solution stays up before the next card. */
+export function AutoNextFields({
+  value,
+  onChange,
+}: {
+  value: AutoNextValues;
+  onChange: (value: AutoNextValues) => void;
+}) {
+  const { m } = useI18n();
+  const rows: Array<{ key: keyof AutoNextValues; label: string }> = [
+    { key: 'autoNextCorrectMs', label: m.fields.autoNextCorrect },
+    { key: 'autoNextTypoMs', label: m.fields.autoNextTypo },
+    { key: 'autoNextWrongMs', label: m.fields.autoNextWrong },
+  ];
+  return (
+    <fieldset>
+      <legend className="label">{m.fields.autoNextLegend}</legend>
+      <div className="space-y-4 rounded-2xl bg-surface-2 px-4 py-3.5">
+        {rows.map((row) => (
+          <SecondsSlider
+            key={row.key}
+            id={`auto-next-${row.key}`}
+            label={row.label}
+            valueMs={value[row.key]}
+            minMs={0}
+            maxMs={AUTO_NEXT_MAX_MS}
+            stepMs={100}
+            offLabel={m.fields.autoNextOff}
+            describedBy="auto-next-hint"
+            onChange={(ms) => onChange({ ...value, [row.key]: ms })}
+          />
+        ))}
+      </div>
+      <p id="auto-next-hint" className="hint">
+        {m.fields.autoNextHint}
+      </p>
+    </fieldset>
   );
 }
 
