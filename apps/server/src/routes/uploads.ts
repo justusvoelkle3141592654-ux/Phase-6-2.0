@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
-import { and, desc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import {
   saveUploadSchema,
   type PackagePhotoDto,
@@ -32,36 +32,6 @@ function pageDto(p: UploadPage): UploadPageDto {
     entries: p.entries,
     photoUrl: `/api/uploads/pages/${p.id}/photo`,
   };
-}
-
-/**
- * Package photos uploaded by other accounts move to the superuser, so they stay
- * when that account is deleted (packages belong to everyone).
- */
-export async function adoptPackagePhotos(db: Db, dataDir: string, adminId: number) {
-  const jobs = db
-    .select()
-    .from(uploadJobs)
-    .where(and(isNotNull(uploadJobs.packageId), ne(uploadJobs.userId, adminId)))
-    .all();
-  if (jobs.length === 0) return;
-  const target = path.join(dataDir, 'uploads', String(adminId));
-  await fs.promises.mkdir(target, { recursive: true });
-  for (const job of jobs) {
-    const pages = db.select().from(uploadPages).where(eq(uploadPages.jobId, job.id)).all();
-    for (const page of pages) {
-      const from = path.join(dataDir, 'uploads', String(page.userId), page.fileName);
-      try {
-        await fs.promises.rename(from, path.join(target, page.fileName));
-      } catch (err) {
-        if ((err as { code?: string }).code !== 'ENOENT') throw err;
-      }
-    }
-    db.transaction((tx) => {
-      tx.update(uploadPages).set({ userId: adminId }).where(eq(uploadPages.jobId, job.id)).run();
-      tx.update(uploadJobs).set({ userId: adminId }).where(eq(uploadJobs.id, job.id)).run();
-    });
-  }
 }
 
 export interface UploadOptions {
@@ -135,7 +105,12 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
   function ownJob(request: FastifyRequest, reply: FastifyReply) {
     const id = Number((request.params as { id: string }).id);
     const job =
-      Number.isInteger(id) && db.select().from(uploadJobs).where(eq(uploadJobs.id, id)).get();
+      Number.isInteger(id) &&
+      db
+        .select()
+        .from(uploadJobs)
+        .where(and(eq(uploadJobs.id, id), eq(uploadJobs.userId, request.user!.id)))
+        .get();
     if (!job) {
       void reply.code(404).send({ error: 'not_found' });
       return null;
@@ -143,22 +118,16 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
     return job;
   }
 
-  /**
-   * Loads a photo. Photos of a package are visible to every account; photos that
-   * are still being reviewed only to the superuser.
-   */
+  /** Loads a photo of the signed-in account. */
   function ownPage(request: FastifyRequest, reply: FastifyReply) {
     const id = Number((request.params as { id: string }).id);
-    const row =
+    const page =
       Number.isInteger(id) &&
       db
-        .select({ page: uploadPages, packageId: uploadJobs.packageId })
+        .select()
         .from(uploadPages)
-        .innerJoin(uploadJobs, eq(uploadJobs.id, uploadPages.jobId))
-        .where(eq(uploadPages.id, id))
+        .where(and(eq(uploadPages.id, id), eq(uploadPages.userId, request.user!.id)))
         .get();
-    const page =
-      row && (row.packageId !== null || request.user!.role === 'admin') ? row.page : null;
     if (!page) {
       void reply.code(404).send({ error: 'not_found' });
       return null;
@@ -167,7 +136,6 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
   }
 
   app.addHook('preHandler', app.requireAuth);
-  const admin = { preHandler: app.requireAdmin };
 
   /**
    * Stores the photos of a multipart request (field "photos") as a new upload job.
@@ -226,7 +194,7 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
   }
 
   /** Multipart upload of 1–20 photos (field "photos"); recognition starts right away. */
-  app.post('/uploads', admin, async (request, reply) => {
+  app.post('/uploads', async (request, reply) => {
     const userId = request.user!.id;
     const jobId = await savePhotos(request, reply, { packageId: null, status: 'pending' });
     if (jobId === null) return;
@@ -243,24 +211,24 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
   });
 
   /** Uploads whose words have not been saved yet. */
-  app.get('/uploads', admin, async () => {
+  app.get('/uploads', async (request) => {
     const jobs = db
       .select({ id: uploadJobs.id })
       .from(uploadJobs)
-      .where(isNull(uploadJobs.packageId))
+      .where(and(eq(uploadJobs.userId, request.user!.id), isNull(uploadJobs.packageId)))
       .orderBy(desc(uploadJobs.id))
       .limit(20)
       .all();
     return { jobs: jobs.map((j) => jobDto(j.id)) };
   });
 
-  app.get('/uploads/:id', admin, async (request, reply) => {
+  app.get('/uploads/:id', async (request, reply) => {
     const job = ownJob(request, reply);
     if (!job) return;
     return { job: jobDto(job.id) };
   });
 
-  app.delete('/uploads/:id', admin, async (request, reply) => {
+  app.delete('/uploads/:id', async (request, reply) => {
     const job = ownJob(request, reply);
     if (!job) return;
     if (job.packageId !== null) return reply.code(409).send({ error: 'validation_error' });
@@ -271,7 +239,7 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
     return reply.code(204).send();
   });
 
-  app.post('/uploads/pages/:id/retry', admin, async (request, reply) => {
+  app.post('/uploads/pages/:id/retry', async (request, reply) => {
     const page = ownPage(request, reply);
     if (!page) return;
     db.update(uploadPages)
@@ -294,7 +262,7 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
   });
 
   /** Saves the (corrected) words into a package; the photos stay with the package. */
-  app.post('/uploads/:id/save', admin, async (request, reply) => {
+  app.post('/uploads/:id/save', async (request, reply) => {
     const job = ownJob(request, reply);
     if (!job) return;
     const input = parseBody(saveUploadSchema, request.body, reply);
@@ -302,7 +270,7 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
     const pkg = db
       .select({ id: packages.id })
       .from(packages)
-      .where(eq(packages.id, input.packageId))
+      .where(and(eq(packages.id, input.packageId), eq(packages.userId, request.user!.id)))
       .get();
     if (!pkg) return reply.code(404).send({ error: 'not_found' });
     const packageId = pkg.id;
@@ -316,11 +284,15 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
   });
 
   /** Attaches photos to a package without recognition ("Hochladen"). */
-  app.post('/packages/:id/photos', admin, async (request, reply) => {
+  app.post('/packages/:id/photos', async (request, reply) => {
     const id = Number((request.params as { id: string }).id);
     const pkg =
       Number.isInteger(id) &&
-      db.select({ id: packages.id }).from(packages).where(eq(packages.id, id)).get();
+      db
+        .select({ id: packages.id })
+        .from(packages)
+        .where(and(eq(packages.id, id), eq(packages.userId, request.user!.id)))
+        .get();
     if (!pkg) return reply.code(404).send({ error: 'not_found' });
     const jobId = await savePhotos(request, reply, { packageId: pkg.id, status: 'done' });
     if (jobId === null) return;
@@ -328,7 +300,7 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
   });
 
   /** Removes one photo; an upload left without photos is removed too. */
-  app.delete('/uploads/pages/:id', admin, async (request, reply) => {
+  app.delete('/uploads/pages/:id', async (request, reply) => {
     const page = ownPage(request, reply);
     if (!page) return;
     db.transaction((tx) => {
@@ -350,7 +322,7 @@ export const uploadRoutes: FastifyPluginAsync<UploadOptions> = async (app, { db,
       .select({ page: uploadPages })
       .from(uploadPages)
       .innerJoin(uploadJobs, eq(uploadJobs.id, uploadPages.jobId))
-      .where(eq(uploadJobs.packageId, id))
+      .where(and(eq(uploadJobs.packageId, id), eq(uploadJobs.userId, request.user!.id)))
       .orderBy(uploadPages.id)
       .all();
     const photos: PackagePhotoDto[] = rows.map(({ page }) => ({

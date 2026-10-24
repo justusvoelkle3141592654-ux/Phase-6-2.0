@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UpdateSettingsInput, UserDto, UserSettings } from '@wordflow/shared';
+import type { UpdateSettingsInput, UserSettings } from '@wordflow/shared';
 import { api } from './api';
-import { ME_KEY } from './auth';
 
 export const SETTINGS_KEY = ['settings'] as const;
 
@@ -19,15 +18,10 @@ export function useUpdateSettings() {
     mutationFn: async (input: UpdateSettingsInput) =>
       (await api<{ settings: UserSettings }>('/settings', { method: 'PATCH', body: input }))
         .settings,
-    onSuccess: (settings) => qc.setQueryData(SETTINGS_KEY, settings),
-  });
-}
-
-export function useCompleteSetup() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async () =>
-      (await api<{ user: UserDto }>('/setup/complete', { method: 'POST' })).user,
-    onSuccess: (user) => qc.setQueryData(ME_KEY, user),
+    onSuccess: (settings) => {
+      qc.setQueryData(SETTINGS_KEY, settings);
+      // The daily limit changes what can be learned today.
+      void qc.invalidateQueries({ queryKey: ['overview'] });
+    },
   });
 }

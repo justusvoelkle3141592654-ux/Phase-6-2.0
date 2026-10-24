@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { LogOut } from 'lucide-react';
+import { useSearchParams } from 'react-router';
 import {
   PASSWORD_MIN_LENGTH,
   type UserDto,
@@ -14,7 +14,9 @@ import { BackupAdmin } from '../components/admin/BackupAdmin';
 import { UpdateAdmin } from '../components/admin/UpdateAdmin';
 import {
   AutoNextFields,
+  DailyLimitField,
   IntervalsField,
+  parseDailyLimit,
   parseIntervals,
   parseTimeout,
   TimeoutField,
@@ -23,24 +25,15 @@ import {
 } from '../components/SettingsFields';
 import { PageHeader } from '../components/Page';
 import { useI18n } from '../i18n';
-import {
-  useChangePassword,
-  useDeleteAccount,
-  useLogout,
-  useMe,
-  useUpdateProfile,
-} from '../lib/auth';
+import { useChangePassword, useDeleteAccount, useMe, useUpdateProfile } from '../lib/auth';
 import { errorMessage } from '../lib/errors';
 import { useSettings, useUpdateSettings } from '../lib/settings';
-import { isApp } from '../lib/platform';
-import { notificationsAllowed } from '../lib/reminders';
 
 function AccountSection({ user }: { user: UserDto }) {
   const { m } = useI18n();
   const [name, setName] = useState(user.name);
   const [timezone, setTimezone] = useState(user.timezone);
   const update = useUpdateProfile();
-  const logout = useLogout();
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -91,25 +84,15 @@ function AccountSection({ user }: { user: UserDto }) {
       </form>
       {update.isSuccess && <Notice tone="ok">{m.account.saved}</Notice>}
       {update.isError && <Notice tone="error">{errorMessage(m, update.error)}</Notice>}
-      <button
-        type="button"
-        className="btn btn-secondary"
-        onClick={() => logout.mutate()}
-        disabled={logout.isPending}
-      >
-        <LogOut className="size-4.5" aria-hidden="true" />
-        {m.account.logout}
-      </button>
-      {logout.isError && <Notice tone="error">{errorMessage(m, logout.error)}</Notice>}
     </section>
   );
 }
 
-function LearningSection({ settings, admin }: { settings: UserSettings; admin: boolean }) {
+function LearningSection({ settings }: { settings: UserSettings }) {
   const { m } = useI18n();
   const [intervals, setIntervals] = useState(settings.intervals.map(String));
   const [wrongMode, setWrongMode] = useState<WrongMode>(settings.wrongMode);
-  const [timeout, setTimeoutValue] = useState(String(settings.aiTimeoutMs / 1000));
+  const [dailyLimit, setDailyLimit] = useState(String(settings.dailyLimit));
   const [autoNext, setAutoNext] = useState({
     autoNextCorrectMs: settings.autoNextCorrectMs,
     autoNextTypoMs: settings.autoNextTypoMs,
@@ -117,19 +100,13 @@ function LearningSection({ settings, admin }: { settings: UserSettings; admin: b
   });
   const update = useUpdateSettings();
   const parsedIntervals = parseIntervals(intervals);
-  const timeoutMs = parseTimeout(timeout);
-  const valid = parsedIntervals !== null && (!admin || timeoutMs !== null);
+  const parsedLimit = parseDailyLimit(dailyLimit);
+  const valid = parsedIntervals !== null && parsedLimit !== null;
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!valid) return;
-    update.mutate({
-      intervals: parsedIntervals,
-      wrongMode,
-      // The AI time limit is part of the AI setup, which only the superuser changes.
-      ...(admin ? { aiTimeoutMs: timeoutMs! } : {}),
-      ...autoNext,
-    });
+    update.mutate({ intervals: parsedIntervals, wrongMode, dailyLimit: parsedLimit, ...autoNext });
   };
   const edit =
     <T,>(setter: (value: T) => void) =>
@@ -144,10 +121,10 @@ function LearningSection({ settings, admin }: { settings: UserSettings; admin: b
         {m.settings.learningTitle}
       </h2>
       <form className="space-y-6" onSubmit={onSubmit}>
+        <DailyLimitField value={dailyLimit} onChange={edit(setDailyLimit)} />
         <IntervalsField value={intervals} onChange={edit(setIntervals)} />
         <WrongModeField value={wrongMode} onChange={edit(setWrongMode)} />
         <AutoNextFields value={autoNext} onChange={edit(setAutoNext)} />
-        {admin && <TimeoutField value={timeout} onChange={edit(setTimeoutValue)} />}
         {update.isSuccess && <Notice tone="ok">{m.account.saved}</Notice>}
         {update.isError && <Notice tone="error">{errorMessage(m, update.error)}</Notice>}
         <button type="submit" className="btn btn-primary" disabled={update.isPending || !valid}>
@@ -158,63 +135,42 @@ function LearningSection({ settings, admin }: { settings: UserSettings; admin: b
   );
 }
 
-function ReminderSection({ settings }: { settings: UserSettings }) {
+/** Superuser: time limit of the AI answer check (part of the AI setup for everyone). */
+function AiTimeoutSection({ settings }: { settings: UserSettings }) {
   const { m } = useI18n();
-  const [time, setTime] = useState(settings.reminderTime ?? '18:00');
-  const [denied, setDenied] = useState(false);
+  const [timeout, setTimeoutValue] = useState(String(settings.aiTimeoutMs / 1000));
   const update = useUpdateSettings();
-  const on = settings.reminderTime !== null;
-
-  const save = async (value: string | null) => {
-    setDenied(false);
-    if (value && isApp && !(await notificationsAllowed(true))) setDenied(true);
-    update.mutate({ reminderTime: value });
-  };
+  const timeoutMs = parseTimeout(timeout);
 
   return (
-    <section className="panel space-y-4" aria-labelledby="reminder-title">
-      <div>
-        <h2 id="reminder-title" className="text-xl font-bold">
-          {m.app.reminder}
-        </h2>
-        <p className="mt-1 text-sm text-ink-soft">
-          {m.app.reminderHint} {!isApp && m.app.reminderAppOnly}
-        </p>
-      </div>
-      <div role="radiogroup" aria-label={m.app.reminder} className="segmented">
-        <button type="button" role="radio" aria-checked={!on} onClick={() => void save(null)}>
-          {m.app.reminderOff}
+    <section className="panel" aria-labelledby="timeout-title">
+      <h2 id="timeout-title" className="mb-4 text-xl font-bold">
+        {m.fields.timeout}
+      </h2>
+      <form
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (timeoutMs !== null) update.mutate({ aiTimeoutMs: timeoutMs });
+        }}
+      >
+        <TimeoutField
+          value={timeout}
+          onChange={(v) => {
+            update.reset();
+            setTimeoutValue(v);
+          }}
+        />
+        {update.isSuccess && <Notice tone="ok">{m.account.saved}</Notice>}
+        {update.isError && <Notice tone="error">{errorMessage(m, update.error)}</Notice>}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={update.isPending || timeoutMs === null}
+        >
+          {m.account.save}
         </button>
-        <button type="button" role="radio" aria-checked={on} onClick={() => void save(time)}>
-          {m.app.reminderOn}
-        </button>
-      </div>
-      {on && (
-        <div className="flex items-center gap-3">
-          <label className="sr-only" htmlFor="reminder-time">
-            {m.app.reminderOn}
-          </label>
-          <input
-            id="reminder-time"
-            type="time"
-            className="field w-36 tabular-nums"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn btn-secondary"
-            disabled={
-              !/^\d{2}:\d{2}$/.test(time) || time === settings.reminderTime || update.isPending
-            }
-            onClick={() => void save(time)}
-          >
-            {m.account.save}
-          </button>
-        </div>
-      )}
-      {denied && <Notice tone="error">{m.app.reminderDenied}</Notice>}
-      {update.isError && <Notice tone="error">{errorMessage(m, update.error)}</Notice>}
+      </form>
     </section>
   );
 }
@@ -350,34 +306,83 @@ function DeleteAccountSection() {
   );
 }
 
+const TAB_IDS = ['account', 'learning', 'ai', 'accounts', 'system'] as const;
+type TabId = (typeof TAB_IDS)[number];
+
 export function SettingsPage() {
   const { m } = useI18n();
   const update = useUpdateProfile();
+  const [params, setParams] = useSearchParams();
   // Null for one render right after signing out, before AuthGate takes over.
   const user = useMe().data;
   const settings = useSettings(Boolean(user));
   if (!user) return null;
   const admin = user.role === 'admin';
+  const tabs: readonly TabId[] = admin ? TAB_IDS : ['account', 'learning'];
+  const requested = params.get('tab');
+  const tab = tabs.find((id) => id === requested) ?? 'account';
+  const select = (id: TabId) => setParams(id === 'account' ? {} : { tab: id }, { replace: true });
+
   return (
     <>
       <PageHeader title={m.settings.title} />
-      <div className="grid max-w-xl grid-cols-[minmax(0,1fr)] gap-6">
-        <section className="panel">
-          <span className="label">{m.settings.language}</span>
-          <LanguageSwitch
-            label={m.settings.language}
-            onChange={(uiLanguage) => update.mutate({ uiLanguage })}
-          />
-        </section>
-        <AccountSection user={user} />
-        {settings.data && <LearningSection settings={settings.data} admin={admin} />}
-        {settings.data && <ReminderSection settings={settings.data} />}
-        {admin && <AiSettings />}
-        {admin && <AccountsAdmin />}
-        {admin && <BackupAdmin />}
-        {admin && <UpdateAdmin />}
-        <PasswordSection />
-        {!admin && <DeleteAccountSection />}
+      <div
+        role="tablist"
+        aria-label={m.settings.tabsLabel}
+        className="mb-6 flex max-w-xl gap-1 overflow-x-auto rounded-full bg-surface-2 p-1"
+      >
+        {tabs.map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`settings-tab-${id}`}
+            aria-selected={tab === id}
+            aria-controls="settings-panel"
+            onClick={() => select(id)}
+            className={[
+              'min-h-9 flex-1 shrink-0 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-colors',
+              tab === id ? 'bg-primary text-on-primary' : 'text-ink-soft hover:text-ink',
+            ].join(' ')}
+          >
+            {m.settings.tabs[id]}
+          </button>
+        ))}
+      </div>
+      <div
+        id="settings-panel"
+        role="tabpanel"
+        aria-labelledby={`settings-tab-${tab}`}
+        className="grid max-w-xl grid-cols-[minmax(0,1fr)] gap-6"
+      >
+        {tab === 'account' && (
+          <>
+            <section className="panel">
+              <span className="label">{m.settings.language}</span>
+              <LanguageSwitch
+                label={m.settings.language}
+                onChange={(uiLanguage) => update.mutate({ uiLanguage })}
+              />
+            </section>
+            <AccountSection user={user} />
+            <PasswordSection />
+            {!admin && <DeleteAccountSection />}
+          </>
+        )}
+        {tab === 'learning' && settings.data && <LearningSection settings={settings.data} />}
+        {tab === 'ai' && (
+          <>
+            <AiSettings />
+            {settings.data && <AiTimeoutSection settings={settings.data} />}
+          </>
+        )}
+        {tab === 'accounts' && <AccountsAdmin />}
+        {tab === 'system' && (
+          <>
+            <BackupAdmin />
+            <UpdateAdmin />
+          </>
+        )}
       </div>
     </>
   );

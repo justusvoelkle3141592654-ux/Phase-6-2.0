@@ -1,7 +1,16 @@
-import { NavLink, Outlet } from 'react-router';
-import { GraduationCap, House, Layers, Settings, BookOpen, type LucideIcon } from 'lucide-react';
+import { Link, NavLink, Outlet } from 'react-router';
+import {
+  BookOpen,
+  GraduationCap,
+  House,
+  Layers,
+  LogOut,
+  Settings,
+  type LucideIcon,
+} from 'lucide-react';
 import { useI18n } from '../i18n';
 import type { Messages } from '../i18n/de';
+import { useLogout } from '../lib/auth';
 import { Wordmark } from './Wordmark';
 
 interface Tab {
@@ -18,6 +27,33 @@ export const TABS: Tab[] = [
   { to: '/settings', label: 'settings', icon: Settings },
 ];
 
+/** Logo and app name; leads to the home page. */
+function HomeLink() {
+  const { m } = useI18n();
+  return (
+    <Link to="/" aria-label={m.nav.homeLink} className="rounded-full">
+      <Wordmark />
+    </Link>
+  );
+}
+
+function LogoutButton({ className }: { className: string }) {
+  const { m } = useI18n();
+  const logout = useLogout();
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={() => logout.mutate()}
+      disabled={logout.isPending}
+      aria-label={m.nav.logout}
+      title={m.nav.logout}
+    >
+      <LogOut className="size-4.5" aria-hidden="true" />
+    </button>
+  );
+}
+
 export function AppShell() {
   const { m } = useI18n();
 
@@ -26,35 +62,39 @@ export function AppShell() {
       {/* Desktop: floating glass bar with a capsule tab control. */}
       <header className="sticky top-0 z-20 hidden px-4 pt-4 md:block">
         <div className="glass mx-auto flex w-full max-w-5xl items-center justify-between rounded-full py-2 pr-2 pl-5">
-          <Wordmark />
-          <nav aria-label={m.nav.label}>
-            <ul className="flex gap-1">
-              {TABS.map(({ to, label, icon: Icon }) => (
-                <li key={to}>
-                  <NavLink
-                    to={to}
-                    end={to === '/'}
-                    className={({ isActive }) =>
-                      [
-                        'flex min-h-10 items-center gap-2 rounded-full px-4 text-[0.95rem] font-semibold transition-colors',
-                        isActive
-                          ? 'bg-primary text-on-primary'
-                          : 'text-ink-soft hover:bg-glass-pill hover:text-ink',
-                      ].join(' ')
-                    }
-                  >
-                    <Icon className="size-4.5" aria-hidden="true" />
-                    <span>{m.nav[label]}</span>
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <HomeLink />
+          <div className="flex items-center gap-1">
+            <nav aria-label={m.nav.label}>
+              <ul className="flex gap-1">
+                {TABS.map(({ to, label, icon: Icon }) => (
+                  <li key={to}>
+                    <NavLink
+                      to={to}
+                      end={to === '/'}
+                      className={({ isActive }) =>
+                        [
+                          'flex min-h-10 items-center gap-2 rounded-full px-4 text-[0.95rem] font-semibold transition-colors',
+                          isActive
+                            ? 'bg-primary text-on-primary'
+                            : 'text-ink-soft hover:bg-glass-pill hover:text-ink',
+                        ].join(' ')
+                      }
+                    >
+                      <Icon className="size-4.5" aria-hidden="true" />
+                      <span>{m.nav[label]}</span>
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <LogoutButton className="grid size-10 place-items-center rounded-full text-ink-soft transition-colors hover:bg-glass-pill hover:text-ink" />
+          </div>
         </div>
       </header>
 
-      <header className="px-4 pt-[max(1rem,env(safe-area-inset-top))] md:hidden">
-        <Wordmark />
+      <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] md:hidden">
+        <HomeLink />
+        <LogoutButton className="glass grid size-10 place-items-center rounded-full text-ink-soft" />
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-32 md:pt-10 md:pb-12">

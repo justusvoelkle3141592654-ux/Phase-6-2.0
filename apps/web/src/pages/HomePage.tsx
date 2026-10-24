@@ -137,7 +137,7 @@ export function HomePage() {
     );
   }
   const data = overview.data;
-  // Words this account has activated; the rest belongs to the superuser's packages.
+  // Words this account has activated.
   const total = data.stages.reduce((a, b) => a + b, 0) + data.learned;
   const date = (day: string) =>
     new Intl.DateTimeFormat(lang === 'de' ? 'de-DE' : 'en-GB', {
@@ -174,16 +174,30 @@ export function HomePage() {
           <div>
             <p className="text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
               {data.due === 0
-                ? m.home.nothingDue
+                ? data.dueAll > 0
+                  ? fill(m.home.limitReached, { n: data.dailyLimit })
+                  : m.home.nothingDue
                 : data.due === 1
                   ? m.home.dueOne
                   : fill(m.home.due, { n: data.due })}
             </p>
-            {data.due === 0 && data.nextDue && (
+            {data.dueAll > data.due && (
+              <p className="mt-2 opacity-80">
+                {fill(m.home.beyondLimit, { n: data.dueAll - data.due })}
+              </p>
+            )}
+            {data.dueAll === 0 && data.nextDue && (
               <p className="mt-2 opacity-80">
                 {fill(m.home.nextDue, { date: date(data.nextDue) })}
               </p>
             )}
+            <p className="mt-2 opacity-80">
+              {data.dueTomorrow === 0
+                ? m.home.dueTomorrowNone
+                : data.dueTomorrow === 1
+                  ? m.home.dueTomorrowOne
+                  : fill(m.home.dueTomorrow, { n: data.dueTomorrow })}
+            </p>
           </div>
           {data.due > 0 && (
             <Link

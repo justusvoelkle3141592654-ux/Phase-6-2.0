@@ -14,12 +14,9 @@ docker compose up -d
 ```
 
 Dann <http://localhost:3000> öffnen (im Heimnetz `http://<IP-des-Servers>:3000`), als Superuser
-`admin@wordflow.com` / `admin` anmelden, dem Einrichtungsassistenten folgen und unter
-Einstellungen → Accounts die Accounts der Lernenden anlegen.
-
-Für ein lokales Test-Setup kann `OFFLINE_MODE=true` in `.env` gesetzt werden. Dann gibt es
-zusätzlich einen Standard-Offline-Account (`offline@local.test` / `offline`), und der Login-Dialog
-bietet eine Auswahl aller lokalen Accounts.
+`admin@wordflow.com` / `admin` anmelden, unter Einstellungen → KI die KI einrichten und unter
+Einstellungen → Accounts die Accounts der Lernenden anlegen. Die Anmeldeseite bietet alle Accounts
+des Servers zur Auswahl an (Passwort weiterhin nötig).
 
 Die **Android-App** liegt fertig unter [`release/`](release/) bzw. bei den GitHub-Releases
 (siehe [Android-App](#android-app)).
@@ -147,7 +144,6 @@ Alle Einstellungen laufen über Umgebungsvariablen oder eine `.env`-Datei im Pro
 | `TRUST_PROXY`  | `false`      | `true`, wenn ein Reverse-Proxy davor HTTPS übernimmt                 |
 | `CORS_ORIGINS` | –            | Zusätzlich erlaubte Origins, kommagetrennt (Android-App ist erlaubt) |
 | `LOG_LEVEL`    | `info`       | `fatal`, `error`, `warn`, `info`, `debug`, `trace` oder `silent`     |
-| `OFFLINE_MODE` | `false`      | Legt zusätzlich einen Offline-Standardaccount an, listet Accounts    |
 | `APP_SECRET`   | wird erzeugt | Hauptschlüssel für die Verschlüsselung gespeicherter API-Schlüssel   |
 
 ## Accounts und Superuser
@@ -158,11 +154,11 @@ Beim Start legt der Server den **Superuser** an, falls er fehlt: **`admin@wordfl
 - **Nur der Superuser legt Accounts an** (Einstellungen → Accounts): hinzufügen, bearbeiten,
   Passwort setzen, löschen. Eine Selbst-Registrierung gibt es nicht mehr. Ein neues Passwort meldet
   den Account überall ab. Der Superuser selbst lässt sich nicht löschen.
-- **Pakete gehören allen:** Nur der Superuser legt Pakete an, ändert und löscht sie und fügt Vokabeln
-  hinzu. Alle Accounts sehen alle Pakete und aktivieren die Vokabeln, die sie lernen wollen. Jeder
-  Account hat dabei seinen eigenen Lernstand. Im Paket stehen „Meine Vokabeln (aktiv)“ und
-  „Vokabeln vom Superuser (inaktiv)“ getrennt.
-- **KI-Einstellungen** (Anbieter, Modelle, Zeitlimit) stellt nur der Superuser ein. Sie gelten für alle.
+- **Eigene Pakete:** Jeder Account legt seine Pakete selbst an, ändert und löscht sie, fügt Vokabeln
+  hinzu und lädt Fotos hoch. Andere Accounts sehen diese Pakete nicht. (Beim Update von der Version
+  mit gemeinsamen Paketen bekommt jeder Account, der darin Vokabeln aktiviert hatte, eine eigene
+  Kopie mit seinem Lernstand; die Originale samt Fotos bleiben beim Superuser.)
+- **KI-Einstellungen** (APIs, Modelle, Zeitlimit) stellt nur der Superuser ein. Sie gelten für alle.
 - **Datenbank sichern** (Einstellungen): Export als ZIP mit Datenbank, Fotos und `secrets.json`.
   Der Import ersetzt alle Daten; danach müssen sich alle neu anmelden.
 - **Update** (Einstellungen): Holt den neuesten Stand von GitHub (`justusvoelkle3141592654-ux/Phase-6-2.0`, Branch
@@ -170,9 +166,8 @@ Beim Start legt der Server den **Superuser** an, falls er fehlt: **`admin@wordfl
   und `apps/web/android/` bleiben unberührt. Bei geänderten Abhängigkeiten läuft `npm install`.
   Im Dev-Modus (`npm run dev`) lädt der Server danach selbst neu; mit `NODE_ENV=production` wird
   zusätzlich gebaut, dann den Dienst neu starten. Das Protokoll steht in `data/update.log`.
-- Mit `OFFLINE_MODE=true` wird zusätzlich ein Standardkonto `offline@local.test` / `offline`
-  angelegt, und die Anmeldeseite listet alle Accounts zur Auswahl (Passwort weiterhin nötig).
-  Nur für Geräte im eigenen Netz gedacht, da die E-Mail-Adressen sichtbar sind.
+- Die Anmeldeseite listet alle Accounts zur Auswahl (Passwort weiterhin nötig). Der Server ist
+  deshalb für das eigene Netz gedacht, da die E-Mail-Adressen sichtbar sind.
 - `APP_SECRET` verschlüsselt die API-Schlüssel der KI-Anbieter. **`data/secrets.json` sichern und
   nicht verlieren**, sonst müssen alle API-Schlüssel neu eingegeben werden.
 - Anmeldung im Browser über ein Cookie (`wordflow_session`, HttpOnly). Die Android-App bekommt
@@ -180,21 +175,26 @@ Beim Start legt der Server den **Superuser** an, falls er fehlt: **`admin@wordfl
 - Anmelden und Passwort ändern sind auf 10 Versuche pro Minute begrenzt.
 - Wer das Passwort ändert, wird auf allen anderen Geräten abgemeldet.
 
-## Einrichtungsassistent
+## Einstellungen
 
-Bei der ersten Anmeldung führt ein Assistent durch die Einrichtung: Sprache, Name, Zeitzone,
-Lernen (Intervalle der Stufen 2–6, Standard 5 / 10 / 20 / 40 / 80 Tage, und Verhalten bei falschen
-Antworten) und Übersicht. Beim Superuser kommen die KI-Schritte dazu: Anbieter und Modell für die
-Antwortprüfung (voreingestellt Pollinations.ai mit `openai/gpt-oss-20b`), Bilderkennung und
-Zeitlimit der KI-Prüfung (Standard: 2 Sekunden).
+Die Einstellungen sind in Tabs aufgeteilt:
 
-Alle Werte lassen sich später in den Einstellungen ändern.
+- **Account:** Sprache, Name, Zeitzone, Passwort ändern, Account löschen.
+- **Lernen:** Vokabeln pro Tag (Standard 30; Wiederholungen und neue zusammen, der Rest bleibt
+  fällig), Intervalle der Stufen 2–6 (Standard 5 / 10 / 20 / 40 / 80 Tage), Verhalten bei falschen
+  Antworten (Standard: eine Stufe zurück) und die Wartezeit bis zur nächsten Karte je Ergebnis
+  (in ganzen Sekunden von „Aus“ bis 10, Standard 3 s; Enter geht sofort weiter).
+- Nur Superuser: **KI**, **Accounts**, **System** (Datenbank sichern, Update).
+
+Abmelden geht über den Knopf oben rechts; Logo und Name führen zur Startseite.
 
 ## KI-Anbieter
 
-Der Superuser richtet die KI für alle ein (Assistent bei der ersten Anmeldung, später unter
-Einstellungen → KI). Pro Aufgabe – **Antwortprüfung** und **Bilderkennung** –
-gibt es einen eigenen Anbieter und ein eigenes Modell. Die Modelllisten werden live vom Anbieter
+Der Superuser richtet die KI für alle ein (Einstellungen → KI). **Vokabelabfrage**
+(Antwortprüfung) und **Bilderkennung** sind getrennt einstellbar: je Aufgabe eine eigene API mit
+eigenem Schlüssel und ein eigenes Modell. Eine neue API lässt sich direkt bei der Aufgabe anlegen;
+dieselbe Art (z. B. OpenAI) kann mehrfach mit verschiedenen Schlüsseln und Bezeichnungen angelegt
+werden. Die Modelllisten werden live vom Anbieter
 geladen; der Modellname kann auch eingetippt werden.
 
 | Anbieter                   | Protokoll                     | Adresse                                 | Schlüssel |
@@ -223,14 +223,14 @@ geladen; der Modellname kann auch eingetippt werden.
 
 ## Startseite
 
-- Heute fällige Vokabeln (mit Knopf „Jetzt lernen“), Anzahl je Stufe, gelernte und inaktive
-  Vokabeln – funktioniert ohne KI.
+- Heute fällige Vokabeln innerhalb des Tageslimits (mit Knopf „Jetzt lernen“), wie viele morgen
+  fällig werden, Anzahl je Stufe, gelernte und inaktive Vokabeln – funktioniert ohne KI.
 - Heute gelernt: Abfragen, Trefferquote, Zeit pro Karte, schwierige Vokabeln.
 - „Heute“ richtet sich nach der Zeitzone des Accounts.
 
 ## Hochladen und Erkennung
 
-1. Der Superuser öffnet unter **Pakete** ein Paket (oder legt mit „Neues Paket“ eins an). Neben
+1. Unter **Pakete** ein eigenes Paket öffnen (oder mit „Neues Paket“ eins anlegen). Neben
    „Hinzufügen“ (manuell) gibt es **Hochladen** (Fotos nur ans Paket hängen, ohne Erkennung) und
    **Erkennen** (Fotos aufnehmen oder bis zu 20 aus der Galerie wählen, die KI liest die Vokabeln).
    Fotos eines Pakets lassen sich mit dem ✕ wieder löschen. Die Fotos werden vor dem Hochladen im Browser auf höchstens
@@ -309,9 +309,6 @@ mit deinem WordFlow-Server; iOS gibt es nicht.
    - über das Internet z. B. `https://wordflow.example.org` (hinter einem Reverse-Proxy mit HTTPS).
 2. Anmelden (Accounts legt der Superuser an). Die App bekommt einen Token,
    der in den Capacitor Preferences gespeichert wird; Cookies werden nicht verwendet.
-3. Unter **Einstellungen → Erinnerung** eine Uhrzeit wählen. Die App plant lokale
-   Benachrichtigungen für die nächsten 30 Tage, an denen Vokabeln fällig sind, und plant sie bei
-   jedem Öffnen neu.
 
 „Foto aufnehmen“ öffnet direkt die Kamera, „Aus Galerie“ die Bildauswahl.
 
@@ -348,7 +345,7 @@ deploy            systemd-Dienst und Caddyfile
 
 - [x] 1. Grundgerüst: Server, Oberfläche mit 5 Tabs (Desktop + Handy), Deutsch/Englisch, Tests
 - [x] 2. Accounts: Registrierung mit Code, Anmelden, Abmelden, Passwort ändern,
-      Einrichtungsassistent (10 Schritte), schlichtes Schwarz-Weiß-Design
+      schlichtes Schwarz-Weiß-Design
 - [x] 3. Vokabelpakete: anlegen, bearbeiten, löschen, Sprache (Vorlagen oder frei), Richtung, Aktivieren
 - [x] 4. Stufensystem und Lernen (ohne KI): Karteikarten, Tippen optional, Umdrehen, Wischen, lokale Prüfung, Wiederholung
 - [x] 5. KI-Anbieter und Einrichtungsassistent: Pollinations, Anthropic, OpenAI, OpenRouter, Ollama (lokal/online), eigener Server

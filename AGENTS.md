@@ -57,13 +57,14 @@ README.md        User‑facing documentation
 - **Fastify** routes are mounted under `/api`; unknown non‑API GET routes serve `index.html` when `webDist` is set.
 - **Session cookie** name: `wordflow_session` (httpOnly, sameSite=lax, secure on HTTPS).
 - Environment variables are read via `loadConfig` in `apps/server/src/config.ts`. Missing values are generated and stored in `data/secrets.json` (mode 600) – do **not** edit this file manually.
-- **Superuser** `admin@wordflow.com` / `admin` (`role = 'admin'`) is created on every start if missing (`ensureSuperuser`). Self-registration is disabled (`POST /api/auth/register` → 403); the superuser manages accounts, packages, AI settings, backups and updates under `/api/admin/*` (`requireAdmin`).
-- **Shared packages**: `packages`/`vocab` have no owner; per-account learning progress lives in `user_vocab` (a row = activated). All accounts read packages; only the superuser writes them.
+- **Superuser** `admin@wordflow.com` / `admin` (`role = 'admin'`) is created on every start if missing (`ensureSuperuser`). Self-registration is disabled (`POST /api/auth/register` → 403); the superuser manages accounts, AI settings, backups and updates under `/api/admin/*` (`requireAdmin`).
+- **Own packages**: `packages.user_id` is the owner; every account manages (and uploads photos for) only its own packages, other accounts get 404. Learning progress lives in `user_vocab` (a row = activated). Migration `0009` copied the former shared packages for each learning account.
 - **AI setup** is global: `AiService` always uses the superuser's `provider_configs`/`task_models`.
 - **Migrations run with foreign keys off** (`runMigrations` in `db/index.ts`), because table rebuilds inside the migrator's transaction would otherwise cascade-delete rows. `drizzle-kit` in the repo (0.18) cannot `generate`; write migrations by hand (SQL + `meta/_journal.json`).
 - **Update button** runs `scripts/update.mjs` as a detached process (downloads `justusvoelkle3141592654-ux/Phase-6-2.0@claude/new-session-uq36ca`, keeps `data/`, `.env`, `node_modules/`).
-- **Offline mode**: set `OFFLINE_MODE=true` to also create a default account (`offline@local.test` / `offline`); `GET /api/auth/mode` lists all accounts (email + name) so the sign-in page can offer them; passwords are still checked.
-- **AI providers** are configured per account; the server stores encrypted API keys using `APP_SECRET` (generated if absent).
+- **Account picker**: there is no online/offline switch any more; `GET /api/auth/mode` always lists all accounts (email + name) so the sign-in page can offer them; passwords are still checked. There is no setup wizard and no learning reminder.
+- **Daily limit**: `user_settings.daily_limit` (default 30) caps the different words asked per day (`learn/limit.ts`); words already asked today may always come again.
+- **AI providers** are configured by the superuser (separate provider + model for `check` and `vision`); the server stores encrypted API keys using `APP_SECRET` (generated if absent).
 - **Prettier** formatting is enforced via `npm run format`.
 
 ## Pitfalls & gotchas

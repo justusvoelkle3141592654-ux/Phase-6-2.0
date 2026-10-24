@@ -44,7 +44,6 @@ describe('Superuser und Accounts', () => {
     expect(res.json().user).toMatchObject({
       email: 'anna@example.org',
       role: 'user',
-      setupCompleted: false,
     });
     expect(res.json().token).toBeUndefined();
 
@@ -91,64 +90,29 @@ describe('Superuser und Accounts', () => {
   });
 });
 
-describe('Offline-Modus', () => {
-  it('meldet mit Standard-Account an; Registrierung bleibt gesperrt', async () => {
-    const localApp = await testApp({ offlineMode: true });
-    const info = await localApp.inject({ method: 'GET', url: '/api/auth/mode', headers: json });
-    expect(info.statusCode).toBe(200);
-    expect(info.json()).toMatchObject({ offlineMode: true, email: 'offline@local.test' });
-
-    const registerRes = await localApp.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      headers: json,
-      payload: { email: 'guest@example.org', password: 'geheim123' },
-    });
-    expect(registerRes.statusCode).toBe(403);
-
-    const loginRes = await localApp.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      headers: json,
-      payload: { email: 'offline@local.test', password: 'offline' },
-    });
-    expect(loginRes.statusCode).toBe(200);
-    expect(sessionCookie(loginRes)).toBeTruthy();
-    await localApp.close();
-  });
-
-  it('listet die lokalen Accounts und prüft deren Passwort', async () => {
-    const localApp = await testApp({ offlineMode: true });
-    await register(localApp, { email: 'guest@example.org' });
-    const info = await localApp.inject({ method: 'GET', url: '/api/auth/mode', headers: json });
-    expect(info.json().accounts).toEqual([
-      { email: 'admin@wordflow.com', name: 'Superuser' },
-      { email: 'offline@local.test', name: '' },
-      { email: 'guest@example.org', name: '' },
-    ]);
-    expect(JSON.stringify(info.json().accounts)).not.toContain('password');
-
-    const wrong = await localApp.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      headers: json,
-      payload: { email: 'guest@example.org', password: 'falsch123' },
-    });
-    expect(wrong.statusCode).toBe(401);
-    const right = await localApp.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      headers: json,
-      payload: { email: 'guest@example.org', password: 'geheim123' },
-    });
-    expect(right.statusCode).toBe(200);
-    await localApp.close();
-  });
-
-  it('verrät ohne Offline-Modus keine Accounts', async () => {
-    await register(app);
+describe('Account-Auswahl', () => {
+  it('listet die Accounts ohne Passwörter und prüft deren Passwort', async () => {
+    await register(app, { email: 'guest@example.org' });
     const info = await app.inject({ method: 'GET', url: '/api/auth/mode', headers: json });
-    expect(info.json()).toEqual({ offlineMode: false });
+    expect(info.json()).toEqual({
+      accounts: [
+        { email: 'admin@wordflow.com', name: 'Superuser' },
+        { email: 'guest@example.org', name: '' },
+      ],
+    });
+    expect(JSON.stringify(info.json())).not.toContain('password');
+
+    expect((await login({ email: 'guest@example.org', password: 'falsch123' })).statusCode).toBe(
+      401,
+    );
+    expect((await login({ email: 'guest@example.org', password: 'geheim123' })).statusCode).toBe(
+      200,
+    );
+  });
+
+  it('legt keinen Standard-Offline-Account mehr an', async () => {
+    const res = await login({ email: 'offline@local.test', password: 'offline' });
+    expect(res.statusCode).toBe(401);
   });
 });
 

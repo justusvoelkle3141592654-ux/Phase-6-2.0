@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -68,6 +69,16 @@ export function Flashcard({
   const settings = useSettings().data;
 
   const selfGrading = phase === 'back' && result === null;
+  // Timer, Enter and the button may race; the card moves on only once.
+  const movedOn = useRef(false);
+  const next = useCallback(
+    (r: AnswerResult) => {
+      if (movedOn.current) return;
+      movedOn.current = true;
+      onNext(r);
+    },
+    [onNext],
+  );
   const elapsed = (at: number | null) => (at === null ? null : Math.round(at - shownAt.current));
 
   useEffect(() => {
@@ -84,12 +95,13 @@ export function Flashcard({
         : (settings?.autoNextCorrectMs ?? DEFAULT_AUTO_NEXT_CORRECT_MS);
   useEffect(() => {
     if (!result || result.decidedBy === 'self' || autoNextMs <= 0) return;
-    const timer = setTimeout(() => onNext(result), autoNextMs);
+    const timer = setTimeout(() => next(result), autoNextMs);
     return () => clearTimeout(timer);
-  }, [result, onNext, autoNextMs]);
+  }, [result, next, autoNextMs]);
 
+  // Focus on "Next" so Enter moves on, after right and wrong answers alike.
   useEffect(() => {
-    if (phase === 'back' && result && !result.correct) nextRef.current?.focus();
+    if (phase === 'back' && result) nextRef.current?.focus();
   }, [phase, result]);
 
   const submitTyped = (event: FormEvent) => {
@@ -135,7 +147,7 @@ export function Flashcard({
         repeat: item.repeat,
       },
       {
-        onSuccess: (res) => onNext(res),
+        onSuccess: (res) => next(res),
         onError: () => {
           setLeaving(0);
           setDx(0);
@@ -144,13 +156,24 @@ export function Flashcard({
     );
   };
 
-  // Arrow keys for self-assessment, Enter/Space to flip or continue.
+  // Arrow keys for self-assessment; Enter continues once the result is shown.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
       if (selfGrading && event.key === 'ArrowRight') grade(true);
       else if (selfGrading && event.key === 'ArrowLeft') grade(false);
+      else if (
+        event.key === 'Enter' &&
+        phase === 'back' &&
+        result &&
+        !event.repeat &&
+        // A focused button handles Enter itself ("Next", "I was right").
+        target.tagName !== 'BUTTON'
+      ) {
+        event.preventDefault();
+        next(result);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -347,7 +370,7 @@ export function Flashcard({
                     ref={nextRef}
                     type="button"
                     className="btn btn-primary"
-                    onClick={() => onNext(result)}
+                    onClick={() => next(result)}
                   >
                     {m.learn.next}
                   </button>

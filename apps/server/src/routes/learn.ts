@@ -10,6 +10,7 @@ import {
 import type { Db } from '../db';
 import { attempts, packages, userVocab, vocab } from '../db/schema';
 import { decide, rememberCorrection, type AiCheck, type Decision } from '../learn/decide';
+import { seenToday, withinDailyLimit } from '../learn/limit';
 import { getSettings } from './settings';
 import { parseBody } from './parse';
 
@@ -35,9 +36,10 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
 ) => {
   app.addHook('preHandler', app.requireAuth);
 
-  /** Due cards (optionally of one package), in random order. */
+  /** Due cards (optionally of one package) within the daily limit, in random order. */
   app.get('/learn/cards', async (request) => {
     const user = request.user!;
+    const today = todayIn(user.timezone);
     const packageId = Number((request.query as { packageId?: string }).packageId) || null;
     const rows = db
       .select({ vocab, pkg: packages, progress: userVocab })
@@ -48,7 +50,8 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
         and(
           eq(userVocab.userId, user.id),
           eq(userVocab.learned, false),
-          lte(userVocab.dueDate, todayIn(user.timezone)),
+          eq(packages.userId, user.id),
+          lte(userVocab.dueDate, today),
           packageId ? eq(vocab.packageId, packageId) : undefined,
         ),
       )
@@ -64,7 +67,13 @@ export const learnRoutes: FastifyPluginAsync<LearnOptions> = async (
       translation: v.translation,
       stage: progress.stage,
     }));
-    return { cards: shuffle(cards) };
+    const allowed = withinDailyLimit(
+      shuffle(cards),
+      (c) => c.vocabId,
+      seenToday(db, user.id, today),
+      getSettings(db, user.id).dailyLimit,
+    );
+    return { cards: allowed };
   });
 
   app.post('/learn/answer', async (request, reply) => {

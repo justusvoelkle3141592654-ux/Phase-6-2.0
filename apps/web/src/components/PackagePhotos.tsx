@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { fill } from '../lib/format';
-import { useIsAdmin } from '../lib/auth';
 import { useDeletePhoto, usePackagePhotos } from '../lib/uploads';
 import { AuthImage } from './AuthImage';
 import { Lightbox } from './Lightbox';
@@ -11,7 +10,6 @@ import { Lightbox } from './Lightbox';
 export function PackagePhotos({ packageId }: { packageId: number }) {
   const { m } = useI18n();
   const photos = usePackagePhotos(packageId);
-  const admin = useIsAdmin();
   const remove = useDeletePhoto(packageId);
   const [open, setOpen] = useState<string | null>(null);
   if (!photos.data || photos.data.length === 0) return null;
@@ -35,19 +33,17 @@ export function PackagePhotos({ packageId }: { packageId: number }) {
                 className="aspect-[3/4] w-full object-cover"
               />
             </button>
-            {admin && (
-              <button
-                type="button"
-                className="glass absolute top-1.5 right-1.5 grid size-8 place-items-center rounded-full"
-                aria-label={`${m.upload.deletePhoto}: ${fill(m.upload.photo, { n: i + 1 })}`}
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (window.confirm(m.upload.deletePhotoConfirm)) remove.mutate(p.id);
-                }}
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            )}
+            <button
+              type="button"
+              className="glass absolute top-1.5 right-1.5 grid size-8 place-items-center rounded-full"
+              aria-label={`${m.upload.deletePhoto}: ${fill(m.upload.photo, { n: i + 1 })}`}
+              disabled={remove.isPending}
+              onClick={() => {
+                if (window.confirm(m.upload.deletePhotoConfirm)) remove.mutate(p.id);
+              }}
+            >
+              <X className="size-4" aria-hidden="true" />
+            </button>
           </li>
         ))}
       </ul>

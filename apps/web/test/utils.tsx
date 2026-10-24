@@ -12,7 +12,6 @@ export const USER: UserDto = {
   name: '',
   uiLanguage: 'de',
   timezone: 'Europe/Berlin',
-  setupCompleted: true,
   role: 'user',
 };
 
@@ -27,12 +26,12 @@ export const ADMIN: UserDto = {
 
 export const SETTINGS: UserSettings = {
   intervals: [5, 10, 20, 40, 80],
-  wrongMode: 'reset',
+  wrongMode: 'back',
   aiTimeoutMs: 2000,
-  autoNextCorrectMs: 1300,
-  autoNextTypoMs: 1300,
-  autoNextWrongMs: 0,
-  reminderTime: null,
+  autoNextCorrectMs: 3000,
+  autoNextTypoMs: 3000,
+  autoNextWrongMs: 3000,
+  dailyLimit: 30,
 };
 
 type Handler = (body: unknown) => { status: number; body?: unknown };

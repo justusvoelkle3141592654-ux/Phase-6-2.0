@@ -23,6 +23,9 @@ const STATS = {
 const BASE: OverviewDto = {
   today: '2026-09-27',
   due: 12,
+  dueAll: 12,
+  dueTomorrow: 4,
+  dailyLimit: 30,
   stages: [5, 3, 2, 1, 0, 1],
   learned: 4,
   inactive: 7,
@@ -40,6 +43,7 @@ describe('Startseite', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Hallo, Anna' })).toBeTruthy();
     expect(await screen.findByText('12 Vokabeln fällig')).toBeTruthy();
     expect(screen.getByRole('link', { name: /Jetzt lernen/ })).toBeTruthy();
+    expect(screen.getByText('Morgen werden 4 Vokabeln fällig.')).toBeTruthy();
     expect(screen.getByLabelText('Stufe 1: 5')).toBeTruthy();
     expect(screen.getByLabelText('Gelernt: 4')).toBeTruthy();
     expect(screen.getByText('Inaktiv: 7')).toBeTruthy();
@@ -56,6 +60,8 @@ describe('Startseite', () => {
         body: {
           ...BASE,
           due: 0,
+          dueAll: 0,
+          dueTomorrow: 1,
           nextDue: '2026-10-02',
           todayStats: {
             ...STATS,
@@ -72,9 +78,25 @@ describe('Startseite', () => {
     renderApp('/');
     expect(await screen.findByText('Heute ist nichts mehr fällig.')).toBeTruthy();
     expect(screen.getByText(/Freitag, 2. Oktober 2026/)).toBeTruthy();
+    expect(screen.getByText('Morgen wird 1 Vokabel fällig.')).toBeTruthy();
     expect(screen.getByText('75 %')).toBeTruthy();
     expect(screen.getByText('3,4 s')).toBeTruthy();
     expect(screen.getByText('3× falsch')).toBeTruthy();
+  });
+
+  it('zeigt das erreichte Tageslimit', async () => {
+    mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'GET /overview': () => ({
+        status: 200,
+        body: { ...BASE, due: 0, dueAll: 8, dueTomorrow: 0 },
+      }),
+    });
+    renderApp('/');
+    expect(await screen.findByText('Tageslimit von 30 Vokabeln erreicht.')).toBeTruthy();
+    expect(screen.getByText(/Weitere 8 fällige Vokabeln/)).toBeTruthy();
+    expect(screen.getByText('Morgen werden keine neuen Vokabeln fällig.')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Jetzt lernen/ })).toBeNull();
   });
 
   it('ohne aktivierte Vokabeln: Hinweis auf die Pakete', async () => {

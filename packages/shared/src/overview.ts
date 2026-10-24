@@ -23,7 +23,13 @@ export interface TodayStats {
 export interface OverviewDto {
   /** Today in the account's time zone (YYYY-MM-DD). */
   today: string;
+  /** Words that can still be learned today (due words within the daily limit). */
   due: number;
+  /** All due words, also those beyond the daily limit. */
+  dueAll: number;
+  /** Words that become due tomorrow. */
+  dueTomorrow: number;
+  dailyLimit: number;
   /** Active, not learned words per stage 1–6. */
   stages: number[];
   learned: number;
@@ -31,10 +37,4 @@ export interface OverviewDto {
   /** Earliest future due date when nothing is due today. */
   nextDue: string | null;
   todayStats: TodayStats;
-}
-
-/** Words that will be due on a day if nothing is learned until then. */
-export interface DueDayDto {
-  day: string;
-  count: number;
 }

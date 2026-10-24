@@ -1,6 +1,12 @@
 import { useCallback, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { AI_TASKS, type AiConfigDto, type AiTask, type ProviderDto } from '@wordflow/shared';
+import {
+  AI_TASKS,
+  PROVIDER_PRESETS,
+  type AiConfigDto,
+  type AiTask,
+  type ProviderDto,
+} from '@wordflow/shared';
 import { useI18n } from '../../i18n';
 import {
   useAiConfig,
@@ -16,10 +22,73 @@ import { ProviderForm } from './ProviderForm';
 import { TaskModelPicker, type TaskModelValue } from './TaskModelPicker';
 import { TestButton } from './TestButton';
 
-function ProviderRow({ provider }: { provider: ProviderDto }) {
+/** Replace or remove the API key of one provider. */
+function ProviderKeyForm({ provider, label }: { provider: ProviderDto; label?: string }) {
   const { m } = useI18n();
   const [key, setKey] = useState('');
   const update = useUpdateProvider();
+  if (PROVIDER_PRESETS[provider.kind].key === 'none') return null;
+  const inputId = `key-${label ? 'task-' : ''}${provider.id}`;
+  return (
+    <div className="space-y-1.5">
+      {label && (
+        <p className="text-sm text-ink-soft">
+          <label htmlFor={inputId} className="font-semibold text-ink">
+            {label}
+          </label>{' '}
+          ·{' '}
+          {provider.hasKey
+            ? fill(m.ai.apiKeySet, { hint: provider.keyHint ?? '' })
+            : m.ai.apiKeyNone}
+        </p>
+      )}
+      <form
+        className="flex flex-wrap gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (key.trim())
+            update.mutate({ id: provider.id, apiKey: key.trim() }, { onSuccess: () => setKey('') });
+        }}
+      >
+        {!label && (
+          <label className="sr-only" htmlFor={inputId}>
+            {m.ai.apiKey}
+          </label>
+        )}
+        <input
+          id={inputId}
+          className="field min-w-0 flex-1 font-mono"
+          type="password"
+          autoComplete="off"
+          placeholder={m.ai.apiKeyReplace}
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+        />
+        <button
+          type="submit"
+          className="btn btn-secondary"
+          disabled={!key.trim() || update.isPending}
+        >
+          {m.ai.save}
+        </button>
+        {provider.hasKey && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => update.mutate({ id: provider.id, apiKey: null })}
+            disabled={update.isPending}
+          >
+            {m.ai.removeKey}
+          </button>
+        )}
+      </form>
+      {update.isError && <Notice tone="error">{errorMessage(m, update.error)}</Notice>}
+    </div>
+  );
+}
+
+function ProviderRow({ provider }: { provider: ProviderDto }) {
+  const { m } = useI18n();
   const remove = useDeleteProvider();
 
   return (
@@ -49,49 +118,7 @@ function ProviderRow({ provider }: { provider: ProviderDto }) {
           {m.ai.delete}
         </button>
       </div>
-      {provider.kind !== 'ollama_local' && (
-        <form
-          className="flex flex-wrap gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (key.trim())
-              update.mutate(
-                { id: provider.id, apiKey: key.trim() },
-                { onSuccess: () => setKey('') },
-              );
-          }}
-        >
-          <label className="sr-only" htmlFor={`key-${provider.id}`}>
-            {m.ai.apiKey}
-          </label>
-          <input
-            id={`key-${provider.id}`}
-            className="field min-w-0 flex-1 font-mono"
-            type="password"
-            autoComplete="off"
-            placeholder={m.ai.apiKeyReplace}
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-          />
-          <button
-            type="submit"
-            className="btn btn-secondary"
-            disabled={!key.trim() || update.isPending}
-          >
-            {m.ai.save}
-          </button>
-          {provider.hasKey && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => update.mutate({ id: provider.id, apiKey: null })}
-              disabled={update.isPending}
-            >
-              {m.ai.removeKey}
-            </button>
-          )}
-        </form>
-      )}
+      <ProviderKeyForm provider={provider} />
       <TestButton provider={provider} />
     </li>
   );
@@ -101,6 +128,7 @@ function TaskRow({ task, config }: { task: AiTask; config: AiConfigDto }) {
   const { m } = useI18n();
   const current = config.tasks[task];
   const [value, setValue] = useState<TaskModelValue | null>(current);
+  const [adding, setAdding] = useState(false);
   const save = useSetTaskModel();
   const provider = config.providers.find((p) => p.id === value?.providerId);
   const onChange = useCallback(
@@ -123,7 +151,32 @@ function TaskRow({ task, config }: { task: AiTask; config: AiConfigDto }) {
             : m.ai.notSet}
         </p>
       </div>
-      <TaskModelPicker task={task} providers={config.providers} value={value} onChange={onChange} />
+      {adding ? (
+        <div className="rounded-2xl border border-rule p-4">
+          <ProviderForm
+            onCancel={() => setAdding(false)}
+            onDone={(p) => {
+              setAdding(false);
+              onChange({ providerId: p.id, model: '', reasoning: null });
+            }}
+          />
+        </div>
+      ) : (
+        <TaskModelPicker
+          task={task}
+          providers={config.providers}
+          value={value}
+          onChange={onChange}
+          onAddProvider={() => setAdding(true)}
+        />
+      )}
+      {provider && !adding && (
+        <ProviderKeyForm
+          key={provider.id}
+          provider={provider}
+          label={fill(m.ai.keyOf, { name: provider.name })}
+        />
+      )}
       <div className="flex flex-wrap items-start gap-2">
         <button
           type="button"
@@ -203,10 +256,28 @@ export function AiSettings() {
 
   return (
     <>
+      <section className="panel !p-0" aria-labelledby="tasks-title">
+        <div className="px-5 pt-5 sm:px-6 sm:pt-6">
+          <h2 id="tasks-title" className="text-xl font-bold">
+            {m.ai.title}: {m.ai.tasks}
+          </h2>
+          <p className="mt-1 text-sm text-ink-soft">{m.ai.tasksHint}</p>
+        </div>
+        <ul className="mt-2 divide-y divide-rule">
+          {AI_TASKS.map((task) => (
+            <TaskRow
+              key={`${task}-${config.data.tasks[task]?.providerId}-${config.data.tasks[task]?.model}`}
+              task={task}
+              config={config.data}
+            />
+          ))}
+        </ul>
+      </section>
+
       <section className="panel !p-0" aria-labelledby="providers-title">
         <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-5 sm:px-6 sm:pt-6">
           <h2 id="providers-title" className="text-xl font-bold">
-            {m.ai.title}: {m.ai.providers}
+            {m.ai.providers}
           </h2>
           {!adding && (
             <button
@@ -219,6 +290,7 @@ export function AiSettings() {
             </button>
           )}
         </div>
+        <p className="px-5 pt-1 text-sm text-ink-soft sm:px-6">{m.ai.providersHint}</p>
         {adding && (
           <div className="px-5 pt-4 sm:px-6">
             <ProviderForm onDone={() => setAdding(false)} onCancel={() => setAdding(false)} />
@@ -227,21 +299,6 @@ export function AiSettings() {
         <ul className="mt-2 divide-y divide-rule">
           {config.data.providers.map((p) => (
             <ProviderRow key={p.id} provider={p} />
-          ))}
-        </ul>
-      </section>
-
-      <section className="panel !p-0" aria-labelledby="tasks-title">
-        <h2 id="tasks-title" className="px-5 pt-5 text-xl font-bold sm:px-6 sm:pt-6">
-          {m.ai.tasks}
-        </h2>
-        <ul className="mt-2 divide-y divide-rule">
-          {AI_TASKS.map((task) => (
-            <TaskRow
-              key={`${task}-${config.data.tasks[task]?.providerId}-${config.data.tasks[task]?.model}`}
-              task={task}
-              config={config.data}
-            />
           ))}
         </ul>
       </section>

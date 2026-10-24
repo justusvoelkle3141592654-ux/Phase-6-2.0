@@ -4,6 +4,8 @@ import {
   AI_TIMEOUT_MAX_MS,
   AI_TIMEOUT_MIN_MS,
   AUTO_NEXT_MAX_MS,
+  AUTO_NEXT_STEP_MS,
+  DAILY_LIMIT_MAX,
   DEFAULT_AI_TIMEOUT_MS,
   INTERVAL_MAX_DAYS,
   WRONG_MODES,
@@ -196,7 +198,7 @@ export function AutoNextFields({
             valueMs={value[row.key]}
             minMs={0}
             maxMs={AUTO_NEXT_MAX_MS}
-            stepMs={100}
+            stepMs={AUTO_NEXT_STEP_MS}
             offLabel={m.fields.autoNextOff}
             describedBy="auto-next-hint"
             onChange={(ms) => onChange({ ...value, [row.key]: ms })}
@@ -208,6 +210,43 @@ export function AutoNextFields({
       </p>
     </fieldset>
   );
+}
+
+/** Most different words per day, as text while editing; see `parseDailyLimit`. */
+export function DailyLimitField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { m } = useI18n();
+  return (
+    <div>
+      <label className="label" htmlFor="daily-limit">
+        {m.fields.dailyLimit}
+      </label>
+      <input
+        id="daily-limit"
+        className="field w-32 text-right font-semibold tabular-nums"
+        type="number"
+        inputMode="numeric"
+        min={1}
+        max={DAILY_LIMIT_MAX}
+        value={value}
+        aria-describedby="daily-limit-hint"
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <p id="daily-limit-hint" className="hint">
+        {m.fields.dailyLimitHint}
+      </p>
+    </div>
+  );
+}
+
+export function parseDailyLimit(value: string): number | null {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= DAILY_LIMIT_MAX ? n : null;
 }
 
 export function parseTimeout(value: string): number | null {

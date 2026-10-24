@@ -71,39 +71,47 @@ function api(providers: object[] = [POLLINATIONS], user = ADMIN) {
 describe('KI-Einstellungen', () => {
   it('nur der Superuser sieht KI, Accounts, Backup und Update', async () => {
     const calls = api([POLLINATIONS], USER);
-    renderApp('/settings');
+    renderApp('/settings?tab=ai');
+    // Unknown tabs for this account fall back to "Account".
     expect(await screen.findByRole('heading', { name: 'Passwort ändern' })).toBeTruthy();
-    for (const title of ['KI: Anbieter', 'Accounts', 'Datenbank sichern', 'Update']) {
-      expect(screen.queryByRole('heading', { level: 2, name: title })).toBeNull();
-    }
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Account', 'Lernen']);
     expect(screen.queryByText(/Zeitlimit/)).toBeNull();
     expect(calls.some((c) => c.key.startsWith('GET /ai/') || c.key.startsWith('GET /admin/'))).toBe(
       false,
     );
   });
 
-  it('der Superuser sieht Accounts, Backup und Update', async () => {
+  it('der Superuser sieht Accounts, Backup und Update in eigenen Tabs', async () => {
     api();
     renderApp('/settings');
+    expect((await screen.findAllByRole('tab')).map((t) => t.textContent)).toEqual([
+      'Account',
+      'Lernen',
+      'KI',
+      'Accounts',
+      'System',
+    ]);
+    // The superuser's own account cannot be deleted.
+    expect(screen.queryByRole('heading', { name: 'Account löschen' })).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Accounts' }));
     expect(await screen.findByRole('heading', { level: 2, name: 'Accounts' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: 'System' }));
     expect(screen.getByRole('heading', { level: 2, name: 'Datenbank sichern' })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Exportieren/ })).toBeTruthy();
     expect(await screen.findByText('Eine neue Version ist verfügbar.')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Aktualisieren/ })).toBeTruthy();
-    // The superuser's own account cannot be deleted.
-    expect(screen.queryByRole('heading', { name: 'Account löschen' })).toBeNull();
   });
 
   it('zeigt Schlüssel nur als Hinweis', async () => {
     api([POLLINATIONS, CLAUDE]);
-    renderApp('/settings');
+    renderApp('/settings?tab=ai');
     expect(await screen.findByText('Gesetzt · …9876')).toBeTruthy();
     expect(screen.getAllByText('Kein Schlüssel').length).toBeGreaterThan(0);
   });
 
   it('erklärt bei Pollinations 401, wo es einen Schlüssel gibt', async () => {
     api();
-    renderApp('/settings');
+    renderApp('/settings?tab=ai');
     const row = (
       await screen.findByText('https://gen.pollinations.ai/v1 · OpenAI-kompatibel')
     ).closest('li')!;
@@ -113,10 +121,13 @@ describe('KI-Einstellungen', () => {
     expect(alert.textContent).toContain('enter.pollinations.ai');
   });
 
-  it('fügt einen Anbieter mit Schlüssel hinzu', async () => {
+  it('fügt eine API mit Schlüssel und Bezeichnung hinzu', async () => {
     const calls = api();
-    renderApp('/settings');
-    fireEvent.click(await screen.findByRole('button', { name: 'Anbieter hinzufügen' }));
+    renderApp('/settings?tab=ai');
+    fireEvent.click(await screen.findByRole('button', { name: 'API hinzufügen' }));
+    fireEvent.change(document.getElementById('provider-name')!, {
+      target: { value: 'Claude Bilder' },
+    });
     fireEvent.change(document.getElementById('provider-kind')!, { target: { value: 'anthropic' } });
     const add = screen.getByRole('button', { name: 'Hinzufügen' }) as HTMLButtonElement;
     expect(add.disabled).toBe(true); // key required
@@ -127,7 +138,61 @@ describe('KI-Einstellungen', () => {
     expect(await screen.findByText('Gesetzt · …9876')).toBeTruthy();
     expect(calls.find((c) => c.key === 'POST /ai/providers')?.body).toEqual({
       kind: 'anthropic',
+      name: 'Claude Bilder',
       apiKey: 'sk-ant-9876',
     });
+  });
+
+  it('Bilderkennung bekommt eine eigene neue API, getrennt von der Vokabelabfrage', async () => {
+    const calls = mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: ADMIN } }),
+      'GET /settings': () => ({ status: 200, body: { settings: SETTINGS } }),
+      'GET /ai/config': () => ({
+        status: 200,
+        body: {
+          providers: added ? [POLLINATIONS, CLAUDE] : [POLLINATIONS],
+          tasks: {
+            check: { providerId: 1, model: 'openai/gpt-oss-20b', reasoning: null },
+            vision: null,
+          },
+        },
+      }),
+      'GET /ai/latency': () => ({ status: 200, body: { stats: [] } }),
+      'GET /ai/providers/1/models': () => ({ status: 200, body: { models: [] } }),
+      'GET /ai/providers/1/models?vision=1': () => ({ status: 200, body: { models: [] } }),
+      'GET /ai/providers/2/models?vision=1': () => ({
+        status: 200,
+        body: { models: [{ id: 'claude-x', vision: true, reasoning: false }] },
+      }),
+      'POST /ai/providers': () => {
+        added = true;
+        return { status: 201, body: { provider: CLAUDE } };
+      },
+      'PUT /ai/tasks/vision': (body) => ({ status: 200, body: { task: body } }),
+    });
+    let added = false;
+    renderApp('/settings?tab=ai');
+    const visionRow = (await screen.findByText('Bilderkennung', { selector: 'p' })).closest('li')!;
+    fireEvent.change(within(visionRow).getByLabelText('Anbieter'), { target: { value: 'new' } });
+    fireEvent.change(within(visionRow).getByLabelText('Anbieter'), {
+      target: { value: 'anthropic' },
+    });
+    fireEvent.change(within(visionRow).getByLabelText('API-Schlüssel'), {
+      target: { value: 'sk-ant-9876' },
+    });
+    fireEvent.click(within(visionRow).getByRole('button', { name: 'Hinzufügen' }));
+    expect(
+      await within(visionRow).findByText('API-Schlüssel von „Anthropic (Claude)“'),
+    ).toBeTruthy();
+    await within(visionRow).findByRole('option', { name: 'claude-x' });
+    // The last "Speichern" saves the task (the one before belongs to the key).
+    fireEvent.click(within(visionRow).getAllByRole('button', { name: 'Speichern' }).at(-1)!);
+    await vi.waitFor(() =>
+      expect(calls.find((c) => c.key === 'PUT /ai/tasks/vision')?.body).toEqual({
+        providerId: 2,
+        model: 'claude-x',
+        reasoning: false,
+      }),
+    );
   });
 });

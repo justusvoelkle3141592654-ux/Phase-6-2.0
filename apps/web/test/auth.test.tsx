@@ -67,31 +67,28 @@ describe('Anmeldung', () => {
   });
 });
 
-describe('Offline-Modus', () => {
-  const offlineMode = () => ({
+describe('Account-Auswahl', () => {
+  const mode = () => ({
     status: 200,
     body: {
-      offlineMode: true,
-      email: 'offline@local.test',
-      password: 'offline',
       accounts: [
-        { email: 'offline@local.test', name: '' },
+        { email: 'admin@wordflow.com', name: 'Superuser' },
         { email: 'anna@example.org', name: 'Anna' },
       ],
     },
   });
 
-  it('listet lokale Accounts und meldet mit gewähltem Account an', async () => {
+  it('listet die Accounts des Servers und meldet mit gewähltem Account an', async () => {
     const calls = mockApi({
       'GET /auth/me': signedOut,
-      'GET /auth/mode': offlineMode,
+      'GET /auth/mode': mode,
       'POST /auth/login': () => ({ status: 200, body: { user: USER } }),
     });
     renderApp('/packages');
     fireEvent.click(await screen.findByRole('button', { name: 'Anna · anna@example.org' }));
     expect((screen.getByLabelText('E-Mail') as HTMLInputElement).value).toBe('anna@example.org');
-    expect(screen.getByRole('button', { name: 'offline@local.test' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Offline weiter' })).toBeNull();
+    expect(screen.getByText('Accounts auf diesem Server')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Superuser · admin@wordflow.com' })).toBeTruthy();
     type('Passwort', 'geheim123');
     fireEvent.click(screen.getByRole('button', { name: 'Anmelden' }));
     expect(await screen.findByRole('heading', { level: 1, name: 'Vokabelpakete' })).toBeTruthy();
@@ -103,7 +100,7 @@ describe('Offline-Modus', () => {
 });
 
 describe('Einstellungen: Account', () => {
-  it('zeigt nach dem Abmelden die Anmeldeseite', async () => {
+  it('meldet über den Button oben rechts ab und zeigt die Anmeldeseite', async () => {
     const calls = mockApi({
       'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
       'GET /settings': () => ({ status: 200, body: { settings: SETTINGS } }),
@@ -111,7 +108,11 @@ describe('Einstellungen: Account', () => {
     });
     renderApp('/settings');
     expect(await screen.findByText('anna@example.org')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Abmelden' }));
+    // Desktop and mobile header both have it; the settings page itself does not.
+    const buttons = screen.getAllByRole('button', { name: 'Abmelden' });
+    expect(buttons).toHaveLength(2);
+    expect(buttons.every((b) => b.closest('header'))).toBe(true);
+    fireEvent.click(buttons[0]!);
     expect(await screen.findByRole('heading', { level: 1, name: 'Anmelden' })).toBeTruthy();
     expect(calls.map((c) => c.key)).toContain('POST /auth/logout');
     // The UI must not ask the server again: "signed out" is set locally.
@@ -163,6 +164,17 @@ describe('Einstellungen: Account', () => {
       currentPassword: 'geheim123',
       newPassword: 'neuesPasswort',
     });
+  });
+
+  it('Logo und Name führen zur Startseite', async () => {
+    mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'GET /settings': () => ({ status: 200, body: { settings: SETTINGS } }),
+    });
+    renderApp('/settings');
+    await screen.findByText('anna@example.org');
+    for (const link of screen.getAllByRole('link', { name: 'Zur Startseite' }))
+      expect(link.getAttribute('href')).toBe('/');
   });
 
   it('speichert die Sprache im Account', async () => {

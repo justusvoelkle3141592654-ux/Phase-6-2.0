@@ -5,15 +5,15 @@ import {
   DEFAULT_AUTO_NEXT_CORRECT_MS,
   DEFAULT_AUTO_NEXT_TYPO_MS,
   DEFAULT_AUTO_NEXT_WRONG_MS,
+  DEFAULT_DAILY_LIMIT,
   DEFAULT_INTERVALS,
   DEFAULT_WRONG_MODE,
   updateSettingsSchema,
   type UserSettings,
 } from '@wordflow/shared';
 import type { Db } from '../db';
-import { userSettings, users } from '../db/schema';
+import { userSettings } from '../db/schema';
 import { parseBody } from './parse';
-import { toUserDto } from './auth';
 
 export function getSettings(db: Db, userId: number): UserSettings {
   const row =
@@ -28,6 +28,7 @@ export function getSettings(db: Db, userId: number): UserSettings {
         autoNextCorrectMs: DEFAULT_AUTO_NEXT_CORRECT_MS,
         autoNextTypoMs: DEFAULT_AUTO_NEXT_TYPO_MS,
         autoNextWrongMs: DEFAULT_AUTO_NEXT_WRONG_MS,
+        dailyLimit: DEFAULT_DAILY_LIMIT,
       })
       .returning()
       .get();
@@ -49,15 +50,5 @@ export const settingsRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db }
       db.update(userSettings).set(input).where(eq(userSettings.userId, userId)).run();
     }
     return { settings: getSettings(db, userId) };
-  });
-
-  app.post('/setup/complete', async (request) => {
-    const user = db
-      .update(users)
-      .set({ setupCompleted: true })
-      .where(eq(users.id, request.user!.id))
-      .returning()
-      .get();
-    return { user: toUserDto(user) };
   });
 };

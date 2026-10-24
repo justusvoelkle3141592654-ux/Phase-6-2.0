@@ -16,8 +16,6 @@ export interface AppConfig {
   appSecret: string | null;
   /** Code required for self-registration. Generated into dataDir when not set. */
   registrationCode: string | null;
-  /** Start in a local single-user mode without the registration gate. */
-  offlineMode: boolean;
   /** Set when running behind a reverse proxy (Caddy, nginx) that terminates HTTPS. */
   trustProxy: boolean;
   /** Extra origins allowed for token-authenticated requests (the Android app). */
@@ -62,7 +60,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     webDist: env.WEB_DIST === '' ? null : path.resolve(REPO_ROOT, env.WEB_DIST ?? 'apps/web/dist'),
     appSecret: env.APP_SECRET || null,
     registrationCode: env.REGISTRATION_CODE || null,
-    offlineMode: parseBool(env.OFFLINE_MODE, false),
     trustProxy: parseBool(env.TRUST_PROXY, false),
     corsOrigins: [...APP_ORIGINS, ...parseList(env.CORS_ORIGINS)],
     logLevel: env.LOG_LEVEL ?? 'info',

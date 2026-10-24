@@ -9,7 +9,6 @@ import { useI18n } from '../i18n';
 import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';
 import { languageName } from '../lib/languages';
-import { useIsAdmin } from '../lib/auth';
 import {
   useActivatePackage,
   useActivateVocab,
@@ -131,7 +130,7 @@ function VocabForm({
   );
 }
 
-function VocabRow({ vocab, admin }: { vocab: VocabDto; admin: boolean }) {
+function VocabRow({ vocab }: { vocab: VocabDto }) {
   const { m } = useI18n();
   const [editing, setEditing] = useState(false);
   const update = useUpdateVocab();
@@ -192,36 +191,32 @@ function VocabRow({ vocab, admin }: { vocab: VocabDto; admin: boolean }) {
             <Undo2 className="size-4" aria-hidden="true" />
           </button>
         )}
-        {admin && (
-          <>
-            <button
-              type="button"
-              className="btn btn-ghost min-h-9 px-2.5"
-              aria-label={`${m.packages.edit}: ${vocab.word}`}
-              onClick={() => setEditing(true)}
-            >
-              <Pencil className="size-4" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost min-h-9 px-2.5"
-              aria-label={`${m.packages.delete}: ${vocab.word}`}
-              disabled={remove.isPending}
-              onClick={() => {
-                if (window.confirm(fill(m.packages.deleteVocabConfirm, { word: vocab.word })))
-                  remove.mutate(vocab.id);
-              }}
-            >
-              <Trash2 className="size-4" aria-hidden="true" />
-            </button>
-          </>
-        )}
+        <button
+          type="button"
+          className="btn btn-ghost min-h-9 px-2.5"
+          aria-label={`${m.packages.edit}: ${vocab.word}`}
+          onClick={() => setEditing(true)}
+        >
+          <Pencil className="size-4" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost min-h-9 px-2.5"
+          aria-label={`${m.packages.delete}: ${vocab.word}`}
+          disabled={remove.isPending}
+          onClick={() => {
+            if (window.confirm(fill(m.packages.deleteVocabConfirm, { word: vocab.word })))
+              remove.mutate(vocab.id);
+          }}
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+        </button>
       </div>
     </li>
   );
 }
 
-function PackageHeader({ pkg, admin }: { pkg: PackageDto; admin: boolean }) {
+function PackageHeader({ pkg }: { pkg: PackageDto }) {
   const { m } = useI18n();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -260,33 +255,29 @@ function PackageHeader({ pkg, admin }: { pkg: PackageDto; admin: boolean }) {
             {m.learn.start} ({pkg.counts.due})
           </Link>
         )}
-        {admin && (
-          <>
-            <button type="button" className="btn btn-secondary" onClick={() => setEditing(true)}>
-              <Pencil className="size-4" aria-hidden="true" />
-              {m.packages.edit}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={remove.isPending}
-              onClick={() => {
-                if (window.confirm(fill(m.packages.deletePackageConfirm, { name: pkg.name }))) {
-                  remove.mutate(undefined, { onSuccess: () => void navigate('/packages') });
-                }
-              }}
-            >
-              <Trash2 className="size-4" aria-hidden="true" />
-              {m.packages.delete}
-            </button>
-          </>
-        )}
+        <button type="button" className="btn btn-secondary" onClick={() => setEditing(true)}>
+          <Pencil className="size-4" aria-hidden="true" />
+          {m.packages.edit}
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={remove.isPending}
+          onClick={() => {
+            if (window.confirm(fill(m.packages.deletePackageConfirm, { name: pkg.name }))) {
+              remove.mutate(undefined, { onSuccess: () => void navigate('/packages') });
+            }
+          }}
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+          {m.packages.delete}
+        </button>
       </div>
     </div>
   );
 }
 
-/** Superuser: add words by hand, attach photos ("Hochladen") or recognise them ("Erkennen"). */
+/** Add words by hand, attach photos ("Hochladen") or recognise them ("Erkennen"). */
 function AddSection({ packageId }: { packageId: number }) {
   const { m } = useI18n();
   const navigate = useNavigate();
@@ -381,11 +372,11 @@ function AddSection({ packageId }: { packageId: number }) {
   );
 }
 
-function VocabList({ items, admin }: { items: VocabDto[]; admin: boolean }) {
+function VocabList({ items }: { items: VocabDto[] }) {
   return (
     <ul className="divide-y divide-rule overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-card)]">
       {items.map((v) => (
-        <VocabRow key={v.id} vocab={v} admin={admin} />
+        <VocabRow key={v.id} vocab={v} />
       ))}
     </ul>
   );
@@ -394,7 +385,6 @@ function VocabList({ items, admin }: { items: VocabDto[]; admin: boolean }) {
 export function PackageDetailPage() {
   const { m } = useI18n();
   const id = Number(useParams().id);
-  const admin = useIsAdmin();
   const query = usePackage(id);
   const activateAll = useActivatePackage(id);
 
@@ -425,9 +415,9 @@ export function PackageDetailPage() {
         <Notice tone="error">{errorMessage(m, query.error)}</Notice>
       ) : (
         <>
-          <PackageHeader pkg={query.data.package} admin={admin} />
+          <PackageHeader pkg={query.data.package} />
 
-          {admin && <AddSection packageId={id} />}
+          <AddSection packageId={id} />
 
           {query.data.vocab.length === 0 ? (
             <section aria-labelledby="vocab-title">
@@ -435,10 +425,10 @@ export function PackageDetailPage() {
                 {m.packages.vocabList}
               </h2>
               <p className="rounded-[var(--radius-card)] border border-dashed border-rule-strong px-6 py-10 text-center text-ink-soft">
-                {admin ? m.packages.noVocab : m.packages.noVocabUser}
+                {m.packages.noVocab}
               </p>
             </section>
-          ) : admin ? (
+          ) : (
             <section aria-labelledby="vocab-title">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <h2 id="vocab-title" className="text-lg font-bold">
@@ -449,53 +439,13 @@ export function PackageDetailPage() {
               {query.data.package.counts.inactive > 0 && (
                 <p className="mb-3 text-sm text-ink-soft">{m.packages.activateHint}</p>
               )}
-              <VocabList items={query.data.vocab} admin />
+              <VocabList items={query.data.vocab} />
             </section>
-          ) : (
-            <UserVocabSections
-              items={query.data.vocab}
-              activateAll={activateAllButton(query.data.package.counts.inactive)}
-            />
           )}
 
           <PackagePhotos packageId={id} />
         </>
       )}
     </>
-  );
-}
-
-/** Normal accounts: own (activated) words apart from the superuser's not yet activated ones. */
-function UserVocabSections({ items, activateAll }: { items: VocabDto[]; activateAll: ReactNode }) {
-  const { m } = useI18n();
-  const mine = items.filter((v) => v.active);
-  const offered = items.filter((v) => !v.active);
-  return (
-    <div className="space-y-8">
-      <section aria-labelledby="mine-title">
-        <h2 id="mine-title" className="mb-3 text-lg font-bold">
-          {fill(m.packages.mine, { n: mine.length })}
-        </h2>
-        {mine.length === 0 ? (
-          <p className="rounded-[var(--radius-card)] border border-dashed border-rule-strong px-6 py-8 text-center text-ink-soft">
-            {m.packages.mineEmpty}
-          </p>
-        ) : (
-          <VocabList items={mine} admin={false} />
-        )}
-      </section>
-      {offered.length > 0 && (
-        <section aria-labelledby="offered-title">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <h2 id="offered-title" className="text-lg font-bold">
-              {fill(m.packages.offered, { n: offered.length })}
-            </h2>
-            {activateAll}
-          </div>
-          <p className="mb-3 text-sm text-ink-soft">{m.packages.offeredHint}</p>
-          <VocabList items={offered} admin={false} />
-        </section>
-      )}
-    </div>
   );
 }

@@ -1,14 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { and, asc, eq, gt, lte, sql } from 'drizzle-orm';
-import {
-  addDays,
-  todayIn,
-  type DueDayDto,
-  type OverviewDto,
-  type TodayStats,
-} from '@wordflow/shared';
+import { addDays, todayIn, type OverviewDto, type TodayStats } from '@wordflow/shared';
 import type { Db } from '../db';
-import { attempts, userVocab, vocab } from '../db/schema';
+import { attempts, packages, userVocab, vocab } from '../db/schema';
+import { seenToday, withinDailyLimit } from '../learn/limit';
+import { getSettings } from './settings';
 
 function median(values: number[]): number | null {
   if (values.length === 0) return null;
@@ -76,6 +72,8 @@ export const overviewRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db }
       db
         .select({ n: sql<number>`count(*)` })
         .from(vocab)
+        .innerJoin(packages, eq(packages.id, vocab.packageId))
+        .where(eq(packages.userId, userId))
         .get()?.n ?? 0,
     );
     const stages = [0, 0, 0, 0, 0, 0];
@@ -92,8 +90,40 @@ export const overviewRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db }
       }
     }
     const inactive = Math.max(0, total - activated);
+    const dueIds = db
+      .select({ vocabId: userVocab.vocabId })
+      .from(userVocab)
+      .where(
+        and(
+          eq(userVocab.userId, userId),
+          eq(userVocab.learned, false),
+          lte(userVocab.dueDate, today),
+        ),
+      )
+      .all()
+      .map((r) => r.vocabId);
+    const dailyLimit = getSettings(db, userId).dailyLimit;
+    const available = withinDailyLimit(
+      dueIds,
+      (id) => id,
+      seenToday(db, userId, today),
+      dailyLimit,
+    ).length;
+    const dueTomorrow = Number(
+      db
+        .select({ n: sql<number>`count(*)` })
+        .from(userVocab)
+        .where(
+          and(
+            eq(userVocab.userId, userId),
+            eq(userVocab.learned, false),
+            eq(userVocab.dueDate, addDays(today, 1)),
+          ),
+        )
+        .get()?.n ?? 0,
+    );
     const next =
-      due === 0
+      available === 0
         ? db
             .select({ dueDate: userVocab.dueDate })
             .from(userVocab)
@@ -110,7 +140,10 @@ export const overviewRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db }
         : undefined;
     return {
       today,
-      due,
+      due: available,
+      dueAll: due,
+      dueTomorrow,
+      dailyLimit,
       stages,
       learned,
       inactive,
@@ -120,36 +153,4 @@ export const overviewRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db }
   }
 
   app.get('/overview', async (request) => overview(request.user!.id, request.user!.timezone));
-
-  /**
-   * Words due on each of the next 30 days (including overdue ones), for the
-   * reminders of the Android app.
-   */
-  app.get('/overview/due-days', async (request): Promise<{ days: DueDayDto[] }> => {
-    const user = request.user!;
-    const today = todayIn(user.timezone);
-    const last = addDays(today, 29);
-    const rows = db
-      .select({ dueDate: userVocab.dueDate, count: sql<number>`count(*)` })
-      .from(userVocab)
-      .where(
-        and(
-          eq(userVocab.userId, user.id),
-          eq(userVocab.learned, false),
-          lte(userVocab.dueDate, last),
-        ),
-      )
-      .groupBy(userVocab.dueDate)
-      .all();
-    const days: DueDayDto[] = [];
-    let running = 0;
-    const byDay = new Map(rows.map((r) => [r.dueDate!, Number(r.count)]));
-    running = rows.filter((r) => r.dueDate! < today).reduce((sum, r) => sum + Number(r.count), 0);
-    for (let i = 0; i < 30; i++) {
-      const day = addDays(today, i);
-      running += byDay.get(day) ?? 0;
-      days.push({ day, count: running });
-    }
-    return { days };
-  });
 };
