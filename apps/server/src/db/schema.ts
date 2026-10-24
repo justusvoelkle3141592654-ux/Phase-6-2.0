@@ -55,6 +55,9 @@ export const userSettings = sqliteTable('user_settings', {
   intervals: text('intervals', { mode: 'json' }).$type<number[]>().notNull(),
   wrongMode: text('wrong_mode', { enum: ['reset', 'back'] }).notNull(),
   aiTimeoutMs: integer('ai_timeout_ms').notNull(),
+  autoNextCorrectMs: integer('auto_next_correct_ms').notNull().default(1300),
+  autoNextTypoMs: integer('auto_next_typo_ms').notNull().default(1300),
+  autoNextWrongMs: integer('auto_next_wrong_ms').notNull().default(0),
   reminderTime: text('reminder_time'),
 });
 

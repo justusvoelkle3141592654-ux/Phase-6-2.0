@@ -10,6 +10,7 @@ import { LanguageSwitch } from '../components/LanguageSwitch';
 import { Notice } from '../components/Notice';
 import { AiSettings } from '../components/ai/AiSettings';
 import {
+  AutoNextFields,
   IntervalsField,
   parseIntervals,
   parseTimeout,
@@ -106,6 +107,11 @@ function LearningSection({ settings }: { settings: UserSettings }) {
   const [intervals, setIntervals] = useState(settings.intervals.map(String));
   const [wrongMode, setWrongMode] = useState<WrongMode>(settings.wrongMode);
   const [timeout, setTimeoutValue] = useState(String(settings.aiTimeoutMs / 1000));
+  const [autoNext, setAutoNext] = useState({
+    autoNextCorrectMs: settings.autoNextCorrectMs,
+    autoNextTypoMs: settings.autoNextTypoMs,
+    autoNextWrongMs: settings.autoNextWrongMs,
+  });
   const update = useUpdateSettings();
   const parsedIntervals = parseIntervals(intervals);
   const timeoutMs = parseTimeout(timeout);
@@ -114,7 +120,7 @@ function LearningSection({ settings }: { settings: UserSettings }) {
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!valid) return;
-    update.mutate({ intervals: parsedIntervals, wrongMode, aiTimeoutMs: timeoutMs });
+    update.mutate({ intervals: parsedIntervals, wrongMode, aiTimeoutMs: timeoutMs, ...autoNext });
   };
   const edit =
     <T,>(setter: (value: T) => void) =>
@@ -131,6 +137,7 @@ function LearningSection({ settings }: { settings: UserSettings }) {
       <form className="space-y-6" onSubmit={onSubmit}>
         <IntervalsField value={intervals} onChange={edit(setIntervals)} />
         <WrongModeField value={wrongMode} onChange={edit(setWrongMode)} />
+        <AutoNextFields value={autoNext} onChange={edit(setAutoNext)} />
         <TimeoutField value={timeout} onChange={edit(setTimeoutValue)} />
         {update.isSuccess && <Notice tone="ok">{m.account.saved}</Notice>}
         {update.isError && <Notice tone="error">{errorMessage(m, update.error)}</Notice>}

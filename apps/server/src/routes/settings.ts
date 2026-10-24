@@ -2,6 +2,9 @@ import type { FastifyPluginAsync } from 'fastify';
 import { eq } from 'drizzle-orm';
 import {
   DEFAULT_AI_TIMEOUT_MS,
+  DEFAULT_AUTO_NEXT_CORRECT_MS,
+  DEFAULT_AUTO_NEXT_TYPO_MS,
+  DEFAULT_AUTO_NEXT_WRONG_MS,
   DEFAULT_INTERVALS,
   DEFAULT_WRONG_MODE,
   updateSettingsSchema,
@@ -22,6 +25,9 @@ export function getSettings(db: Db, userId: number): UserSettings {
         intervals: DEFAULT_INTERVALS,
         wrongMode: DEFAULT_WRONG_MODE,
         aiTimeoutMs: DEFAULT_AI_TIMEOUT_MS,
+        autoNextCorrectMs: DEFAULT_AUTO_NEXT_CORRECT_MS,
+        autoNextTypoMs: DEFAULT_AUTO_NEXT_TYPO_MS,
+        autoNextWrongMs: DEFAULT_AUTO_NEXT_WRONG_MS,
       })
       .returning()
       .get();

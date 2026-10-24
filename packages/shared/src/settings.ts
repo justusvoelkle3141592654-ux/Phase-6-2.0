@@ -14,10 +14,26 @@ export const DEFAULT_AI_TIMEOUT_MS = 2000;
 export const AI_TIMEOUT_MIN_MS = 500;
 export const AI_TIMEOUT_MAX_MS = 30000;
 
+/**
+ * Delay before the next card appears after a typed answer, per outcome.
+ * 0 means "wait for the Next button".
+ */
+export const AUTO_NEXT_MAX_MS = 10000;
+export const DEFAULT_AUTO_NEXT_CORRECT_MS = 1300;
+export const DEFAULT_AUTO_NEXT_TYPO_MS = 1300;
+export const DEFAULT_AUTO_NEXT_WRONG_MS = 0;
+const autoNextMs = z.int().min(0).max(AUTO_NEXT_MAX_MS);
+
 export const userSettingsSchema = z.object({
   intervals: z.array(z.int().min(1).max(INTERVAL_MAX_DAYS)).length(5),
   wrongMode: z.enum(WRONG_MODES),
   aiTimeoutMs: z.int().min(AI_TIMEOUT_MIN_MS).max(AI_TIMEOUT_MAX_MS),
+  /** Correct answer. */
+  autoNextCorrectMs: autoNextMs,
+  /** Accepted with a typo ("half wrong"). */
+  autoNextTypoMs: autoNextMs,
+  /** Wrong answer. */
+  autoNextWrongMs: autoNextMs,
   /** Daily reminder in the Android app, "HH:MM" or null for off. */
   reminderTime: z
     .string()
