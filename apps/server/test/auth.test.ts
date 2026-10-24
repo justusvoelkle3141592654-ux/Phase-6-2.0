@@ -106,6 +106,44 @@ describe('Offline-Modus', () => {
     expect(sessionCookie(loginRes)).toBeTruthy();
     await localApp.close();
   });
+
+  it('listet die lokalen Accounts und prüft deren Passwort', async () => {
+    const localApp = await testApp({ offlineMode: true });
+    await localApp.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      headers: json,
+      payload: { email: 'guest@example.org', password: 'geheim123' },
+    });
+    const info = await localApp.inject({ method: 'GET', url: '/api/auth/mode', headers: json });
+    expect(info.json().accounts).toEqual([
+      { email: 'offline@local.test', name: '' },
+      { email: 'guest@example.org', name: '' },
+    ]);
+    expect(JSON.stringify(info.json().accounts)).not.toContain('password');
+
+    const wrong = await localApp.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers: json,
+      payload: { email: 'guest@example.org', password: 'falsch123' },
+    });
+    expect(wrong.statusCode).toBe(401);
+    const right = await localApp.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers: json,
+      payload: { email: 'guest@example.org', password: 'geheim123' },
+    });
+    expect(right.statusCode).toBe(200);
+    await localApp.close();
+  });
+
+  it('verrät ohne Offline-Modus keine Accounts', async () => {
+    await register(app);
+    const info = await app.inject({ method: 'GET', url: '/api/auth/mode', headers: json });
+    expect(info.json()).toEqual({ offlineMode: false });
+  });
 });
 
 describe('Anmeldung', () => {

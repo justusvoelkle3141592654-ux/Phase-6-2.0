@@ -55,10 +55,11 @@ export async function ensureOfflineUser(db: Db): Promise<User> {
   return user;
 }
 
-export const authRoutes: FastifyPluginAsync<{ db: Db; registrationCode: string; offlineMode: boolean }> = async (
-  app,
-  { db, registrationCode, offlineMode },
-) => {
+export const authRoutes: FastifyPluginAsync<{
+  db: Db;
+  registrationCode: string;
+  offlineMode: boolean;
+}> = async (app, { db, registrationCode, offlineMode }) => {
   function signIn(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -72,11 +73,22 @@ export const authRoutes: FastifyPluginAsync<{ db: Db; registrationCode: string; 
     return { user: toUserDto(user) };
   }
 
-  app.get('/auth/mode', async () => ({
-    offlineMode,
-    email: offlineMode ? DEFAULT_OFFLINE_EMAIL : undefined,
-    password: offlineMode ? DEFAULT_OFFLINE_PASSWORD : undefined,
-  }));
+  // In offline mode the server is a local single-machine setup, so the
+  // sign-in screen may list the existing accounts to pick from.
+  app.get('/auth/mode', async () => {
+    if (!offlineMode) return { offlineMode };
+    const accounts = db
+      .select({ email: users.email, name: users.name })
+      .from(users)
+      .orderBy(users.id)
+      .all();
+    return {
+      offlineMode,
+      email: DEFAULT_OFFLINE_EMAIL,
+      password: DEFAULT_OFFLINE_PASSWORD,
+      accounts,
+    };
+  });
 
   app.post('/auth/register', limited, async (request, reply) => {
     const input = parse(registerSchema, request.body, reply);
@@ -104,6 +116,7 @@ export const authRoutes: FastifyPluginAsync<{ db: Db; registrationCode: string; 
     const input = parse(loginSchema, request.body, reply);
     if (!input) return;
     let user = db.select().from(users).where(eq(users.email, input.email)).get();
+    // Recreate the default offline account if it was removed while the server ran.
     if (offlineMode && !user && input.email === DEFAULT_OFFLINE_EMAIL) {
       user = await ensureOfflineUser(db);
     }
@@ -112,12 +125,6 @@ export const authRoutes: FastifyPluginAsync<{ db: Db; registrationCode: string; 
       return reply.code(401).send({ error: 'invalid_credentials' });
     }
     if (!(await verifyPassword(user.passwordHash, input.password))) {
-      if (offlineMode && input.email === DEFAULT_OFFLINE_EMAIL && input.password === DEFAULT_OFFLINE_PASSWORD) {
-        user = await ensureOfflineUser(db);
-        if (await verifyPassword(user.passwordHash, input.password)) {
-          return signIn(request, reply, user, input.client);
-        }
-      }
       return reply.code(401).send({ error: 'invalid_credentials' });
     }
     return signIn(request, reply, user, input.client);

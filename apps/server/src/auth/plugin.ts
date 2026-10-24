@@ -87,7 +87,9 @@ export const authPlugin = fp<{ db: Db; corsOrigins: string[] }>(
         const originHostname = typeof host === 'string' ? hostname(host) : null;
         const allowed =
           host === normalizeHost(request.host) ||
-          (requestHostname !== null && originHostname !== null && requestHostname === originHostname) ||
+          (requestHostname !== null &&
+            originHostname !== null &&
+            requestHostname === originHostname) ||
           (host === undefined && !cookie) ||
           (request.headers.origin !== undefined && corsOrigins.includes(request.headers.origin));
         if (!allowed) return reply.code(403).send({ error: 'forbidden_origin' });

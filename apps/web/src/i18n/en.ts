@@ -43,8 +43,8 @@ export const en: Messages = {
     summaryFailed: 'The summary could not be created right now.',
     summaryStale: 'As of before your latest answers.',
     retry: 'Try again',
-    },
-    upload: {
+  },
+  upload: {
     title: 'Upload vocabulary',
     empty:
       'Take photos of pages from your vocabulary notebook. The words are recognised automatically.',
@@ -205,6 +205,10 @@ export const en: Messages = {
     register: 'Create account',
     toRegister: 'No account yet? Register',
     toLogin: 'Already registered? Sign in',
+    offlineRegisterIntro: 'Offline mode: new accounts need no registration code.',
+    offlineAccounts: 'Accounts on this device',
+    offlineAccountsHint: 'Pick an account and enter its password.',
+    continueOffline: 'Continue offline',
     errors: {
       invalid_credentials: 'Email or password is incorrect.',
       invalid_registration_code: 'The registration code is incorrect.',
@@ -401,7 +405,8 @@ export const en: Messages = {
     reminderOff: 'Off',
     reminderOn: 'Daily at',
     reminderAppOnly: 'Only works in the Android app.',
-    reminderDenied: 'Notifications are not allowed for WordFlow. Allow them in the Android settings.',
+    reminderDenied:
+      'Notifications are not allowed for WordFlow. Allow them in the Android settings.',
     notificationBody: '{n} words are due.',
     notificationBodyOne: '1 word is due.',
   },
@@ -411,4 +416,3 @@ export const en: Messages = {
     comingSoon: 'Coming in one of the next steps.',
   },
 };
-

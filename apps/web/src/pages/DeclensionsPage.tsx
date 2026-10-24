@@ -64,7 +64,7 @@ export function DeclensionsPage() {
           number: 'Plural',
           answer: row.plural,
         },
-      ])
+      ]),
     );
     setRemainingQuestions(pool);
     setQuizMode(true);
@@ -179,9 +179,7 @@ export function DeclensionsPage() {
           </button>
         </div>
       )}
-      {!quizMode && selected && (
-        <p>Wähle "Quiz starten", um das Üben zu beginnen.</p>
-      )}
+      {!quizMode && selected && <p>Wähle "Quiz starten", um das Üben zu beginnen.</p>}
     </>
   );
 }

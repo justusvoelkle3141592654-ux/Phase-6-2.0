@@ -84,6 +84,61 @@ describe('Anmeldung', () => {
   });
 });
 
+describe('Offline-Modus', () => {
+  const offlineMode = () => ({
+    status: 200,
+    body: {
+      offlineMode: true,
+      email: 'offline@local.test',
+      password: 'offline',
+      accounts: [
+        { email: 'offline@local.test', name: '' },
+        { email: 'anna@example.org', name: 'Anna' },
+      ],
+    },
+  });
+
+  it('listet lokale Accounts und meldet mit gewähltem Account an', async () => {
+    const calls = mockApi({
+      'GET /auth/me': signedOut,
+      'GET /auth/mode': offlineMode,
+      'POST /auth/login': () => ({ status: 200, body: { user: USER } }),
+    });
+    renderApp('/packages');
+    fireEvent.click(await screen.findByRole('button', { name: 'Anna · anna@example.org' }));
+    expect((screen.getByLabelText('E-Mail') as HTMLInputElement).value).toBe('anna@example.org');
+    expect(screen.getByRole('button', { name: 'Offline weiter' })).toBeTruthy();
+    type('Passwort', 'geheim123');
+    fireEvent.click(screen.getByRole('button', { name: 'Anmelden' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Vokabelpakete' })).toBeTruthy();
+    expect(calls.find((c) => c.key === 'POST /auth/login')?.body).toMatchObject({
+      email: 'anna@example.org',
+      password: 'geheim123',
+    });
+  });
+
+  it('registriert ohne Registrierungscode', async () => {
+    const calls = mockApi({
+      'GET /auth/me': signedOut,
+      'GET /auth/mode': offlineMode,
+      'POST /auth/register': () => ({ status: 201, body: { user: USER } }),
+    });
+    renderApp('/');
+    await screen.findByRole('button', { name: 'Offline weiter' });
+    fireEvent.click(screen.getByRole('button', { name: /Registrieren/ }));
+    expect(screen.queryByLabelText('Registrierungscode')).toBeNull();
+    type('E-Mail', 'neu@example.org');
+    type('Passwort', 'geheim123');
+    fireEvent.click(screen.getByRole('button', { name: 'Account anlegen' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Heute' })).toBeTruthy();
+    const body = calls.find((c) => c.key === 'POST /auth/register')?.body as Record<
+      string,
+      unknown
+    >;
+    expect(body.registrationCode).toBeUndefined();
+  });
+});
+
 describe('Einstellungen: Account', () => {
   it('zeigt nach dem Abmelden die Anmeldeseite', async () => {
     const calls = mockApi({

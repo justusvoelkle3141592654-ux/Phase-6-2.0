@@ -19,7 +19,7 @@ Registrierungscode einen Account anlegen und dem Einrichtungsassistenten folgen.
 
 Für ein lokales Test-Setup ohne Konto-Registrierung kann `OFFLINE_MODE=true` in `.env` gesetzt
 werden. Dann startet der Server mit einem Standard-Offline-Account (`offline@local.test` / `offline`)
-und der Login-Dialog bietet einen direkten „Continue offline“-Button.
+und der Login-Dialog bietet einen „Offline weiter“-Button sowie eine Auswahl aller lokalen Accounts.
 
 Die **Android-App** liegt fertig unter [`release/`](release/) bzw. bei den GitHub-Releases
 (siehe [Android-App](#android-app)).
@@ -161,9 +161,10 @@ E-Mails verschickt.
 - Ist `REGISTRATION_CODE` nicht gesetzt, erzeugt der Server beim ersten Start einen Code
   (z. B. `U4JM-E3E5-KVHH`), speichert ihn in `data/secrets.json` und schreibt ihn bei jedem Start
   ins Log (`Registrierungscode: …`). Groß-/Kleinschreibung spielt bei der Eingabe keine Rolle.
-- Mit `OFFLINE_MODE=true` wird der Server in einem lokalen Ein-Benutzer-Modus gestartet: Dann
-  funktionieren Login und Registrierung ohne Code, und ein Standardkonto `offline@local.test` /
-  `offline` wird automatisch angelegt.
+- Mit `OFFLINE_MODE=true` wird der Server in einem lokalen Modus gestartet: Die Registrierung
+  braucht keinen Code, ein Standardkonto `offline@local.test` / `offline` wird automatisch angelegt,
+  und die Anmeldeseite listet alle Accounts auf dem Server zur Auswahl (Passwort weiterhin nötig).
+  Nur für Geräte im eigenen Netz gedacht, da die E-Mail-Adressen sichtbar sind.
 - Dasselbe gilt für `APP_SECRET`. Mit diesem Schlüssel werden die API-Schlüssel der
   KI-Anbieter verschlüsselt. **`data/secrets.json` sichern und nicht verlieren**, sonst müssen
   alle API-Schlüssel neu eingegeben werden. Die Datei ist nur für den Besitzer lesbar (Rechte 600).

@@ -10,7 +10,6 @@ import { SettingsPage } from './pages/SettingsPage';
 import { UploadPage } from './pages/UploadPage';
 import { UploadReviewPage } from './pages/UploadReviewPage';
 
-
 export const routes = [
   {
     path: '/',

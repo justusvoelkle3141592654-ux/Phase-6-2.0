@@ -204,6 +204,10 @@ export const de = {
     register: 'Account anlegen',
     toRegister: 'Noch keinen Account? Registrieren',
     toLogin: 'Schon registriert? Anmelden',
+    offlineRegisterIntro: 'Offline-Modus: Neue Accounts brauchen keinen Registrierungscode.',
+    offlineAccounts: 'Accounts auf diesem Gerät',
+    offlineAccountsHint: 'Account wählen und Passwort eingeben.',
+    continueOffline: 'Offline weiter',
     errors: {
       invalid_credentials: 'E-Mail oder Passwort stimmt nicht.',
       invalid_registration_code: 'Der Registrierungscode stimmt nicht.',

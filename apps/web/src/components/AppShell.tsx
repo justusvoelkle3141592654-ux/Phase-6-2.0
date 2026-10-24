@@ -1,5 +1,13 @@
 import { NavLink, Outlet } from 'react-router';
-import { Camera, GraduationCap, House, Layers, Settings, BookOpen, type LucideIcon } from 'lucide-react';
+import {
+  Camera,
+  GraduationCap,
+  House,
+  Layers,
+  Settings,
+  BookOpen,
+  type LucideIcon,
+} from 'lucide-react';
 import { useI18n } from '../i18n';
 import type { Messages } from '../i18n/de';
 import { Wordmark } from './Wordmark';
