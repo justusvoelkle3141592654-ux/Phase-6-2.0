@@ -208,7 +208,6 @@ export const en: Messages = {
     offlineRegisterIntro: 'Offline mode: new accounts need no registration code.',
     offlineAccounts: 'Accounts on this device',
     offlineAccountsHint: 'Pick an account and enter its password.',
-    continueOffline: 'Continue offline',
     errors: {
       invalid_credentials: 'Email or password is incorrect.',
       invalid_registration_code: 'The registration code is incorrect.',

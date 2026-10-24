@@ -19,7 +19,7 @@ Registrierungscode einen Account anlegen und dem Einrichtungsassistenten folgen.
 
 Für ein lokales Test-Setup ohne Konto-Registrierung kann `OFFLINE_MODE=true` in `.env` gesetzt
 werden. Dann startet der Server mit einem Standard-Offline-Account (`offline@local.test` / `offline`)
-und der Login-Dialog bietet einen „Offline weiter“-Button sowie eine Auswahl aller lokalen Accounts.
+und der Login-Dialog bietet eine Auswahl aller lokalen Accounts.
 
 Die **Android-App** liegt fertig unter [`release/`](release/) bzw. bei den GitHub-Releases
 (siehe [Android-App](#android-app)).

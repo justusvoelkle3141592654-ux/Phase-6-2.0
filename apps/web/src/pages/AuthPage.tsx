@@ -18,13 +18,8 @@ function browserTimezone(): string | undefined {
 }
 
 type OfflineAccount = { email: string; name: string };
-type ModeResponse = {
-  offlineMode: boolean;
-  email?: string;
-  password?: string;
-  accounts?: OfflineAccount[];
-};
-type OfflineInfo = { email: string; password: string; accounts: OfflineAccount[] };
+type ModeResponse = { offlineMode: boolean; accounts?: OfflineAccount[] };
+type OfflineInfo = { accounts: OfflineAccount[] };
 
 /** Sign-in and registration. */
 export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {}) {
@@ -44,11 +39,7 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
     void api<ModeResponse>('/auth/mode')
       .then((data) => {
         if (!data.offlineMode) return;
-        setOffline({
-          email: data.email ?? 'offline@local.test',
-          password: data.password ?? 'offline',
-          accounts: data.accounts ?? [],
-        });
+        setOffline({ accounts: data.accounts ?? [] });
       })
       .catch(() => undefined);
   }, []);
@@ -74,8 +65,7 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
     setMode(mode === 'login' ? 'register' : 'login');
   };
 
-  // The default account has its own "continue offline" button.
-  const others = offline?.accounts.filter((a) => a.email !== offline.email) ?? [];
+  const accounts = offline?.accounts ?? [];
   const title = mode === 'login' ? m.auth.loginTitle : m.auth.registerTitle;
 
   return (
@@ -149,21 +139,6 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
 
           {error && <Notice tone="error">{errorMessage(m, error)}</Notice>}
 
-          {offline && mode === 'login' && (
-            <button
-              type="button"
-              className="btn btn-secondary w-full"
-              onClick={() => {
-                setEmail(offline.email);
-                setPassword(offline.password);
-                login.mutate({ email: offline.email, password: offline.password });
-              }}
-              disabled={pending}
-            >
-              {m.auth.continueOffline}
-            </button>
-          )}
-
           <div className="space-y-2 pt-2">
             <button type="submit" className="btn btn-primary w-full" disabled={pending}>
               {mode === 'login' ? m.auth.login : m.auth.register}
@@ -173,14 +148,14 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
             </button>
           </div>
         </form>
-        {offline && mode === 'login' && others.length > 0 && (
+        {offline && mode === 'login' && accounts.length > 0 && (
           <section className="mt-6" aria-labelledby="offline-accounts">
             <h2 id="offline-accounts" className="text-sm font-semibold">
               {m.auth.offlineAccounts}
             </h2>
             <p className="hint">{m.auth.offlineAccountsHint}</p>
             <ul className="mt-2 space-y-2">
-              {others.map((account) => (
+              {accounts.map((account) => (
                 <li key={account.email}>
                   <button
                     type="button"

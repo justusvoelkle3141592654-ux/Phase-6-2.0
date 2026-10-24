@@ -107,7 +107,8 @@ describe('Offline-Modus', () => {
     renderApp('/packages');
     fireEvent.click(await screen.findByRole('button', { name: 'Anna · anna@example.org' }));
     expect((screen.getByLabelText('E-Mail') as HTMLInputElement).value).toBe('anna@example.org');
-    expect(screen.getByRole('button', { name: 'Offline weiter' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'offline@local.test' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Offline weiter' })).toBeNull();
     type('Passwort', 'geheim123');
     fireEvent.click(screen.getByRole('button', { name: 'Anmelden' }));
     expect(await screen.findByRole('heading', { level: 1, name: 'Vokabelpakete' })).toBeTruthy();
@@ -124,7 +125,7 @@ describe('Offline-Modus', () => {
       'POST /auth/register': () => ({ status: 201, body: { user: USER } }),
     });
     renderApp('/');
-    await screen.findByRole('button', { name: 'Offline weiter' });
+    await screen.findByRole('button', { name: 'offline@local.test' });
     fireEvent.click(screen.getByRole('button', { name: /Registrieren/ }));
     expect(screen.queryByLabelText('Registrierungscode')).toBeNull();
     type('E-Mail', 'neu@example.org');
