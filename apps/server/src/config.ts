@@ -23,6 +23,8 @@ export interface AppConfig {
   /** Extra origins allowed for token-authenticated requests (the Android app). */
   corsOrigins: string[];
   logLevel: string;
+  /** For tests: fetch used by the update check instead of the real network. */
+  updateFetch?: typeof fetch;
 }
 
 function parseBool(value: string | undefined, fallback: boolean): boolean {

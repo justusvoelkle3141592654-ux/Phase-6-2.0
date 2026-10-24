@@ -1,6 +1,5 @@
-import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { Camera, GraduationCap, Sparkles } from 'lucide-react';
+import { GraduationCap, Layers } from 'lucide-react';
 import type { OverviewDto } from '@wordflow/shared';
 import { Notice } from '../components/Notice';
 import { EmptyState, PageHeader } from '../components/Page';
@@ -8,7 +7,7 @@ import { useI18n } from '../i18n';
 import { useMe } from '../lib/auth';
 import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';
-import { useOverview, useSummary } from '../lib/overview';
+import { useOverview } from '../lib/overview';
 
 const STAGE_BG = [
   'bg-stufe-1',
@@ -115,55 +114,6 @@ function TodayCard({ data }: { data: OverviewDto }) {
   );
 }
 
-function SummaryCard({ attempts }: { attempts: number }) {
-  const { m } = useI18n();
-  const summary = useSummary(attempts);
-  const data = summary.data;
-  let body: ReactNode;
-  if (attempts === 0) body = <p className="text-ink-soft">{m.home.summaryNoAttempts}</p>;
-  else if (summary.isPending)
-    body = <p className="animate-pulse text-ink-soft">{m.home.summaryLoading}</p>;
-  else if (summary.isError) body = <Notice tone="error">{errorMessage(m, summary.error)}</Notice>;
-  else if (data?.text) {
-    body = (
-      <>
-        <p className="leading-relaxed whitespace-pre-line">{data.text}</p>
-        {data.stale && <p className="mt-2 text-sm text-ink-soft">{m.home.summaryStale}</p>}
-      </>
-    );
-  } else {
-    body = (
-      <p className="text-ink-soft">
-        {data?.reason === 'no_model'
-          ? m.home.summaryNoModel
-          : data?.reason === 'failed'
-            ? m.home.summaryFailed
-            : m.home.summaryNoAttempts}
-      </p>
-    );
-  }
-  const canRetry = data?.reason === 'failed' || summary.isError;
-  return (
-    <section className="panel" aria-labelledby="summary-title" aria-busy={summary.isFetching}>
-      <h2 id="summary-title" className="mb-3 flex items-center gap-2 text-lg font-bold">
-        <Sparkles className="size-5" aria-hidden="true" />
-        {m.home.summary}
-      </h2>
-      {body}
-      {canRetry && (
-        <button
-          type="button"
-          className="btn btn-secondary mt-3"
-          onClick={() => void summary.refetch()}
-          disabled={summary.isFetching}
-        >
-          {m.home.retry}
-        </button>
-      )}
-    </section>
-  );
-}
-
 export function HomePage() {
   const { m, lang } = useI18n();
   const me = useMe().data;
@@ -187,7 +137,8 @@ export function HomePage() {
     );
   }
   const data = overview.data;
-  const total = data.stages.reduce((a, b) => a + b, 0) + data.learned + data.inactive;
+  // Words this account has activated; the rest belongs to the superuser's packages.
+  const total = data.stages.reduce((a, b) => a + b, 0) + data.learned;
   const date = (day: string) =>
     new Intl.DateTimeFormat(lang === 'de' ? 'de-DE' : 'en-GB', {
       dateStyle: 'full',
@@ -200,9 +151,9 @@ export function HomePage() {
         <PageHeader title={title} />
         <EmptyState
           action={
-            <Link to="/upload" className="btn btn-primary">
-              <Camera className="size-5" aria-hidden="true" />
-              {m.home.upload}
+            <Link to="/packages" className="btn btn-primary">
+              <Layers className="size-5" aria-hidden="true" />
+              {m.home.toPackages}
             </Link>
           }
         >
@@ -244,7 +195,6 @@ export function HomePage() {
             </Link>
           )}
         </section>
-        <SummaryCard attempts={data.todayStats.attempts} />
         <Stages data={data} />
         <TodayCard data={data} />
       </div>

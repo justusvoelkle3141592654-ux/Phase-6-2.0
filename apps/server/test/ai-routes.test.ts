@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { ORIGIN, register, sessionCookie, testApp } from './helpers';
+import { adminHeaders, ORIGIN, register, sessionCookie, testApp } from './helpers';
 import { json, mockServer, openAiStream, stream } from './mock-ai';
 
 let app: FastifyInstance;
@@ -9,7 +9,7 @@ let mock: Awaited<ReturnType<typeof mockServer>>;
 
 beforeEach(async () => {
   app = await testApp();
-  headers = { origin: ORIGIN, cookie: `wordflow_session=${sessionCookie(await register(app))}` };
+  headers = await adminHeaders(app);
   mock = await mockServer({
     'GET /v1/models': (req, res) =>
       req.headers.authorization === 'Bearer sk_bad'
@@ -57,7 +57,6 @@ describe('KI-Einrichtung', () => {
     const id = config.providers[0].id;
     expect(config.tasks).toEqual({
       check: { providerId: id, model: 'openai/gpt-oss-20b', reasoning: null },
-      summary: { providerId: id, model: 'openai/gpt-oss-20b', reasoning: null },
       vision: null,
     });
     // Idempotent.
@@ -142,15 +141,23 @@ describe('KI-Einrichtung', () => {
     expect((await req('GET', '/ai/config')).json().tasks.vision).toBeNull();
   });
 
-  it('trennt die KI-Einstellungen der Accounts', async () => {
+  it('nur der Superuser darf die KI einstellen; sie gilt für alle', async () => {
     const p = await customProvider();
+    const admin = headers;
     headers = {
       origin: ORIGIN,
       cookie: `wordflow_session=${sessionCookie(await register(app, { email: 'bob@example.org' }))}`,
     };
-    expect((await req('GET', `/ai/providers/${p.id}/models`)).statusCode).toBe(404);
+    expect((await req('GET', '/ai/config')).statusCode).toBe(403);
+    expect((await req('GET', `/ai/providers/${p.id}/models`)).statusCode).toBe(403);
     expect((await req('PUT', '/ai/tasks/check', { providerId: p.id, model: 'x' })).statusCode).toBe(
-      404,
+      403,
     );
+    expect((await req('POST', '/ai/providers', { kind: 'openai', apiKey: 'k' })).statusCode).toBe(
+      403,
+    );
+    headers = admin;
+    const ids = (await req('GET', '/ai/config')).json().providers.map((x: { id: number }) => x.id);
+    expect(ids).toContain(p.id);
   });
 });

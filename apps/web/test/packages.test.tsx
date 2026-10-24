@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import type { PackageDto, VocabDto } from '@wordflow/shared';
-import { mockApi, renderApp, USER } from './utils';
+import { ADMIN, mockApi, renderApp, USER } from './utils';
 
 beforeEach(() => localStorage.clear());
 afterEach(() => {
@@ -38,9 +38,19 @@ describe('Pakete', () => {
     expect(screen.getByText('3 fällig')).toBeTruthy();
   });
 
+  it('normale Accounts können keine Pakete anlegen', async () => {
+    mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'GET /packages': () => ({ status: 200, body: { packages: [] } }),
+    });
+    renderApp('/packages');
+    expect(await screen.findByText(/Der Superuser legt die Pakete an/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Neues Paket' })).toBeNull();
+  });
+
   it('legt ein Paket mit eigener Sprache an und öffnet es', async () => {
     const calls = mockApi({
-      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'GET /auth/me': () => ({ status: 200, body: { user: ADMIN } }),
       'GET /packages': () => ({ status: 200, body: { packages: [] } }),
       'POST /packages': (body) => ({
         status: 201,
@@ -75,7 +85,7 @@ describe('Paket-Detail', () => {
   it('fügt Vokabeln hinzu und aktiviert alle', async () => {
     let vocab: VocabDto[] = [];
     const calls = mockApi({
-      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'GET /auth/me': () => ({ status: 200, body: { user: ADMIN } }),
       'GET /packages/7': () => ({
         status: 200,
         body: {
@@ -125,5 +135,62 @@ describe('Paket-Detail', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Alle aktivieren (1)' }));
     expect(await screen.findByText('Stufe 1')).toBeTruthy();
+  });
+
+  it('Superuser: neben „Hinzufügen“ gibt es „Hochladen“ und „Erkennen“', async () => {
+    mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: ADMIN } }),
+      'GET /packages/7': () => ({ status: 200, body: { package: PKG, vocab: [] } }),
+    });
+    renderApp('/packages/7');
+    await screen.findByRole('heading', { level: 1, name: 'Unit 1' });
+    expect(screen.getByRole('button', { name: 'Hinzufügen' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Hochladen' }));
+    expect(screen.getByText(/nur an das Paket angehängt/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Erkennen' }));
+    expect(screen.getByText(/automatisch erkannt/)).toBeTruthy();
+  });
+
+  it('User: trennt eigene (aktive) und Superuser-Vokabeln (inaktiv), nur Aktivieren', async () => {
+    const word = (id: number, w: string, active: boolean): VocabDto => ({
+      id,
+      packageId: 7,
+      word: w,
+      extra: '',
+      translation: w.toUpperCase(),
+      active,
+      stage: 1,
+      dueDate: active ? '2026-09-27' : null,
+      learned: false,
+    });
+    const calls = mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'GET /packages/7': () => ({
+        status: 200,
+        body: {
+          package: { ...PKG, counts: { ...counts, total: 3, inactive: 2, active: 1 } },
+          vocab: [word(1, 'amicus', true), word(2, 'bellum', false), word(3, 'hostis', false)],
+        },
+      }),
+      'POST /vocab/2/activate': () => ({ status: 200, body: { vocab: word(2, 'bellum', true) } }),
+    });
+    renderApp('/packages/7');
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Meine Vokabeln (aktiv) · 1' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Vokabeln vom Superuser (inaktiv) · 2' }),
+    ).toBeTruthy();
+    // No adding, editing or deleting for normal accounts.
+    expect(screen.queryByRole('button', { name: 'Hinzufügen' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Hochladen' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Bearbeiten/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Löschen/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Alle aktivieren (2)' })).toBeTruthy();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Aktivieren' })[0]!);
+    await vi.waitFor(() =>
+      expect(calls.some((c) => c.key === 'POST /vocab/2/activate')).toBe(true),
+    );
   });
 });

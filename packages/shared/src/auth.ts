@@ -60,10 +60,56 @@ export const deleteAccountSchema = z.object({
 });
 export type DeleteAccountInput = z.input<typeof deleteAccountSchema>;
 
+export const USER_ROLES = ['admin', 'user'] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+
+/** Superuser account, created on every start if missing. */
+export const SUPERUSER_EMAIL = 'admin@wordflow.com';
+export const SUPERUSER_DEFAULT_PASSWORD = 'admin';
+
+/** Superuser: create an account. */
+export const adminCreateUserSchema = z.object({
+  email,
+  name: z.string().trim().max(80).default(''),
+  password,
+});
+export type AdminCreateUserInput = z.input<typeof adminCreateUserSchema>;
+
+/** Superuser: change an account; a new password signs the account out everywhere. */
+export const adminUpdateUserSchema = z
+  .object({
+    email,
+    name: z.string().trim().max(80),
+    password,
+  })
+  .partial();
+export type AdminUpdateUserInput = z.input<typeof adminUpdateUserSchema>;
+
+export interface AdminUserDto {
+  id: number;
+  email: string;
+  name: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface UpdateStatusDto {
+  /** Commit the installed code came from; null if never updated via the app. */
+  current: string | null;
+  latest: string | null;
+  available: boolean;
+  /** An update is running right now. */
+  running: boolean;
+  /** Last lines of the update log. */
+  log: string;
+  error?: string;
+}
+
 export interface UserDto {
   id: number;
   email: string;
   name: string;
+  role: UserRole;
   uiLanguage: (typeof UI_LANGUAGES)[number];
   timezone: string;
   setupCompleted: boolean;
@@ -82,6 +128,9 @@ export type ApiErrorCode =
   | 'invalid_credentials'
   | 'invalid_registration_code'
   | 'email_taken'
+  | 'registration_disabled'
+  | 'forbidden'
+  | 'invalid_backup'
   | 'wrong_password'
   | 'forbidden_origin'
   | 'rate_limited'

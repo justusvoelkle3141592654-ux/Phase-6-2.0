@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { DIRECTIONS } from './packages';
 
 /** One recognised line of the notebook. */
 export const recognizedEntrySchema = z.object({
@@ -37,16 +36,8 @@ export interface UploadJobDto {
 }
 
 export const saveUploadSchema = z.object({
-  target: z.union([
-    z.object({ packageId: z.int().positive() }),
-    z.object({
-      newPackage: z.object({
-        name: z.string().trim().min(1).max(100),
-        language: z.string().trim().min(1).max(40),
-        direction: z.enum(DIRECTIONS).default('foreign_native'),
-      }),
-    }),
-  ]),
+  /** Package the words are added to (packages are created on the package page). */
+  packageId: z.int().positive(),
   items: z
     .array(
       z.object({

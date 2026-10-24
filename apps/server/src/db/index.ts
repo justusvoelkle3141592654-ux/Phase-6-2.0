@@ -23,9 +23,25 @@ export function openDatabase(file: string): Db {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
   const sqlite = new Database(file);
   sqlite.pragma('journal_mode = WAL');
-  sqlite.pragma('foreign_keys = ON');
   sqlite.pragma('busy_timeout = 5000');
   const db = drizzle({ client: sqlite, schema });
-  migrate(db, { migrationsFolder: migrationsFolder() });
+  runMigrations(db);
   return db;
+}
+
+/**
+ * Runs pending migrations with foreign keys off: some migrations rebuild tables, and
+ * the migrator's transaction would otherwise ignore "PRAGMA foreign_keys=OFF" and let
+ * ON DELETE CASCADE wipe dependent rows.
+ */
+export function runMigrations(db: Db) {
+  const sqlite = db.$client;
+  sqlite.pragma('foreign_keys = OFF');
+  try {
+    migrate(db, { migrationsFolder: migrationsFolder() });
+    const broken = sqlite.pragma('foreign_key_check') as unknown[];
+    if (broken.length > 0) throw new Error('Datenbank-Migration: Fremdschlüssel verletzt');
+  } finally {
+    sqlite.pragma('foreign_keys = ON');
+  }
 }

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, within } from '@testing-library/react';
-import { mockApi, renderApp, SETTINGS, USER } from './utils';
+import { ADMIN, mockApi, renderApp, SETTINGS, USER } from './utils';
 
 beforeEach(() => localStorage.clear());
 afterEach(() => {
@@ -27,10 +27,15 @@ const CLAUDE = {
   keyHint: '…9876',
 };
 
-function api(providers: object[] = [POLLINATIONS]) {
+function api(providers: object[] = [POLLINATIONS], user = ADMIN) {
   let list = providers;
   return mockApi({
-    'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+    'GET /auth/me': () => ({ status: 200, body: { user } }),
+    'GET /admin/users': () => ({ status: 200, body: { users: [] } }),
+    'GET /admin/update': () => ({
+      status: 200,
+      body: { current: null, latest: 'abc1234def', available: true, running: false, log: '' },
+    }),
     'GET /settings': () => ({ status: 200, body: { settings: SETTINGS } }),
     'GET /ai/config': () => ({
       status: 200,
@@ -38,7 +43,6 @@ function api(providers: object[] = [POLLINATIONS]) {
         providers: list,
         tasks: {
           check: { providerId: 1, model: 'openai/gpt-oss-20b', reasoning: null },
-          summary: null,
           vision: null,
         },
       },
@@ -65,6 +69,31 @@ function api(providers: object[] = [POLLINATIONS]) {
 }
 
 describe('KI-Einstellungen', () => {
+  it('nur der Superuser sieht KI, Accounts, Backup und Update', async () => {
+    const calls = api([POLLINATIONS], USER);
+    renderApp('/settings');
+    expect(await screen.findByRole('heading', { name: 'Passwort ändern' })).toBeTruthy();
+    for (const title of ['KI: Anbieter', 'Accounts', 'Datenbank sichern', 'Update']) {
+      expect(screen.queryByRole('heading', { level: 2, name: title })).toBeNull();
+    }
+    expect(screen.queryByText(/Zeitlimit/)).toBeNull();
+    expect(calls.some((c) => c.key.startsWith('GET /ai/') || c.key.startsWith('GET /admin/'))).toBe(
+      false,
+    );
+  });
+
+  it('der Superuser sieht Accounts, Backup und Update', async () => {
+    api();
+    renderApp('/settings');
+    expect(await screen.findByRole('heading', { level: 2, name: 'Accounts' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Datenbank sichern' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Exportieren/ })).toBeTruthy();
+    expect(await screen.findByText('Eine neue Version ist verfügbar.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Aktualisieren/ })).toBeTruthy();
+    // The superuser's own account cannot be deleted.
+    expect(screen.queryByRole('heading', { name: 'Account löschen' })).toBeNull();
+  });
+
   it('zeigt Schlüssel nur als Hinweis', async () => {
     api([POLLINATIONS, CLAUDE]);
     renderApp('/settings');

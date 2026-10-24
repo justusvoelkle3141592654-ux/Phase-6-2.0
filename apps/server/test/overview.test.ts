@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { summaryPrompt } from '../src/routes/overview';
-import { ORIGIN, register, sessionCookie, testApp } from './helpers';
+import { adminHeaders, ORIGIN, register, sessionCookie, testApp } from './helpers';
 import { json, mockServer, openAiStream, stream } from './mock-ai';
 
 let app: FastifyInstance;
@@ -19,7 +18,7 @@ beforeEach(async () => {
         : stream(res, 'text/event-stream', openAiStream('Gut gemacht heute!', 3)),
   });
   app = await testApp();
-  headers = { origin: ORIGIN, cookie: `wordflow_session=${sessionCookie(await register(app))}` };
+  headers = await adminHeaders(app);
   const provider = (
     await app.inject({
       method: 'POST',
@@ -130,90 +129,5 @@ describe('Fälligkeiten der nächsten Tage (Erinnerungen)', () => {
     expect(days[4]!.count).toBe(1);
     expect(days[5]!.count).toBe(2); // amicus again after 5 days
     expect(b).toBeDefined();
-  });
-});
-
-describe('KI-Tageszusammenfassung', () => {
-  const chats = () => mock.requests.filter((r) => r.url === '/v1/chat/completions');
-
-  it('ohne Abfragen heute keine Zusammenfassung', async () => {
-    expect((await get('/overview/summary')).json()).toEqual({
-      text: null,
-      reason: 'no_attempts',
-      attempts: 0,
-    });
-    expect(chats()).toHaveLength(0);
-  });
-
-  it('erzeugt, speichert zwischen und erneuert nur bei neuen Abfragen', async () => {
-    const [a, b] = await seed();
-    await answer(a!, { answer: 'Freund' });
-    expect((await get('/overview/summary')).json()).toEqual({
-      text: 'Gut gemacht heute!',
-      attempts: 1,
-    });
-    expect((await get('/overview/summary')).json().text).toBe('Gut gemacht heute!');
-    expect(chats()).toHaveLength(1);
-    const prompt = chats()[0]!.body.messages[0].content as string;
-    expect(prompt).toContain('Abfragen heute: 1 (richtig 1, falsch 0)');
-    expect(prompt).toContain('Antworte auf Deutsch');
-
-    await answer(b!, { answer: 'Frieden' });
-    expect((await get('/overview/summary')).json().attempts).toBe(2);
-    expect(chats()).toHaveLength(2);
-  });
-
-  it('bei Fehler: alte Zusammenfassung als veraltet oder Grund', async () => {
-    const [a, b] = await seed();
-    fail = true;
-    await answer(a!, { answer: 'Freund' });
-    expect((await get('/overview/summary')).json()).toEqual({
-      text: null,
-      reason: 'failed',
-      attempts: 1,
-    });
-    fail = false;
-    await get('/overview/summary');
-    fail = true;
-    await answer(b!, { answer: 'Krieg' });
-    expect((await get('/overview/summary')).json()).toEqual({
-      text: 'Gut gemacht heute!',
-      attempts: 1,
-      stale: true,
-      reason: 'failed',
-    });
-  });
-
-  it('ohne Modell: Grund no_model', async () => {
-    const [a] = await seed();
-    await app.inject({ method: 'DELETE', url: '/api/ai/tasks/summary', headers });
-    await answer(a!, { answer: 'Freund' });
-    expect((await get('/overview/summary')).json()).toEqual({
-      text: null,
-      reason: 'no_model',
-      attempts: 1,
-    });
-  });
-
-  it('Prompt nutzt nur zusammengefasste Kennzahlen und die Oberflächensprache', () => {
-    const prompt = summaryPrompt(
-      {
-        attempts: 10,
-        correct: 8,
-        wrong: 2,
-        accuracy: 0.8,
-        medianMsToFirstKey: 1200,
-        medianMsTotal: 3400,
-        stageUps: 7,
-        learnedToday: 1,
-        difficult: [{ vocabId: 1, word: 'bellum', translation: 'Krieg', wrong: 2 }],
-      },
-      3,
-      'en',
-    );
-    expect(prompt).toContain('Answer in English');
-    expect(prompt).toContain('Trefferquote: 80 %');
-    expect(prompt).toContain('bellum = Krieg (2× falsch)');
-    expect(prompt).toContain('Zeit bis zum ersten Buchstaben (Median): 1.2 s');
   });
 });

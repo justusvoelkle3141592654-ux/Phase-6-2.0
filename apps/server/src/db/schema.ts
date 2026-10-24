@@ -27,6 +27,10 @@ export const users = sqliteTable('users', {
   /** IANA time zone; decides what "today" means for this account. */
   timezone: text('timezone').notNull().default('Europe/Berlin'),
   setupCompleted: integer('setup_completed', { mode: 'boolean' }).notNull().default(false),
+  /** "admin" is the superuser: packages, AI, accounts, backup, update. */
+  role: text('role', { enum: ['admin', 'user'] })
+    .notNull()
+    .default('user'),
   createdAt: createdAt(),
 });
 
@@ -61,53 +65,59 @@ export const userSettings = sqliteTable('user_settings', {
   reminderTime: text('reminder_time'),
 });
 
-export const packages = sqliteTable(
-  'packages',
-  {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    userId: integer('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    /** Preset code (en, fr, la) or free text. */
-    language: text('language').notNull(),
-    direction: text('direction', { enum: ['foreign_native', 'native_foreign', 'random'] })
-      .notNull()
-      .default('foreign_native'),
-    createdAt: createdAt(),
-  },
-  (t) => [index('packages_user_idx').on(t.userId)],
-);
+/** Packages are created by the superuser and shared with every account. */
+export const packages = sqliteTable('packages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  /** Preset code (en, fr, la) or free text. */
+  language: text('language').notNull(),
+  direction: text('direction', { enum: ['foreign_native', 'native_foreign', 'random'] })
+    .notNull()
+    .default('foreign_native'),
+  createdAt: createdAt(),
+});
 
 export const vocab = sqliteTable(
   'vocab',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    userId: integer('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
     packageId: integer('package_id')
       .notNull()
       .references(() => packages.id, { onDelete: 'cascade' }),
     word: text('word').notNull(),
     extra: text('extra').notNull().default(''),
     translation: text('translation').notNull(),
-    active: integer('active', { mode: 'boolean' }).notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index('vocab_package_idx').on(t.packageId)],
+);
+
+/** Learning progress of one account for one word; a row means "activated". */
+export const userVocab = sqliteTable(
+  'user_vocab',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    vocabId: integer('vocab_id')
+      .notNull()
+      .references(() => vocab.id, { onDelete: 'cascade' }),
     stage: integer('stage').notNull().default(1),
-    /** YYYY-MM-DD in the account's time zone; null while inactive or learned. */
+    /** YYYY-MM-DD in the account's time zone; null once learned. */
     dueDate: text('due_date'),
     learned: integer('learned', { mode: 'boolean' }).notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [
-    index('vocab_package_idx').on(t.packageId),
-    index('vocab_user_due_idx').on(t.userId, t.dueDate),
+    primaryKey({ columns: [t.userId, t.vocabId] }),
+    index('user_vocab_due_idx').on(t.userId, t.dueDate),
+    index('user_vocab_vocab_idx').on(t.vocabId),
   ],
 );
 
 const CARD_DIRECTIONS = ['foreign_native', 'native_foreign'] as const;
 
-/** Every answer, for the daily summary and statistics. */
+/** Every answer, for statistics. */
 export const attempts = sqliteTable(
   'attempts',
   {
@@ -186,14 +196,14 @@ export const providerConfigs = sqliteTable(
   (t) => [index('provider_configs_user_idx').on(t.userId)],
 );
 
-/** Provider and model per user and task (check, summary, vision). */
+/** Provider and model per task (check, vision); only the superuser's rows are used. */
 export const taskModels = sqliteTable(
   'task_models',
   {
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    task: text('task', { enum: ['check', 'summary', 'vision'] }).notNull(),
+    task: text('task', { enum: ['check', 'vision'] }).notNull(),
     providerId: integer('provider_id')
       .notNull()
       .references(() => providerConfigs.id, { onDelete: 'cascade' }),
@@ -211,7 +221,7 @@ export const latencySamples = sqliteTable(
     userId: integer('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    task: text('task', { enum: ['check', 'summary', 'vision', 'test'] }).notNull(),
+    task: text('task', { enum: ['check', 'vision', 'test'] }).notNull(),
     providerKind: text('provider_kind').notNull(),
     model: text('model').notNull(),
     ok: integer('ok', { mode: 'boolean' }).notNull(),
@@ -266,26 +276,11 @@ export const uploadPages = sqliteTable(
   (t) => [index('upload_pages_job_idx').on(t.jobId)],
 );
 
-/** Cached AI summary per user and day; regenerated when new answers were added. */
-export const dailySummaries = sqliteTable(
-  'daily_summaries',
-  {
-    userId: integer('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    day: text('day').notNull(),
-    /** Number of answers the text is based on. */
-    attempts: integer('attempts').notNull(),
-    text: text('text').notNull(),
-    createdAt: createdAt(),
-  },
-  (t) => [primaryKey({ columns: [t.userId, t.day] })],
-);
-
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Package = typeof packages.$inferSelect;
 export type Vocab = typeof vocab.$inferSelect;
+export type UserVocab = typeof userVocab.$inferSelect;
 export type Attempt = typeof attempts.$inferSelect;
 export type ProviderConfig = typeof providerConfigs.$inferSelect;
 export type UploadPage = typeof uploadPages.$inferSelect;
