@@ -165,8 +165,8 @@ Beim Start legt der Server den **Superuser** an, falls er fehlt: **`admin@wordfl
 - **KI-Einstellungen** (Anbieter, Modelle, Zeitlimit) stellt nur der Superuser ein. Sie gelten für alle.
 - **Datenbank sichern** (Einstellungen): Export als ZIP mit Datenbank, Fotos und `secrets.json`.
   Der Import ersetzt alle Daten; danach müssen sich alle neu anmelden.
-- **Update** (Einstellungen): Holt den neuesten Stand von GitHub (`rcode125/Phase-6-2.0`, Branch
-  `master`) und kopiert ihn über das Projekt. `data/`, `.env`, `node_modules/`, `.git/`, `release/`
+- **Update** (Einstellungen): Holt den neuesten Stand von GitHub (`justusvoelkle3141592654-ux/Phase-6-2.0`, Branch
+  `claude/new-session-uq36ca`) und kopiert ihn über das Projekt. `data/`, `.env`, `node_modules/`, `.git/`, `release/`
   und `apps/web/android/` bleiben unberührt. Bei geänderten Abhängigkeiten läuft `npm install`.
   Im Dev-Modus (`npm run dev`) lädt der Server danach selbst neu; mit `NODE_ENV=production` wird
   zusätzlich gebaut, dann den Dienst neu starten. Das Protokoll steht in `data/update.log`.

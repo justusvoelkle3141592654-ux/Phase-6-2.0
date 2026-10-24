@@ -20,8 +20,8 @@ import { deleteUser } from './auth';
 import { parseBody } from './parse';
 
 /** GitHub repository the update button installs from. */
-export const UPDATE_REPO = 'rcode125/Phase-6-2.0';
-export const UPDATE_BRANCH = 'master';
+export const UPDATE_REPO = 'justusvoelkle3141592654-ux/Phase-6-2.0';
+export const UPDATE_BRANCH = 'claude/new-session-uq36ca';
 
 export const MAX_BACKUP_BYTES = 1024 * 1024 * 1024;
 

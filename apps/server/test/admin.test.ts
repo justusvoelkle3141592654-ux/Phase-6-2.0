@@ -210,7 +210,9 @@ describe('Update', () => {
         available: true,
         running: false,
       });
-      expect(calls[0]).toBe('https://api.github.com/repos/rcode125/Phase-6-2.0/commits/master');
+      expect(calls[0]).toBe(
+        `https://api.github.com/repos/justusvoelkle3141592654-ux/Phase-6-2.0/commits/claude/new-session-uq36ca`,
+      );
 
       fs.writeFileSync(path.join(dir, 'update.json'), JSON.stringify({ sha: 'abc123' }));
       const second = (

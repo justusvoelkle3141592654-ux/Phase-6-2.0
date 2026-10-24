@@ -4,7 +4,7 @@
 // (POST /api/admin/update) as its own process, because the dev server reloads
 // while files are being replaced.
 //
-// Usage: node scripts/update.mjs --repo owner/name --branch master --root <project> --data <data dir>
+// Usage: node scripts/update.mjs --repo owner/name --branch <branch> --root <project> --data <data dir>
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -16,8 +16,8 @@ function arg(name, fallback) {
   return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
 }
 
-const repo = arg('repo', 'rcode125/Phase-6-2.0');
-const branch = arg('branch', 'master');
+const repo = arg('repo', 'justusvoelkle3141592654-ux/Phase-6-2.0');
+const branch = arg('branch', 'claude/new-session-uq36ca');
 const root = path.resolve(arg('root', path.join(import.meta.dirname, '..')));
 const dataDir = path.resolve(arg('data', path.join(root, 'data')));
 const lockFile = path.join(dataDir, 'update.lock');

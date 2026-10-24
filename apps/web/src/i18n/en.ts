@@ -439,7 +439,8 @@ export const en: Messages = {
     importHint: 'Importing replaces all data with the backup. Everyone has to sign in again.',
     importConfirm: 'Really import? All current data will be replaced by the backup.',
     updateTitle: 'Update',
-    updateIntro: 'Installs the latest version from GitHub (rcode125/Phase-6-2.0, branch master).',
+    updateIntro:
+      'Installs the latest version from GitHub (justusvoelkle3141592654-ux/Phase-6-2.0, branch claude/new-session-uq36ca).',
     versions: 'Installed: {current} · Latest: {latest}',
     upToDate: 'WordFlow is up to date.',
     updateAvailable: 'A new version is available.',

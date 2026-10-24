@@ -61,7 +61,7 @@ README.md        User‑facing documentation
 - **Shared packages**: `packages`/`vocab` have no owner; per-account learning progress lives in `user_vocab` (a row = activated). All accounts read packages; only the superuser writes them.
 - **AI setup** is global: `AiService` always uses the superuser's `provider_configs`/`task_models`.
 - **Migrations run with foreign keys off** (`runMigrations` in `db/index.ts`), because table rebuilds inside the migrator's transaction would otherwise cascade-delete rows. `drizzle-kit` in the repo (0.18) cannot `generate`; write migrations by hand (SQL + `meta/_journal.json`).
-- **Update button** runs `scripts/update.mjs` as a detached process (downloads `rcode125/Phase-6-2.0@master`, keeps `data/`, `.env`, `node_modules/`).
+- **Update button** runs `scripts/update.mjs` as a detached process (downloads `justusvoelkle3141592654-ux/Phase-6-2.0@claude/new-session-uq36ca`, keeps `data/`, `.env`, `node_modules/`).
 - **Offline mode**: set `OFFLINE_MODE=true` to also create a default account (`offline@local.test` / `offline`); `GET /api/auth/mode` lists all accounts (email + name) so the sign-in page can offer them; passwords are still checked.
 - **AI providers** are configured per account; the server stores encrypted API keys using `APP_SECRET` (generated if absent).
 - **Prettier** formatting is enforced via `npm run format`.
