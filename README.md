@@ -290,10 +290,13 @@ mit deinem WordFlow-Server; iOS gibt es nicht.
 - **Fertiges APK:** im Repository unter [`release/`](release/) (z. B. `release/WordFlow-1.0.0.apk`) und
   auf GitHub unter **Releases** (Tag `v1.0.0`). Herunterladen, auf dem Handy öffnen und die
   Installation aus „unbekannten Quellen“ erlauben.
-- **Automatisch gebaut:** Bei jedem Push, der die Oberfläche ändert, baut der Workflow
-  **Android-APK** (`.github/workflows/android.yml`) ein signiertes APK (Actions → Android-APK →
-  Lauf → Artifacts). Von Hand gestartet („Run workflow“ mit _publish_) legt er das APK zusätzlich
-  unter `release/` ab und aktualisiert das Release.
+- **Automatisch gebaut:** Der Workflow **Android-Release** (`.github/workflows/android-release.yml`)
+  baut ein signiertes APK, legt es als `release/WordFlow-<version>.apk` ins Repository und
+  veröffentlicht es als GitHub-Release. Er startet
+  - mit einem Tag, das mit `v` beginnt: `git tag v1.2.0 && git push origin v1.2.0`
+    (Version kommt aus dem Tag), oder
+  - von Hand unter Actions → Android-Release → **Run workflow** (Version eingeben oder leer lassen
+    für die Version aus `apps/web/package.json`).
 - **Updates:** Alle APKs sind mit demselben Schlüssel signiert (`apps/web/android/app/wordflow-release.keystore`),
   deshalb installiert sich eine neuere Version über die alte, die Daten bleiben erhalten. Der
   Schlüssel liegt im Repository – für den privaten Gebrauch in Ordnung, für eine

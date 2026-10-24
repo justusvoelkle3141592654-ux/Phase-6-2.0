@@ -1,0 +1,138 @@
+# Builds the signed Android APK, commits it to release/WordFlow-<version>.apk on the
+# default branch and publishes a GitHub release with the APK attached.
+#
+# Start it by pushing a tag like v1.2.0 (the version comes from the tag), or by hand
+# under Actions → Android-Release → Run workflow (the version comes from the input or,
+# if empty, from apps/web/package.json).
+name: Android-Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version, z. B. 1.2.0 (leer = Version aus apps/web/package.json)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+# Never run two releases at once; both would push to the same branch.
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Version bestimmen
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          elif [ -n "$INPUT_VERSION" ]; then
+            VERSION="${INPUT_VERSION#v}"
+          else
+            VERSION=$(node -p "require('./apps/web/package.json').version")
+          fi
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Ungültige Version '$VERSION' – erwartet wird z. B. 1.2.0 (Tag v1.2.0)."
+            exit 1
+          fi
+          IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
+          # Android needs a growing number for updates: 1.2.3 -> 10203.
+          CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "Version $VERSION (versionCode $CODE)"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Oberfläche bauen und ins Android-Projekt kopieren
+        run: npm run android:sync
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Version ins Android-Projekt schreiben
+        working-directory: apps/web/android/app
+        run: |
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ steps.version.outputs.code }}/" build.gradle
+          sed -i -E "s/versionName \"[^\"]*\"/versionName \"${{ steps.version.outputs.version }}\"/" build.gradle
+          grep -E "versionCode|versionName" build.gradle
+
+      # ubuntu-latest brings the Android SDK (ANDROID_HOME is set).
+      - name: APK bauen
+        working-directory: apps/web/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: APK benennen
+        id: apk
+        run: |
+          FILE="WordFlow-${{ steps.version.outputs.version }}.apk"
+          mkdir -p "$RUNNER_TEMP/out"
+          cp apps/web/android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/out/$FILE"
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+          echo "path=$RUNNER_TEMP/out/$FILE" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WordFlow-${{ steps.version.outputs.version }}-apk
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+
+      # A tag points at a commit, not a branch: commit the APK to the default branch then.
+      - name: APK ins Repository legen
+        env:
+          BRANCH: ${{ github.ref_type == 'tag' && github.event.repository.default_branch || github.ref_name }}
+        run: |
+          git checkout -- .
+          git fetch origin "$BRANCH"
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+          mkdir -p release
+          rm -f release/*.apk
+          cp "${{ steps.apk.outputs.path }}" release/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A release
+          if git diff --cached --quiet; then
+            echo "APK unverändert"
+          else
+            git commit -m "APK ${{ steps.version.outputs.version }} gebaut"
+            git push origin "HEAD:$BRANCH"
+          fi
+
+      - name: Release veröffentlichen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
+          FILE: ${{ steps.apk.outputs.path }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --clobber
+          else
+            gh release create "$TAG" "$FILE" --target "$(git rev-parse HEAD)" \
+              --title "WordFlow $VERSION" \
+              --notes "Android-App (APK) für WordFlow. Herunterladen, auf dem Handy öffnen und die Installation erlauben."
+          fi
