@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
-import type { AnswerResult, LearnCard, PackageDto } from '@wordflow/shared';
-import { mockApi, renderApp, USER } from './utils';
+import type { AnswerResult, LearnCard, PackageDto, UserSettings } from '@wordflow/shared';
+import { mockApi, renderApp, SETTINGS, USER } from './utils';
 
 beforeEach(() => localStorage.clear());
 afterEach(() => {
@@ -43,9 +43,13 @@ function result(correct: boolean, extra: Partial<AnswerResult> = {}): AnswerResu
   };
 }
 
-function api(answer: (body: Record<string, unknown>) => AnswerResult) {
+function api(
+  answer: (body: Record<string, unknown>) => AnswerResult,
+  settings: Partial<UserSettings> = {},
+) {
   return mockApi({
     'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+    'GET /settings': () => ({ status: 200, body: { settings: { ...SETTINGS, ...settings } } }),
     'GET /packages': () => ({ status: 200, body: { packages: [PKG] } }),
     'GET /learn/cards': () => ({ status: 200, body: { cards: CARDS } }),
     'GET /learn/cards?packageId=1': () => ({ status: 200, body: { cards: CARDS } }),
@@ -170,6 +174,37 @@ describe('Lernen', () => {
     ).toBeTruthy();
     await vi.advanceTimersByTimeAsync(1500);
     expect(await screen.findByText('Karte 2 von 2')).toBeTruthy();
+    vi.useRealTimers();
+  });
+
+  it('nutzt die eingestellten Wartezeiten (Tippfehler, falsch)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let n = 0;
+    api(
+      () =>
+        ++n === 1
+          ? result(true, { decidedBy: 'typo', typoOf: 'freund' })
+          : result(false, { decidedBy: 'local' }),
+      { autoNextTypoMs: 4000, autoNextWrongMs: 3000 },
+    );
+    await start();
+    fireEvent.change(screen.getByLabelText('Deine Übersetzung (optional)'), {
+      target: { value: 'Fruend' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
+    await screen.findByText('Richtig – kleiner Tippfehler. Schreibweise: freund');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(screen.queryByText('Karte 2 von 2')).toBeNull();
+    await vi.advanceTimersByTimeAsync(2500);
+    expect(await screen.findByText('Karte 2 von 2')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Deine Übersetzung (optional)'), {
+      target: { value: 'Frieden' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
+    expect(await screen.findByText('Falsch')).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(3500);
+    expect(await screen.findByText('Karte 3 von 3')).toBeTruthy();
     vi.useRealTimers();
   });
 });

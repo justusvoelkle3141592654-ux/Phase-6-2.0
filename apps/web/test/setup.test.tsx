@@ -125,7 +125,7 @@ describe('Einrichtungsassistent', () => {
     await next();
 
     await expectStep(8, 'Zeitlimit der KI-Prüfung');
-    fireEvent.change(screen.getByLabelText('Zeitlimit'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Zeitlimit'), { target: { value: '3000' } });
     await next();
 
     await expectStep(9, 'Lernen');

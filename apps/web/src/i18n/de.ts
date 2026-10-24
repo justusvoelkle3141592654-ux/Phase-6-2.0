@@ -386,6 +386,13 @@ export const de = {
     seconds: 'Sekunden',
     timeout: 'Zeitlimit',
     timeoutHint: 'Zwischen 0,5 und 30 Sekunden. Standard: 2 Sekunden.',
+    autoNextLegend: 'Nächste Karte nach einer getippten Antwort',
+    autoNextCorrect: 'Richtig',
+    autoNextTypo: 'Tippfehler (halb falsch)',
+    autoNextWrong: 'Falsch',
+    autoNextOff: 'Aus',
+    autoNextHint:
+      'Wie lange die Lösung sichtbar bleibt, bevor die nächste Karte kommt. „Aus“ wartet, bis du „Weiter“ drückst.',
     intervals: 'Intervalle',
     intervalsLegend: 'Intervalle (in Tagen)',
     stage: 'Stufe {n}',

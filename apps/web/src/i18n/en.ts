@@ -379,6 +379,13 @@ export const en: Messages = {
     seconds: 'seconds',
     timeout: 'Time limit',
     timeoutHint: 'Between 0.5 and 30 seconds. Default: 2 seconds.',
+    autoNextLegend: 'Next card after a typed answer',
+    autoNextCorrect: 'Correct',
+    autoNextTypo: 'Typo (half wrong)',
+    autoNextWrong: 'Wrong',
+    autoNextOff: 'Off',
+    autoNextHint:
+      'How long the solution stays visible before the next card appears. “Off” waits until you press “Next”.',
     intervals: 'Intervals',
     intervalsLegend: 'Intervals (in days)',
     stage: 'Stage {n}',
