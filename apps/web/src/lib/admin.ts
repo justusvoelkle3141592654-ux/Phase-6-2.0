@@ -3,6 +3,7 @@ import type {
   AdminCreateUserInput,
   AdminUpdateUserInput,
   AdminUserDto,
+  UpdateSourceInput,
   UpdateStatusDto,
 } from '@wordflow/shared';
 import { api, apiFetch, ApiError } from './api';
@@ -95,6 +96,19 @@ export function useUpdateStatus() {
     queryKey: UPDATE_KEY,
     queryFn: () => api<UpdateStatusDto>('/admin/update'),
     refetchInterval: (q) => (q.state.data?.running ? 2000 : false),
+  });
+}
+
+/** Saves repository, branch and optionally the GitHub token of the update. */
+export function useSaveUpdateSource() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateSourceInput) =>
+      api<{ repo: string; branch: string; hasToken: boolean }>('/admin/update/source', {
+        method: 'PUT',
+        body: input,
+      }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: UPDATE_KEY }),
   });
 }
 

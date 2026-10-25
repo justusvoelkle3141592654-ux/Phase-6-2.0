@@ -211,8 +211,11 @@ Beim Start legt der Server den **Superuser** an, falls er fehlt: **`admin@wordfl
 - **KI-Einstellungen** (APIs, Modelle, Zeitlimit) stellt nur der Superuser ein. Sie gelten für alle.
 - **Datenbank sichern** (Einstellungen): Export als ZIP mit Datenbank, Fotos und `secrets.json`.
   Der Import ersetzt alle Daten; danach müssen sich alle neu anmelden.
-- **Update** (Einstellungen): Holt den neuesten Stand von GitHub (`rcode125/Phase-6-2.0`, Branch
-  `claude/new-session-uq36ca`, privat: braucht `GITHUB_TOKEN` in `.env`) und kopiert ihn über das Projekt. `data/`, `.env`, `node_modules/`, `.git/`, `release/`
+- **Update** (Einstellungen): Holt den neuesten Stand von GitHub (Standard: `rcode125/Phase-6-2.0`, Branch
+  `claude/new-session-uq36ca`, privat: braucht `GITHUB_TOKEN` in `.env`) und kopiert ihn über das Projekt.
+  Repository (`owner/name` oder GitHub-Adresse), Branch und Token lassen sich unter **Quelle** ändern:
+  Repository/Branch landen in `data/update-source.json`, der Token als `GITHUB_TOKEN` in `.env`
+  (chmod 600, wie `./einrichten.sh token`). Der Token wird nie wieder angezeigt, nur „gespeichert“. `data/`, `.env`, `node_modules/`, `.git/`, `release/`
   und `apps/web/android/` bleiben unberührt. Bei geänderten Abhängigkeiten läuft `npm install`.
   Im Dev-Modus (`npm run dev`) lädt der Server danach selbst neu; mit `NODE_ENV=production` wird
   zusätzlich gebaut, dann den Dienst neu starten. Das Protokoll steht in `data/update.log`.

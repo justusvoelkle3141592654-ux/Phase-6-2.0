@@ -23,6 +23,8 @@ export interface AppConfig {
   logLevel: string;
   /** Read access token for the private GitHub repository of the update button. */
   githubToken?: string | null;
+  /** .env file the token from the update settings is written to. */
+  envFile?: string;
   /** For tests: fetch used by the update check instead of the real network. */
   updateFetch?: typeof fetch;
 }
@@ -66,5 +68,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     corsOrigins: [...APP_ORIGINS, ...parseList(env.CORS_ORIGINS)],
     logLevel: env.LOG_LEVEL ?? 'info',
     githubToken: env.GITHUB_TOKEN || null,
+    envFile: env.ENV_FILE ?? path.join(REPO_ROOT, '.env'),
   };
 }

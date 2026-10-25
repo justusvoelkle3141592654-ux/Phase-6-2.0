@@ -93,7 +93,45 @@ export interface AdminUserDto {
   createdAt: string;
 }
 
+/**
+ * Superuser: GitHub source of the update button. The repository may be given as
+ * `owner/name` or as a GitHub URL (`https://github.com/owner/name(.git)`).
+ */
+export const updateSourceSchema = z.object({
+  repo: z
+    .string()
+    .trim()
+    .transform((v) =>
+      v
+        .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
+        .replace(/\.git$/i, '')
+        .replace(/\/+$/, ''),
+    )
+    .pipe(z.string().regex(/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/)),
+  branch: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .regex(/^[A-Za-z0-9._\/-]+$/)
+    .refine((v) => !v.includes('..') && !v.startsWith('/') && !v.endsWith('/')),
+  /** GitHub read token: left out = keep, empty = remove. */
+  token: z
+    .string()
+    .trim()
+    .max(255)
+    .regex(/^[A-Za-z0-9_]*$/)
+    .optional(),
+});
+export type UpdateSourceInput = z.input<typeof updateSourceSchema>;
+export type UpdateSource = Omit<z.output<typeof updateSourceSchema>, 'token'>;
+
 export interface UpdateStatusDto {
+  /** GitHub repository (owner/name) and branch the update installs from. */
+  repo: string;
+  branch: string;
+  /** A GitHub token is stored (the token itself is never sent). */
+  hasToken: boolean;
   /** Commit the installed code came from; null if never updated via the app. */
   current: string | null;
   latest: string | null;

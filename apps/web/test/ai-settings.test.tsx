@@ -34,7 +34,20 @@ function api(providers: object[] = [POLLINATIONS], user = ADMIN) {
     'GET /admin/users': () => ({ status: 200, body: { users: [] } }),
     'GET /admin/update': () => ({
       status: 200,
-      body: { current: null, latest: 'abc1234def', available: true, running: false, log: '' },
+      body: {
+        repo: 'rcode125/Phase-6-2.0',
+        branch: 'claude/new-session-uq36ca',
+        hasToken: true,
+        current: null,
+        latest: 'abc1234def',
+        available: true,
+        running: false,
+        log: '',
+      },
+    }),
+    'PUT /admin/update/source': (body) => ({
+      status: 200,
+      body: { ...(body as object), hasToken: true },
     }),
     'GET /settings': () => ({ status: 200, body: { settings: SETTINGS } }),
     'GET /ai/config': () => ({
@@ -82,7 +95,7 @@ describe('KI-Einstellungen', () => {
   });
 
   it('der Superuser sieht Accounts, Backup und Update in eigenen Tabs', async () => {
-    api();
+    const calls = api();
     renderApp('/settings');
     expect((await screen.findAllByRole('tab')).map((t) => t.textContent)).toEqual([
       'Account',
@@ -100,6 +113,24 @@ describe('KI-Einstellungen', () => {
     expect(screen.getByRole('button', { name: /Exportieren/ })).toBeTruthy();
     expect(await screen.findByText('Eine neue Version ist verfügbar.')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Aktualisieren/ })).toBeTruthy();
+
+    // Repository, branch and token can be changed; the token is never shown.
+    const repo = screen.getByLabelText('Repository') as HTMLInputElement;
+    expect(repo.value).toBe('rcode125/Phase-6-2.0');
+    expect((screen.getByLabelText('GitHub-Token') as HTMLInputElement).value).toBe('');
+    expect(screen.getByText(/Ein Token ist gespeichert/)).toBeTruthy();
+    fireEvent.change(repo, { target: { value: 'https://github.com/me/fork' } });
+    fireEvent.change(screen.getByLabelText('Branch'), { target: { value: 'main' } });
+    fireEvent.change(screen.getByLabelText('GitHub-Token'), {
+      target: { value: 'github_pat_neu' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    expect(await screen.findByText('Gespeichert.')).toBeTruthy();
+    expect(calls.find((c) => c.key === 'PUT /admin/update/source')?.body).toEqual({
+      repo: 'https://github.com/me/fork',
+      branch: 'main',
+      token: 'github_pat_neu',
+    });
   });
 
   it('zeigt Schlüssel nur als Hinweis', async () => {

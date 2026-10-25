@@ -105,6 +105,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
         repoRoot: REPO_ROOT,
         afterRestore,
         githubToken: config.githubToken,
+        envFile: config.envFile,
         fetchImpl: config.updateFetch,
       });
       await api.register(uploadRoutes, { db, ai, dataDir: config.dataDir });

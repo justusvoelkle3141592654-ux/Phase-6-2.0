@@ -18,7 +18,7 @@ afterEach(async () => {
 });
 
 function req(
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   url: string,
   payload?: object,
   h = headers,
@@ -91,6 +91,10 @@ describe('Accountverwaltung', () => {
     expect((await req('GET', '/admin/backup', undefined, bob)).statusCode).toBe(403);
     expect((await req('GET', '/admin/update', undefined, bob)).statusCode).toBe(403);
     expect((await req('POST', '/admin/update', undefined, bob)).statusCode).toBe(403);
+    expect(
+      (await req('PUT', '/admin/update/source', { repo: 'a/b', branch: 'x', token: 'y' }, bob))
+        .statusCode,
+    ).toBe(403);
     expect((await req('GET', '/admin/users', undefined, { origin: ORIGIN })).statusCode).toBe(401);
   });
 });
@@ -200,6 +204,7 @@ describe('Update', () => {
       dbFile: ':memory:',
       appSecret: 'x',
       githubToken: 'github_pat_test',
+      envFile: path.join(dir, '.env'),
       updateFetch: fetchImpl,
     });
     try {
@@ -223,6 +228,71 @@ describe('Update', () => {
         await updApp.inject({ method: 'GET', url: '/api/admin/update', headers: h })
       ).json();
       expect(second).toMatchObject({ current: 'abc123', available: false });
+    } finally {
+      await updApp.close();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('speichert Repository, Branch und Token aus der Oberfläche', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wordflow-update-'));
+    const envFile = path.join(dir, '.env');
+    fs.writeFileSync(envFile, 'PORT=3000\nGITHUB_TOKEN=old\n');
+    const calls: string[] = [];
+    const auth: (string | undefined)[] = [];
+    const fetchImpl = (async (url: string, init?: RequestInit) => {
+      calls.push(String(url));
+      auth.push((init?.headers as Record<string, string> | undefined)?.Authorization);
+      return new Response(JSON.stringify({ sha: 'def456' }), { status: 200 });
+    }) as typeof fetch;
+    const { buildApp } = await import('../src/app');
+    const { loadConfig } = await import('../src/config');
+    const updApp = await buildApp({
+      ...loadConfig({}),
+      logLevel: 'silent',
+      webDist: null,
+      dataDir: dir,
+      dbFile: ':memory:',
+      appSecret: 'x',
+      githubToken: 'old',
+      envFile,
+      updateFetch: fetchImpl,
+    });
+    try {
+      const h = await adminHeaders(updApp);
+      const put = (body: object) =>
+        updApp.inject({
+          method: 'PUT',
+          url: '/api/admin/update/source',
+          headers: h,
+          payload: body,
+        });
+
+      expect((await put({ repo: 'kein repo', branch: 'main' })).statusCode).toBe(400);
+      expect((await put({ repo: 'a/b', branch: '../x' })).statusCode).toBe(400);
+      expect((await put({ repo: 'a/b', branch: 'main', token: 'a\nb' })).statusCode).toBe(400);
+
+      // GitHub address is normalised; no token field keeps the stored token.
+      const saved = await put({ repo: 'https://github.com/me/fork.git', branch: 'dev/x' });
+      expect(saved.json()).toEqual({ repo: 'me/fork', branch: 'dev/x', hasToken: true });
+      expect(fs.readFileSync(envFile, 'utf8')).toBe('PORT=3000\nGITHUB_TOKEN=old\n');
+
+      await put({ repo: 'me/fork', branch: 'dev/x', token: 'github_pat_new' });
+      expect(fs.readFileSync(envFile, 'utf8')).toBe('PORT=3000\nGITHUB_TOKEN=github_pat_new\n');
+      expect(fs.statSync(envFile).mode & 0o777).toBe(0o600);
+
+      const status = (
+        await updApp.inject({ method: 'GET', url: '/api/admin/update', headers: h })
+      ).json();
+      expect(status).toMatchObject({ repo: 'me/fork', branch: 'dev/x', hasToken: true });
+      expect(JSON.stringify(status)).not.toContain('github_pat_new');
+      expect(calls.at(-1)).toBe('https://api.github.com/repos/me/fork/commits/dev/x');
+      expect(auth.at(-1)).toBe('Bearer github_pat_new');
+
+      // Empty token removes it.
+      const removed = await put({ repo: 'me/fork', branch: 'dev/x', token: '' });
+      expect(removed.json()).toMatchObject({ hasToken: false });
+      expect(fs.readFileSync(envFile, 'utf8')).toBe('PORT=3000\n');
     } finally {
       await updApp.close();
       fs.rmSync(dir, { recursive: true, force: true });

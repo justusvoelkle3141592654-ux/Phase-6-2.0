@@ -10,7 +10,9 @@ import {
   adminCreateUserSchema,
   adminUpdateUserSchema,
   type AdminUserDto,
+  type UpdateSource,
   type UpdateStatusDto,
+  updateSourceSchema,
 } from '@wordflow/shared';
 import { runMigrations, type Db } from '../db';
 import { sessions, users, type User } from '../db/schema';
@@ -19,7 +21,7 @@ import { deleteOtherSessions } from '../auth/sessions';
 import { deleteUser } from './auth';
 import { parseBody } from './parse';
 
-/** GitHub repository the update button installs from (private: needs GITHUB_TOKEN). */
+/** Default GitHub source of the update button (private: needs GITHUB_TOKEN); changeable in the UI. */
 export const UPDATE_REPO = 'rcode125/Phase-6-2.0';
 export const UPDATE_BRANCH = 'claude/new-session-uq36ca';
 
@@ -35,6 +37,8 @@ export interface AdminOptions {
   afterRestore: () => Promise<void>;
   /** Read access token for the private update repository. */
   githubToken?: string | null;
+  /** .env file a changed token is saved to (like `./einrichten.sh token`). */
+  envFile?: string;
   /** For tests: fetch used to ask GitHub for the latest commit. */
   fetchImpl?: typeof fetch;
 }
@@ -63,6 +67,22 @@ function readJson<T>(file: string): T | null {
   }
 }
 
+/** Replaces or appends `KEY=value` in an env file (empty value removes the line); mode 600. */
+function writeEnvValue(file: string, key: string, value: string): void {
+  let lines: string[] = [];
+  try {
+    lines = fs.readFileSync(file, 'utf8').split('\n');
+  } catch {
+    // no file yet
+  }
+  lines = lines.filter((l) => !l.startsWith(`${key}=`));
+  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+  if (value) lines.push(`${key}=${value}`);
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, lines.length > 0 ? lines.join('\n') + '\n' : '', { mode: 0o600 });
+  fs.renameSync(tmp, file);
+}
+
 function tail(file: string, lines = 30): string {
   try {
     return fs.readFileSync(file, 'utf8').trimEnd().split('\n').slice(-lines).join('\n');
@@ -82,7 +102,16 @@ function processAlive(pid: number): boolean {
 
 export const adminRoutes: FastifyPluginAsync<AdminOptions> = async (
   app,
-  { db, dataDir, dbFile, repoRoot, afterRestore, githubToken, fetchImpl = fetch },
+  {
+    db,
+    dataDir,
+    dbFile,
+    repoRoot,
+    afterRestore,
+    githubToken: initialToken,
+    envFile = path.join(repoRoot, '.env'),
+    fetchImpl = fetch,
+  },
 ) => {
   app.addHook('preHandler', app.requireAdmin);
 
@@ -258,6 +287,17 @@ export const adminRoutes: FastifyPluginAsync<AdminOptions> = async (
   const stateFile = path.join(dataDir, 'update.json');
   const lockFile = path.join(dataDir, 'update.lock');
   const logFile = path.join(dataDir, 'update.log');
+  const sourceFile = path.join(dataDir, 'update-source.json');
+
+  let githubToken = initialToken || null;
+
+  /** Repository and branch from data/update-source.json, otherwise the defaults. */
+  function source(): UpdateSource {
+    const parsed = updateSourceSchema.safeParse(readJson(sourceFile));
+    return parsed.success
+      ? { repo: parsed.data.repo, branch: parsed.data.branch }
+      : { repo: UPDATE_REPO, branch: UPDATE_BRANCH };
+  }
 
   function running(): boolean {
     const lock = readJson<{ pid: number }>(lockFile);
@@ -266,7 +306,11 @@ export const adminRoutes: FastifyPluginAsync<AdminOptions> = async (
 
   app.get('/admin/update', async (): Promise<UpdateStatusDto> => {
     const current = readJson<{ sha: string }>(stateFile)?.sha ?? null;
+    const { repo, branch } = source();
     const status: UpdateStatusDto = {
+      repo,
+      branch,
+      hasToken: !!githubToken,
       current,
       latest: null,
       available: false,
@@ -274,20 +318,17 @@ export const adminRoutes: FastifyPluginAsync<AdminOptions> = async (
       log: tail(logFile),
     };
     try {
-      const res = await fetchImpl(
-        `https://api.github.com/repos/${UPDATE_REPO}/commits/${UPDATE_BRANCH}`,
-        {
-          headers: {
-            Accept: 'application/vnd.github+json',
-            'User-Agent': 'WordFlow-Updater',
-            ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
-          },
-          signal: AbortSignal.timeout(10_000),
+      const res = await fetchImpl(`https://api.github.com/repos/${repo}/commits/${branch}`, {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'WordFlow-Updater',
+          ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
         },
-      );
+        signal: AbortSignal.timeout(10_000),
+      });
       if (res.status === 401) throw new Error('GitHub: Zugangs-Token ungültig (GITHUB_TOKEN)');
       if (res.status === 404 && !githubToken)
-        throw new Error('GitHub: kein Zugangs-Token (GITHUB_TOKEN in .env, ./einrichten.sh token)');
+        throw new Error('GitHub: kein Zugangs-Token (unten eintragen oder ./einrichten.sh token)');
       if (!res.ok) throw new Error(`GitHub: HTTP ${res.status}`);
       const body = (await res.json()) as { sha?: string };
       status.latest = body.sha ?? null;
@@ -296,6 +337,21 @@ export const adminRoutes: FastifyPluginAsync<AdminOptions> = async (
       status.error = err instanceof Error ? err.message : 'unknown';
     }
     return status;
+  });
+
+  /** Changes the repository, branch and (optionally) the GitHub token of the update. */
+  app.put('/admin/update/source', async (request, reply) => {
+    const input = parseBody(updateSourceSchema, request.body, reply);
+    if (!input) return reply;
+    if (running()) return reply.code(409).send({ error: 'validation_error' });
+    const { token, ...src } = input;
+    await fs.promises.mkdir(dataDir, { recursive: true });
+    fs.writeFileSync(sourceFile, JSON.stringify(src) + '\n');
+    if (token !== undefined) {
+      writeEnvValue(envFile, 'GITHUB_TOKEN', token);
+      githubToken = token || null;
+    }
+    return { ...src, hasToken: !!githubToken };
   });
 
   /**
@@ -307,25 +363,16 @@ export const adminRoutes: FastifyPluginAsync<AdminOptions> = async (
     const script = path.join(repoRoot, 'scripts', 'update.mjs');
     if (!fs.existsSync(script)) return reply.code(500).send({ error: 'internal_error' });
     await fs.promises.mkdir(dataDir, { recursive: true });
+    const { repo, branch } = source();
     const log = fs.openSync(logFile, 'w');
     const child = spawn(
       process.execPath,
-      [
-        script,
-        '--repo',
-        UPDATE_REPO,
-        '--branch',
-        UPDATE_BRANCH,
-        '--root',
-        repoRoot,
-        '--data',
-        dataDir,
-      ],
+      [script, '--repo', repo, '--branch', branch, '--root', repoRoot, '--data', dataDir],
       {
         cwd: repoRoot,
         detached: true,
         stdio: ['ignore', log, log],
-        env: githubToken ? { ...process.env, GITHUB_TOKEN: githubToken } : process.env,
+        env: { ...process.env, GITHUB_TOKEN: githubToken ?? '' },
       },
     );
     fs.closeSync(log);
