@@ -3,18 +3,15 @@ import { useI18n } from '../i18n';
 import { useMe } from '../lib/auth';
 import { errorMessage } from '../lib/errors';
 import { AuthPage } from '../pages/AuthPage';
-import { SetupWizard } from '../pages/SetupWizard';
 import { ServerSetupPage } from '../pages/ServerSetupPage';
 import { getServerUrl, isApp } from '../lib/platform';
-import { useReminderSync } from '../lib/reminders';
 
-/** Shows the sign-in page until a user is signed in, then the setup until it is completed. */
+/** Shows the sign-in page until a user is signed in. */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { m, setLang } = useI18n();
   const me = useMe();
   const uiLanguage = me.data?.uiLanguage;
   const [serverSetup, setServerSetup] = useState(isApp && !getServerUrl());
-  useReminderSync(Boolean(me.data?.setupCompleted));
 
   // The account's language wins over the one stored in this browser.
   useEffect(() => {
@@ -48,6 +45,5 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
   if (!me.data) return <AuthPage onChangeServer={isApp ? () => setServerSetup(true) : undefined} />;
-  if (!me.data.setupCompleted) return <SetupWizard user={me.data} />;
   return <>{children}</>;
 }

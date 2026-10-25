@@ -10,6 +10,7 @@ import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';
 import { languageName } from '../lib/languages';
 import { useDueCards, warmUp } from '../lib/learn';
+import { useOverview } from '../lib/overview';
 import { usePackages } from '../lib/packages';
 import {
   changeDirection,
@@ -141,6 +142,7 @@ export function LearnPage() {
   const { m } = useI18n();
   const [params, setParams] = useSearchParams();
   const packages = usePackages();
+  const overview = useOverview();
   const [choice, setChoice] = useState<DirectionChoice>('package');
   const [session, setSession] = useState<SessionState | null>(null);
   const [starting, setStarting] = useState<{ packageId: number | null } | null>(() => {
@@ -172,7 +174,10 @@ export function LearnPage() {
   }
 
   const due = (packages.data ?? []).filter((p) => p.counts.due > 0);
-  const total = due.reduce((sum, p) => sum + p.counts.due, 0);
+  const dueAll = due.reduce((sum, p) => sum + p.counts.due, 0);
+  // Due words within the daily limit.
+  const total = Math.min(dueAll, overview.data?.due ?? dueAll);
+  const limitReached = dueAll > 0 && total === 0;
 
   return (
     <>
@@ -183,6 +188,10 @@ export function LearnPage() {
         </p>
       ) : packages.isError ? (
         <Notice tone="error">{errorMessage(m, packages.error)}</Notice>
+      ) : limitReached ? (
+        <EmptyState>
+          {fill(m.learn.limitReached, { n: overview.data?.dailyLimit ?? 0 })} {m.learn.limitHint}
+        </EmptyState>
       ) : total === 0 ? (
         <EmptyState
           action={

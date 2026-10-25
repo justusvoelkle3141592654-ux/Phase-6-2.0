@@ -11,7 +11,7 @@ import { openDatabase } from './db';
 import { loadSecrets } from './secrets';
 import { authPlugin } from './auth/plugin';
 import { deleteExpiredSessions } from './auth/sessions';
-import { authRoutes, ensureOfflineUser, ensureSuperuser } from './routes/auth';
+import { authRoutes, ensureSuperuser } from './routes/auth';
 import { adminRoutes } from './routes/admin';
 import { healthRoutes } from './routes/health';
 import { settingsRoutes } from './routes/settings';
@@ -19,7 +19,7 @@ import { packageRoutes } from './routes/packages';
 import { learnRoutes } from './routes/learn';
 import { aiRoutes } from './routes/ai';
 import { overviewRoutes } from './routes/overview';
-import { adoptPackagePhotos, MAX_PHOTO_BYTES, MAX_PHOTOS, uploadRoutes } from './routes/uploads';
+import { MAX_PHOTO_BYTES, MAX_PHOTOS, uploadRoutes } from './routes/uploads';
 import { AiService } from './ai/service';
 import { aiCheckFor } from './learn/ai-check';
 
@@ -39,22 +39,14 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
       `Neue Schlüssel erzeugt und in ${path.join(config.dataDir, 'secrets.json')} gespeichert.`,
     );
   }
-  if (config.offlineMode) {
-    app.log.info('Offline-Modus aktiv: Ein Standard-Account wird ohne Registrierung gestartet.');
-  }
 
   const dbFile = config.dbFile ?? path.join(config.dataDir, 'wordflow.db');
   const db = openDatabase(dbFile);
   deleteExpiredSessions(db);
-  const superuser = await ensureSuperuser(db);
-  await adoptPackagePhotos(db, config.dataDir, superuser.id);
-  if (config.offlineMode) {
-    await ensureOfflineUser(db);
-  }
+  await ensureSuperuser(db);
   const ai = new AiService(db, secrets.appSecret);
   const afterRestore = async () => {
-    const admin = await ensureSuperuser(db);
-    await adoptPackagePhotos(db, config.dataDir, admin.id);
+    await ensureSuperuser(db);
     const restored = loadSecrets(config.dataDir, {
       registrationCode: config.registrationCode,
       appSecret: config.appSecret,
@@ -93,11 +85,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   await app.register(
     async (api) => {
       await api.register(healthRoutes);
-      await api.register(authRoutes, {
-        db,
-        offlineMode: config.offlineMode,
-        dataDir: config.dataDir,
-      });
+      await api.register(authRoutes, { db, dataDir: config.dataDir });
       await api.register(settingsRoutes, { db });
       await api.register(packageRoutes, { db });
       await api.register(learnRoutes, {

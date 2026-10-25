@@ -112,7 +112,6 @@ export interface UserDto {
   role: UserRole;
   uiLanguage: (typeof UI_LANGUAGES)[number];
   timezone: string;
-  setupCompleted: boolean;
 }
 
 export interface AuthResponse {

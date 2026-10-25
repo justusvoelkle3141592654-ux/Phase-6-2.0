@@ -116,18 +116,39 @@ describe('Startseite', () => {
   });
 });
 
-describe('Fälligkeiten der nächsten Tage (Erinnerungen)', () => {
-  it('zählt Fällige je Tag für 30 Tage, Überfällige inklusive', async () => {
-    const [a, b] = await seed();
-    await answer(a!, { answer: 'Freund' }); // stage 2, due in 5 days
-    const days = (await get('/overview/due-days')).json().days as Array<{
-      day: string;
-      count: number;
-    }>;
-    expect(days).toHaveLength(30);
-    expect(days[0]!.count).toBe(1); // bellum today
-    expect(days[4]!.count).toBe(1);
-    expect(days[5]!.count).toBe(2); // amicus again after 5 days
-    expect(b).toBeDefined();
+describe('Morgen fällig und Tageslimit', () => {
+  it('zählt die Vokabeln, die morgen fällig werden', async () => {
+    const [a] = await seed();
+    await app.inject({
+      method: 'PATCH',
+      url: '/api/settings',
+      headers,
+      payload: { intervals: [1, 10, 20, 40, 80] },
+    });
+    expect((await get('/overview')).json().dueTomorrow).toBe(0);
+    await answer(a!, { answer: 'Freund' }); // stage 2, due tomorrow
+    expect((await get('/overview')).json()).toMatchObject({ due: 1, dueTomorrow: 1 });
+  });
+
+  it('begrenzt die heute lernbaren Vokabeln; schon abgefragte dürfen wiederkommen', async () => {
+    const [a, b, c] = await seed();
+    await app.inject({ method: 'POST', url: `/api/vocab/${c}/activate`, headers });
+    await app.inject({
+      method: 'PATCH',
+      url: '/api/settings',
+      headers,
+      payload: { dailyLimit: 2 },
+    });
+    let o = (await get('/overview')).json();
+    expect(o).toMatchObject({ due: 2, dueAll: 3, dailyLimit: 2 });
+    expect((await get('/learn/cards')).json().cards).toHaveLength(2);
+
+    await answer(a!, { answer: 'Freund' }); // right: not due any more
+    await answer(b!, { answer: 'Frieden' }); // wrong: due again today
+    o = (await get('/overview')).json();
+    // Limit reached: only the wrong word may come again, the third stays for later.
+    expect(o).toMatchObject({ due: 1, dueAll: 2 });
+    const cards = (await get('/learn/cards')).json().cards as Array<{ vocabId: number }>;
+    expect(cards.map((card) => card.vocabId)).toEqual([b]);
   });
 });

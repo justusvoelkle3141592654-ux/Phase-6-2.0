@@ -4,6 +4,8 @@ import { useI18n } from '../../i18n';
 import { useModels } from '../../lib/ai';
 import { providerErrorOf, ProviderErrorNotice } from './ProviderError';
 
+const NEW_PROVIDER = 'new';
+
 export type TaskModelValue = Pick<TaskModelDto, 'providerId' | 'model' | 'reasoning'>;
 
 /**
@@ -16,13 +18,16 @@ export function TaskModelPicker({
   value,
   onChange,
   fixedProvider,
+  onAddProvider,
 }: {
   task: AiTask;
   providers: ProviderDto[];
   value: TaskModelValue | null;
   onChange: (value: TaskModelValue) => void;
-  /** Hide the provider select (the wizard chose it one step earlier). */
+  /** Hide the provider select. */
   fixedProvider?: boolean;
+  /** Offers "new API" in the provider select. */
+  onAddProvider?: () => void;
 }) {
   const { m } = useI18n();
   const id = useId();
@@ -58,15 +63,17 @@ export function TaskModelPicker({
             id={`${id}-provider`}
             className="field"
             value={providerId ?? ''}
-            onChange={(e) =>
-              onChange({ providerId: Number(e.target.value), model: '', reasoning: null })
-            }
+            onChange={(e) => {
+              if (e.target.value === NEW_PROVIDER) onAddProvider?.();
+              else onChange({ providerId: Number(e.target.value), model: '', reasoning: null });
+            }}
           >
             {providers.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
             ))}
+            {onAddProvider && <option value={NEW_PROVIDER}>{m.ai.newProvider}</option>}
           </select>
         </div>
       )}

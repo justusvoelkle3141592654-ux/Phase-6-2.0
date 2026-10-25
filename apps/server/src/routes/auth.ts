@@ -26,32 +26,11 @@ export function toUserDto(user: User): UserDto {
     role: user.role,
     uiLanguage: user.uiLanguage,
     timezone: user.timezone,
-    setupCompleted: user.setupCompleted,
   };
 }
 
 /** Rate limit for endpoints that check passwords or codes. */
 const limited = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } };
-
-const DEFAULT_OFFLINE_EMAIL = 'offline@local.test';
-const DEFAULT_OFFLINE_PASSWORD = 'offline';
-
-export async function ensureOfflineUser(db: Db): Promise<User> {
-  let user = db.select().from(users).where(eq(users.email, DEFAULT_OFFLINE_EMAIL)).get();
-  if (!user) {
-    user = db
-      .insert(users)
-      .values({
-        email: DEFAULT_OFFLINE_EMAIL,
-        passwordHash: await hashPassword(DEFAULT_OFFLINE_PASSWORD),
-        uiLanguage: 'de',
-        timezone: 'Europe/Berlin',
-      })
-      .returning()
-      .get();
-  }
-  return user;
-}
 
 /**
  * Creates the superuser (admin@wordflow.com / admin) if missing, or promotes an
@@ -94,9 +73,8 @@ export async function deleteUser(db: Db, dataDir: string, userId: number) {
 
 export const authRoutes: FastifyPluginAsync<{
   db: Db;
-  offlineMode: boolean;
   dataDir: string;
-}> = async (app, { db, offlineMode, dataDir }) => {
+}> = async (app, { db, dataDir }) => {
   function signIn(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -110,21 +88,14 @@ export const authRoutes: FastifyPluginAsync<{
     return { user: toUserDto(user) };
   }
 
-  // In offline mode the server is a local single-machine setup, so the
-  // sign-in screen may list the existing accounts to pick from.
+  // The server runs in a home network, so the sign-in screen lists the accounts to pick from.
   app.get('/auth/mode', async () => {
-    if (!offlineMode) return { offlineMode };
     const accounts = db
       .select({ email: users.email, name: users.name })
       .from(users)
       .orderBy(users.id)
       .all();
-    return {
-      offlineMode,
-      email: DEFAULT_OFFLINE_EMAIL,
-      password: DEFAULT_OFFLINE_PASSWORD,
-      accounts,
-    };
+    return { accounts };
   });
 
   // Accounts are created by the superuser only.
@@ -135,11 +106,7 @@ export const authRoutes: FastifyPluginAsync<{
   app.post('/auth/login', limited, async (request, reply) => {
     const input = parse(loginSchema, request.body, reply);
     if (!input) return;
-    let user = db.select().from(users).where(eq(users.email, input.email)).get();
-    // Recreate the default offline account if it was removed while the server ran.
-    if (offlineMode && !user && input.email === DEFAULT_OFFLINE_EMAIL) {
-      user = await ensureOfflineUser(db);
-    }
+    const user = db.select().from(users).where(eq(users.email, input.email)).get();
     if (!user) {
       await burnPasswordCheck(input.password);
       return reply.code(401).send({ error: 'invalid_credentials' });

@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { Preferences } from '@capacitor/preferences';
 
 /** True inside the Android app (Capacitor), false in the browser. */
@@ -12,6 +13,18 @@ export async function initPlatform(): Promise<void> {
   if (!isApp) return;
   serverUrl = (await Preferences.get({ key: 'serverUrl' })).value;
   token = (await Preferences.get({ key: 'token' })).value;
+  void cancelOldReminders();
+}
+
+/** Learning reminders were removed; drops the ones older app versions planned (ids 1000–1029). */
+async function cancelOldReminders() {
+  try {
+    await LocalNotifications.cancel({
+      notifications: Array.from({ length: 30 }, (_, i) => ({ id: 1000 + i })),
+    });
+  } catch {
+    // Nothing planned or no permission: nothing to cancel.
+  }
 }
 
 export function getServerUrl(): string | null {

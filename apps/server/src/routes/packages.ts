@@ -78,19 +78,21 @@ function idParam(request: FastifyRequest): number | null {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
-/**
- * Packages belong to everyone: all accounts may read them and activate words,
- * only the superuser may create, change or delete them.
- */
+/** Every account manages its own packages; other accounts' packages answer 404. */
 export const packageRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db }) => {
   app.addHook('preHandler', app.requireAuth);
-  const admin = { preHandler: app.requireAdmin };
 
   const today = (request: FastifyRequest) => todayIn(request.user!.timezone);
 
   function findPackage(request: FastifyRequest, reply: FastifyReply): Package | null {
     const id = idParam(request);
-    const pkg = id && db.select().from(packages).where(eq(packages.id, id)).get();
+    const pkg =
+      id &&
+      db
+        .select()
+        .from(packages)
+        .where(and(eq(packages.id, id), eq(packages.userId, request.user!.id)))
+        .get();
     if (!pkg) {
       void reply.code(404).send({ error: 'not_found' });
       return null;
@@ -100,7 +102,14 @@ export const packageRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db })
 
   function findVocab(request: FastifyRequest, reply: FastifyReply): Vocab | null {
     const id = idParam(request);
-    const row = id && db.select().from(vocab).where(eq(vocab.id, id)).get();
+    const row =
+      id &&
+      db
+        .select({ vocab })
+        .from(vocab)
+        .innerJoin(packages, eq(packages.id, vocab.packageId))
+        .where(and(eq(vocab.id, id), eq(packages.userId, request.user!.id)))
+        .get()?.vocab;
     if (!row) {
       void reply.code(404).send({ error: 'not_found' });
       return null;
@@ -121,7 +130,12 @@ export const packageRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db })
   }
 
   app.get('/packages', async (request) => {
-    const rows = db.select().from(packages).orderBy(packages.name).all();
+    const rows = db
+      .select()
+      .from(packages)
+      .where(eq(packages.userId, request.user!.id))
+      .orderBy(packages.name)
+      .all();
     const counts = countsFor(
       db,
       request.user!.id,
@@ -131,10 +145,14 @@ export const packageRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db })
     return { packages: rows.map((p) => toPackageDto(p, counts.get(p.id))) };
   });
 
-  app.post('/packages', admin, async (request, reply) => {
+  app.post('/packages', async (request, reply) => {
     const input = parseBody(packageInputSchema, request.body, reply);
     if (!input) return;
-    const pkg = db.insert(packages).values(input).returning().get();
+    const pkg = db
+      .insert(packages)
+      .values({ ...input, userId: request.user!.id })
+      .returning()
+      .get();
     return reply.code(201).send({ package: toPackageDto(pkg) });
   });
 
@@ -157,7 +175,7 @@ export const packageRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db })
     };
   });
 
-  app.patch('/packages/:id', admin, async (request, reply) => {
+  app.patch('/packages/:id', async (request, reply) => {
     const pkg = findPackage(request, reply);
     if (!pkg) return;
     const input = parseBody(packageUpdateSchema, request.body, reply);
@@ -169,14 +187,14 @@ export const packageRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db })
     return { package: packageDto(request, updated) };
   });
 
-  app.delete('/packages/:id', admin, async (request, reply) => {
+  app.delete('/packages/:id', async (request, reply) => {
     const pkg = findPackage(request, reply);
     if (!pkg) return;
     db.delete(packages).where(eq(packages.id, pkg.id)).run();
     return reply.code(204).send();
   });
 
-  app.post('/packages/:id/vocab', admin, async (request, reply) => {
+  app.post('/packages/:id/vocab', async (request, reply) => {
     const pkg = findPackage(request, reply);
     if (!pkg) return;
     const input = parseBody(vocabBatchSchema, request.body, reply);
@@ -212,7 +230,7 @@ export const packageRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db })
     return { activated: rows.length, package: packageDto(request, pkg) };
   });
 
-  app.patch('/vocab/:id', admin, async (request, reply) => {
+  app.patch('/vocab/:id', async (request, reply) => {
     const row = findVocab(request, reply);
     if (!row) return;
     const input = parseBody(vocabUpdateSchema, request.body, reply);
@@ -224,7 +242,7 @@ export const packageRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db })
     return { vocab: toVocabDto(updated, progressOf(request.user!.id, row.id)) };
   });
 
-  app.delete('/vocab/:id', admin, async (request, reply) => {
+  app.delete('/vocab/:id', async (request, reply) => {
     const row = findVocab(request, reply);
     if (!row) return;
     db.delete(vocab).where(eq(vocab.id, row.id)).run();

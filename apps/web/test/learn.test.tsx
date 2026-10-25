@@ -172,9 +172,39 @@ describe('Lernen', () => {
     expect(
       await screen.findByText('Richtig – kleiner Tippfehler. Schreibweise: freund'),
     ).toBeTruthy();
+    // Default: 3 seconds.
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(screen.queryByText('Karte 2 von 2')).toBeNull();
     await vi.advanceTimersByTimeAsync(1500);
     expect(await screen.findByText('Karte 2 von 2')).toBeTruthy();
     vi.useRealTimers();
+  });
+
+  it('Enter geht nach einer richtigen Antwort sofort weiter', async () => {
+    api(() => result(true, { decidedBy: 'exact' }), { autoNextCorrectMs: 0 });
+    await start();
+    fireEvent.change(screen.getByLabelText('Deine Übersetzung (optional)'), {
+      target: { value: 'Freund' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
+    await screen.findByText('Richtig');
+    // "Next" has the focus, so Enter (which clicks it) moves on.
+    await vi.waitFor(() => expect(document.activeElement?.textContent).toBe('Weiter'));
+    fireEvent.keyDown(document.body, { key: 'Enter' });
+    expect(await screen.findByText('Karte 2 von 2')).toBeTruthy();
+  });
+
+  it('zeigt das erreichte Tageslimit', async () => {
+    mockApi({
+      'GET /auth/me': () => ({ status: 200, body: { user: USER } }),
+      'GET /packages': () => ({ status: 200, body: { packages: [PKG] } }),
+      'GET /overview': () => ({ status: 200, body: { due: 0, dueAll: 2, dailyLimit: 30 } }),
+    });
+    renderApp('/learn');
+    expect(
+      await screen.findByText(/Für heute ist das Tageslimit von 30 Vokabeln erreicht/),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Alle fälligen lernen' })).toBeNull();
   });
 
   it('nutzt die eingestellten Wartezeiten (Tippfehler, falsch)', async () => {

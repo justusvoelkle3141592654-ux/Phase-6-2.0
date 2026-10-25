@@ -30,6 +30,7 @@ export function ProviderForm({
   const [baseUrl, setBaseUrl] = useState('');
   const [protocol, setProtocol] = useState<'openai' | 'ollama'>('openai');
   const [apiKey, setApiKey] = useState('');
+  const [name, setName] = useState('');
   const create = useCreateProvider();
   const preset = PROVIDER_PRESETS[kind];
   const needsUrl = kind === 'custom';
@@ -43,6 +44,7 @@ export function ProviderForm({
     create.mutate(
       {
         kind,
+        name: name.trim() || undefined,
         baseUrl: needsUrl ? baseUrl.trim() : undefined,
         protocol: needsUrl ? protocol : undefined,
         apiKey: apiKey.trim() || undefined,
@@ -77,6 +79,23 @@ export function ProviderForm({
             </option>
           ))}
         </select>
+      </div>
+      <div>
+        <label className="label" htmlFor="provider-name">
+          {m.ai.name}
+        </label>
+        <input
+          id="provider-name"
+          className="field"
+          maxLength={60}
+          placeholder={m.ai.kinds[kind]}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          aria-describedby="provider-name-hint"
+        />
+        <p id="provider-name-hint" className="hint">
+          {m.ai.nameHint}
+        </p>
       </div>
       {needsUrl && (
         <div className="grid gap-4 sm:grid-cols-[1fr_auto]">

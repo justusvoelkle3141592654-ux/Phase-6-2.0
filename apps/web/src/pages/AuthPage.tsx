@@ -8,25 +8,20 @@ import { getServerUrl } from '../lib/platform';
 import { errorMessage } from '../lib/errors';
 import { fill } from '../lib/format';
 
-type OfflineAccount = { email: string; name: string };
-type ModeResponse = { offlineMode: boolean; accounts?: OfflineAccount[] };
-type OfflineInfo = { accounts: OfflineAccount[] };
+type Account = { email: string; name: string };
 
 /** Sign-in. Accounts are created by the superuser. */
 export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {}) {
   const { m } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [offline, setOffline] = useState<OfflineInfo | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const passwordRef = useRef<HTMLInputElement>(null);
   const login = useLogin();
 
   useEffect(() => {
-    void api<ModeResponse>('/auth/mode')
-      .then((data) => {
-        if (!data.offlineMode) return;
-        setOffline({ accounts: data.accounts ?? [] });
-      })
+    void api<{ accounts?: Account[] }>('/auth/mode')
+      .then((data) => setAccounts(data.accounts ?? []))
       .catch(() => undefined);
   }, []);
 
@@ -34,8 +29,6 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
     event.preventDefault();
     login.mutate({ email, password });
   };
-
-  const accounts = offline?.accounts ?? [];
 
   return (
     <CenteredLayout>
@@ -84,12 +77,12 @@ export function AuthPage({ onChangeServer }: { onChangeServer?: () => void } = {
             <p className="hint text-center">{m.auth.noAccount}</p>
           </div>
         </form>
-        {offline && accounts.length > 0 && (
-          <section className="mt-6" aria-labelledby="offline-accounts">
-            <h2 id="offline-accounts" className="text-sm font-semibold">
-              {m.auth.offlineAccounts}
+        {accounts.length > 0 && (
+          <section className="mt-6" aria-labelledby="auth-accounts">
+            <h2 id="auth-accounts" className="text-sm font-semibold">
+              {m.auth.accounts}
             </h2>
-            <p className="hint">{m.auth.offlineAccountsHint}</p>
+            <p className="hint">{m.auth.accountsHint}</p>
             <ul className="mt-2 space-y-2">
               {accounts.map((account) => (
                 <li key={account.email}>

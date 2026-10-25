@@ -10,6 +10,8 @@ export const en: Messages = {
     packages: 'Decks',
     learn: 'Learn',
     declensions: 'Declensions',
+    logout: 'Sign out',
+    homeLink: 'Go to home',
   },
   declensions: {
     title: 'Declensions',
@@ -36,6 +38,11 @@ export const en: Messages = {
     difficult: 'Difficult words',
     wrongTimes: '{n}× wrong',
     retry: 'Try again',
+    dueTomorrow: '{n} words become due tomorrow.',
+    dueTomorrowOne: '1 word becomes due tomorrow.',
+    dueTomorrowNone: 'No new words become due tomorrow.',
+    limitReached: 'Daily limit of {n} words reached.',
+    beyondLimit: '{n} more due words follow on the next days.',
   },
   upload: {
     title: 'Upload vocabulary',
@@ -92,8 +99,6 @@ export const en: Messages = {
   packages: {
     title: 'Vocabulary decks',
     empty: 'No decks yet. Create a deck.',
-    emptyUser: 'No decks yet. The superuser creates the decks.',
-    noVocabUser: 'This deck has no words yet.',
     deactivate: 'Remove from my words',
     deactivateConfirm: 'Remove “{word}” from your words? Your progress for this word is lost.',
     uploadPhotos: 'Upload',
@@ -101,10 +106,6 @@ export const en: Messages = {
     uploadStart: 'Upload photos',
     recognize: 'Recognise',
     photosAttached: '{n} photos uploaded.',
-    mine: 'My words (active) · {n}',
-    mineEmpty: 'You have not activated any words from this deck yet.',
-    offered: 'Words from the superuser (inactive) · {n}',
-    offeredHint: 'Activate words to learn them. They start at stage 1 and are due right away.',
     create: 'New deck',
     createTitle: 'Create a new deck',
     name: 'Name',
@@ -194,11 +195,21 @@ export const en: Messages = {
     again: 'Keep learning',
     finish: 'Back to overview',
     cancel: 'Stop',
+    limitReached: 'You have reached the daily limit of {n} words.',
+    limitHint: 'You can change the limit under Settings → Learning.',
   },
   settings: {
     learningTitle: 'Learning',
     title: 'Settings',
     language: 'Interface language',
+    tabsLabel: 'Settings sections',
+    tabs: {
+      account: 'Account',
+      learning: 'Learning',
+      ai: 'AI',
+      accounts: 'Accounts',
+      system: 'System',
+    },
   },
   auth: {
     loginTitle: 'Sign in',
@@ -207,8 +218,8 @@ export const en: Messages = {
     password: 'Password',
     passwordHint: 'At least 8 characters.',
     login: 'Sign in',
-    offlineAccounts: 'Accounts on this device',
-    offlineAccountsHint: 'Pick an account and enter its password.',
+    accounts: 'Accounts on this server',
+    accountsHint: 'Pick an account and enter its password.',
     noAccount: 'Accounts are created by the superuser.',
     errors: {
       invalid_credentials: 'Email or password is incorrect.',
@@ -244,8 +255,13 @@ export const en: Messages = {
   },
   ai: {
     title: 'AI',
-    providers: 'Providers',
-    addProvider: 'Add provider',
+    providers: 'All APIs',
+    providersHint:
+      'Every API has its own address and key. The same kind (e.g. OpenAI) can be added several times with different keys.',
+    addProvider: 'Add API',
+    newProvider: '+ Add a new API …',
+    nameHint: 'Optional, e.g. “OpenAI images”, to tell several keys apart.',
+    keyOf: 'API key of “{name}”',
     provider: 'Provider',
     kinds: {
       pollinations: 'Pollinations.ai',
@@ -275,8 +291,10 @@ export const en: Messages = {
     cancel: 'Cancel',
     delete: 'Remove',
     deleteConfirm: 'Remove provider “{name}”? Tasks using it will have no model afterwards.',
-    tasks: 'Models per task',
-    taskNames: { check: 'Answer checking', vision: 'Image recognition' },
+    tasks: 'API and model per task',
+    tasksHint:
+      'Vocabulary checking and image recognition are set separately and can use different APIs with different keys.',
+    taskNames: { check: 'Vocabulary check (answers)', vision: 'Image recognition' },
     taskHints: {
       check: 'A fast model. It only answers with one word.',
       vision: 'Must be able to read images (handwriting in your notebook).',
@@ -321,56 +339,6 @@ export const en: Messages = {
     noData: 'No measurements yet.',
     sameAsCheck: 'Same as answer checking',
   },
-  setup: {
-    stepOf: 'Step {n} of {total}',
-    back: 'Back',
-    next: 'Next',
-    finish: 'Finish',
-    optional: 'Optional – you can also set this later in the settings.',
-    language: {
-      title: 'Language',
-      text: 'Which language should WordFlow use? You can change this at any time.',
-    },
-    name: {
-      title: 'Name',
-      text: 'What should we call you? You can also leave this empty.',
-      placeholder: 'e.g. Anna',
-    },
-    timezone: {
-      title: 'Time zone',
-      text: 'The time zone decides when a new day starts for you – this matters for due words and the daily summary.',
-    },
-    checkProvider: {
-      title: 'AI for answer checking',
-      text: 'A fast AI model checks your typed answers, for example for synonyms. The preset is Pollinations.ai, which needs no API key.',
-      preset: 'Preset',
-      others:
-        'Anthropic (Claude), OpenAI, OpenRouter, Ollama (local or online) and your own servers are possible too.',
-    },
-    checkModel: {
-      title: 'Model for answer checking',
-      text: 'This model decides whether an answer is correct. “Test connection” measures how fast it responds.',
-      model: 'Model',
-      test: 'Test connection',
-    },
-    vision: {
-      title: 'Image recognition',
-      text: 'To read photos of your vocabulary notebook, WordFlow needs a model that understands images. The list shows the provider’s image-capable models. How well a model reads handwriting has not been tested – try it out.',
-      none: 'No image model selected yet.',
-    },
-    timeout: {
-      title: 'AI check time limit',
-      text: 'If the AI does not answer in time, WordFlow decides on its own. You can then correct the decision with “I was right”.',
-    },
-    learning: {
-      title: 'Learning',
-      text: 'After how many days should a word on each stage be asked again? The defaults are already filled in.',
-    },
-    done: {
-      title: 'Done',
-      text: 'These are your settings. You can change everything later in the settings.',
-    },
-  },
   fields: {
     timezone: 'Time zone',
     provider: 'Provider',
@@ -383,7 +351,7 @@ export const en: Messages = {
     autoNextWrong: 'Wrong',
     autoNextOff: 'Off',
     autoNextHint:
-      'How long the solution stays visible before the next card appears. “Off” waits until you press “Next”.',
+      'How long the solution stays visible before the next card appears (in seconds, default: 3). “Off” waits until you press “Next” or Enter.',
     intervals: 'Intervals',
     intervalsLegend: 'Intervals (in days)',
     stage: 'Stage {n}',
@@ -398,6 +366,9 @@ export const en: Messages = {
     name: 'Name',
     noName: '(no name)',
     language: 'Language',
+    dailyLimit: 'Words per day',
+    dailyLimitHint:
+      'At most this many different words are asked per day (repetitions and new ones together). The rest stays due. Default: 30.',
   },
   app: {
     serverTitle: 'Connect to server',
@@ -411,15 +382,6 @@ export const en: Messages = {
       'Server not reachable. Is the phone in the same network, are address, port and http/https correct?',
     server: 'Server: {url}',
     changeServer: 'Change',
-    reminder: 'Reminder',
-    reminderHint: 'The Android app reminds you at this time when words are due.',
-    reminderOff: 'Off',
-    reminderOn: 'Daily at',
-    reminderAppOnly: 'Only works in the Android app.',
-    reminderDenied:
-      'Notifications are not allowed for WordFlow. Allow them in the Android settings.',
-    notificationBody: '{n} words are due.',
-    notificationBodyOne: '1 word is due.',
   },
   admin: {
     superuser: 'Superuser',

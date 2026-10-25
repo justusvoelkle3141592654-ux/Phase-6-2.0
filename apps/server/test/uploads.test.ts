@@ -164,7 +164,7 @@ describe('Hochladen und Erkennen', () => {
     }));
   }
 
-  it('speichert ins Paket; die Fotos sehen alle Accounts', async () => {
+  it('speichert ins Paket; fremde Accounts sehen die Fotos nicht', async () => {
     replies = [ENTRIES];
     const pkg = await createPackage();
     const job = await waitForJob((await upload()).json().job.id);
@@ -189,15 +189,24 @@ describe('Hochladen und Erkennen', () => {
       ['hostis', false],
     ]);
 
-    const bob = await userHeaders();
     const photos = (
-      await app.inject({ method: 'GET', url: `/api/packages/${pkg.id}/photos`, headers: bob })
+      await app.inject({ method: 'GET', url: `/api/packages/${pkg.id}/photos`, headers })
     ).json().photos;
     expect(photos).toHaveLength(1);
-    const photo = await app.inject({ method: 'GET', url: photos[0].photoUrl, headers: bob });
+    const photo = await app.inject({ method: 'GET', url: photos[0].photoUrl, headers });
     expect(photo.statusCode).toBe(200);
     expect(photo.headers['content-type']).toBe('image/jpeg');
     expect(photo.rawPayload.equals(JPEG)).toBe(true);
+
+    const bob = await userHeaders();
+    expect(
+      (
+        await app.inject({ method: 'GET', url: `/api/packages/${pkg.id}/photos`, headers: bob })
+      ).json().photos,
+    ).toHaveLength(0);
+    expect(
+      (await app.inject({ method: 'GET', url: photos[0].photoUrl, headers: bob })).statusCode,
+    ).toBe(404);
 
     // Saved uploads no longer appear as open.
     expect(
@@ -245,7 +254,7 @@ describe('Hochladen und Erkennen', () => {
       url: `/api/uploads/pages/${first!.id}`,
       headers: bob,
     });
-    expect(forbidden.statusCode).toBe(403);
+    expect(forbidden.statusCode).toBe(404);
 
     const del = await app.inject({
       method: 'DELETE',
@@ -269,27 +278,19 @@ describe('Hochladen und Erkennen', () => {
     expect((await app.inject({ method: 'GET', url: photoUrl, headers })).statusCode).toBe(404);
   });
 
-  it('normale Accounts können nicht hochladen und sehen keine offenen Uploads', async () => {
+  it('jeder Account lädt selbst hoch und sieht nur seine eigenen Uploads', async () => {
     replies = [ENTRIES];
     const job = await waitForJob((await upload()).json().job.id);
     const bob = await userHeaders();
-    const { body, contentType } = await multipart([{ type: 'image/jpeg', data: JPEG }]);
-    expect(
-      (
-        await app.inject({
-          method: 'POST',
-          url: '/api/uploads',
-          headers: { ...bob, 'content-type': contentType },
-          payload: body,
-        })
-      ).statusCode,
-    ).toBe(403);
     expect(
       (await app.inject({ method: 'GET', url: `/api/uploads/${job.id}`, headers: bob })).statusCode,
-    ).toBe(403);
+    ).toBe(404);
     expect(
       (await app.inject({ method: 'GET', url: job.pages[0].photoUrl, headers: bob })).statusCode,
     ).toBe(404);
+    expect(
+      (await app.inject({ method: 'GET', url: '/api/uploads', headers: bob })).json().jobs,
+    ).toHaveLength(0);
     expect(
       (
         await app.inject({
@@ -299,6 +300,39 @@ describe('Hochladen und Erkennen', () => {
           payload: { packageId: 1, items: [{ word: 'a', translation: 'b' }] },
         })
       ).statusCode,
-    ).toBe(403);
+    ).toBe(404);
+
+    // Bob's own upload uses the AI setup of the superuser.
+    replies = [ENTRIES];
+    const { body, contentType } = await multipart([{ type: 'image/jpeg', data: JPEG }]);
+    const own = await app.inject({
+      method: 'POST',
+      url: '/api/uploads',
+      headers: { ...bob, 'content-type': contentType },
+      payload: body,
+    });
+    expect(own.statusCode).toBe(201);
+    const ownId = own.json().job.id;
+    let done = null;
+    for (let i = 0; i < 100 && !done; i++) {
+      const j = (
+        await app.inject({ method: 'GET', url: `/api/uploads/${ownId}`, headers: bob })
+      ).json().job;
+      if (j.pages[0].status === 'done') done = j;
+      else await new Promise((r) => setTimeout(r, 20));
+    }
+    expect(done?.pages[0].entries[0].word).toBe('amicus');
+    // Bob cannot save into the superuser's package.
+    const adminPkg = await createPackage();
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/api/uploads/${ownId}/save`,
+          headers: bob,
+          payload: { packageId: adminPkg.id, items: [{ word: 'a', translation: 'b' }] },
+        })
+      ).statusCode,
+    ).toBe(404);
   });
 });

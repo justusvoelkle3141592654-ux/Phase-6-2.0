@@ -8,6 +8,8 @@ export const de = {
     packages: 'Pakete',
     learn: 'Lernen',
     settings: 'Einstellungen',
+    logout: 'Abmelden',
+    homeLink: 'Zur Startseite',
   },
   declensions: {
     title: 'Deklinationen',
@@ -35,6 +37,11 @@ export const de = {
     difficult: 'Schwierige Vokabeln',
     wrongTimes: '{n}× falsch',
     retry: 'Erneut versuchen',
+    dueTomorrow: 'Morgen werden {n} Vokabeln fällig.',
+    dueTomorrowOne: 'Morgen wird 1 Vokabel fällig.',
+    dueTomorrowNone: 'Morgen werden keine neuen Vokabeln fällig.',
+    limitReached: 'Tageslimit von {n} Vokabeln erreicht.',
+    beyondLimit: 'Weitere {n} fällige Vokabeln kommen an den nächsten Tagen dran.',
   },
   upload: {
     title: 'Vokabeln hochladen',
@@ -90,8 +97,6 @@ export const de = {
   packages: {
     title: 'Vokabelpakete',
     empty: 'Noch keine Pakete. Lege ein Paket an.',
-    emptyUser: 'Noch keine Pakete. Der Superuser legt die Pakete an.',
-    noVocabUser: 'In diesem Paket sind noch keine Vokabeln.',
     deactivate: 'Aus meinen Vokabeln entfernen',
     deactivateConfirm:
       '„{word}“ aus deinen Vokabeln entfernen? Dein Lernstand für dieses Wort geht verloren.',
@@ -100,11 +105,6 @@ export const de = {
     uploadStart: 'Fotos hochladen',
     recognize: 'Erkennen',
     photosAttached: '{n} Fotos hochgeladen.',
-    mine: 'Meine Vokabeln (aktiv) · {n}',
-    mineEmpty: 'Du hast aus diesem Paket noch keine Vokabeln aktiviert.',
-    offered: 'Vokabeln vom Superuser (inaktiv) · {n}',
-    offeredHint:
-      'Aktiviere Vokabeln, um sie zu lernen. Sie kommen auf Stufe 1 und sind sofort fällig.',
     create: 'Neues Paket',
     createTitle: 'Neues Paket anlegen',
     name: 'Name',
@@ -196,11 +196,21 @@ export const de = {
     again: 'Weiter lernen',
     finish: 'Zur Übersicht',
     cancel: 'Beenden',
+    limitReached: 'Für heute ist das Tageslimit von {n} Vokabeln erreicht.',
+    limitHint: 'Das Limit lässt sich unter Einstellungen → Lernen ändern.',
   },
   settings: {
     learningTitle: 'Lernen',
     title: 'Einstellungen',
     language: 'Sprache der Oberfläche',
+    tabsLabel: 'Bereiche der Einstellungen',
+    tabs: {
+      account: 'Account',
+      learning: 'Lernen',
+      ai: 'KI',
+      accounts: 'Accounts',
+      system: 'System',
+    },
   },
   auth: {
     loginTitle: 'Anmelden',
@@ -209,8 +219,8 @@ export const de = {
     password: 'Passwort',
     passwordHint: 'Mindestens 8 Zeichen.',
     login: 'Anmelden',
-    offlineAccounts: 'Accounts auf diesem Gerät',
-    offlineAccountsHint: 'Account wählen und Passwort eingeben.',
+    accounts: 'Accounts auf diesem Server',
+    accountsHint: 'Account wählen und Passwort eingeben.',
     noAccount: 'Einen Account bekommst du vom Superuser.',
     errors: {
       invalid_credentials: 'E-Mail oder Passwort stimmt nicht.',
@@ -246,8 +256,13 @@ export const de = {
   },
   ai: {
     title: 'KI',
-    providers: 'Anbieter',
-    addProvider: 'Anbieter hinzufügen',
+    providers: 'Alle APIs',
+    providersHint:
+      'Jede API hat ihre eigene Adresse und ihren eigenen Schlüssel. Dieselbe Art (z. B. OpenAI) kann mehrfach mit verschiedenen Schlüsseln angelegt werden.',
+    addProvider: 'API hinzufügen',
+    newProvider: '+ Neue API anlegen …',
+    nameHint: 'Optional, z. B. „OpenAI Bilderkennung“, um mehrere Schlüssel auseinanderzuhalten.',
+    keyOf: 'API-Schlüssel von „{name}“',
     provider: 'Anbieter',
     kinds: {
       pollinations: 'Pollinations.ai',
@@ -279,9 +294,11 @@ export const de = {
     delete: 'Entfernen',
     deleteConfirm:
       'Anbieter „{name}“ entfernen? Aufgaben, die ihn nutzen, haben danach kein Modell mehr.',
-    tasks: 'Modelle je Aufgabe',
+    tasks: 'API und Modell je Aufgabe',
+    tasksHint:
+      'Vokabelabfrage und Bilderkennung sind getrennt einstellbar und können verschiedene APIs mit verschiedenen Schlüsseln nutzen.',
     taskNames: {
-      check: 'Antwortprüfung',
+      check: 'Vokabelabfrage (Antwortprüfung)',
       vision: 'Bilderkennung',
     },
     taskHints: {
@@ -330,56 +347,6 @@ export const de = {
     noData: 'Noch keine Messungen.',
     sameAsCheck: 'Wie bei der Antwortprüfung',
   },
-  setup: {
-    stepOf: 'Schritt {n} von {total}',
-    back: 'Zurück',
-    next: 'Weiter',
-    finish: 'Fertig',
-    optional: 'Optional – du kannst das auch später in den Einstellungen festlegen.',
-    language: {
-      title: 'Sprache',
-      text: 'In welcher Sprache soll WordFlow angezeigt werden? Das kannst du später jederzeit ändern.',
-    },
-    name: {
-      title: 'Name',
-      text: 'Wie sollen wir dich nennen? Du kannst das Feld auch leer lassen.',
-      placeholder: 'z. B. Anna',
-    },
-    timezone: {
-      title: 'Zeitzone',
-      text: 'Die Zeitzone legt fest, wann für dich ein neuer Tag beginnt – wichtig für fällige Vokabeln und die Tageszusammenfassung.',
-    },
-    checkProvider: {
-      title: 'KI für die Antwortprüfung',
-      text: 'Ein schnelles KI-Modell prüft deine getippten Antworten, zum Beispiel auf Synonyme. Voreingestellt ist Pollinations.ai, das keinen API-Schlüssel braucht.',
-      preset: 'Voreinstellung',
-      others:
-        'Möglich sind auch Anthropic (Claude), OpenAI, OpenRouter, Ollama (lokal oder online) und eigene Server.',
-    },
-    checkModel: {
-      title: 'Modell für die Antwortprüfung',
-      text: 'Dieses Modell entscheidet, ob eine Antwort richtig ist. Mit „Verbindung testen“ misst du, wie schnell es antwortet.',
-      model: 'Modell',
-      test: 'Verbindung testen',
-    },
-    vision: {
-      title: 'Bilderkennung',
-      text: 'Für Fotos aus dem Vokabelheft braucht WordFlow ein Modell, das Bilder lesen kann. Die Liste zeigt die bildfähigen Modelle des Anbieters. Wie gut ein Modell Handschrift liest, ist nicht geprüft – probiere es aus.',
-      none: 'Noch kein Bildmodell gewählt.',
-    },
-    timeout: {
-      title: 'Zeitlimit der KI-Prüfung',
-      text: 'Antwortet die KI nicht rechtzeitig, entscheidet WordFlow selbst. Du kannst die Entscheidung dann mit „Ich hatte recht“ korrigieren.',
-    },
-    learning: {
-      title: 'Lernen',
-      text: 'Nach wie vielen Tagen soll eine Vokabel auf der jeweiligen Stufe wieder abgefragt werden? Die Standardwerte sind vorbelegt.',
-    },
-    done: {
-      title: 'Fertig',
-      text: 'Das sind deine Einstellungen. Alles lässt sich später in den Einstellungen ändern.',
-    },
-  },
   fields: {
     timezone: 'Zeitzone',
     provider: 'Anbieter',
@@ -392,7 +359,7 @@ export const de = {
     autoNextWrong: 'Falsch',
     autoNextOff: 'Aus',
     autoNextHint:
-      'Wie lange die Lösung sichtbar bleibt, bevor die nächste Karte kommt. „Aus“ wartet, bis du „Weiter“ drückst.',
+      'Wie lange die Lösung sichtbar bleibt, bevor die nächste Karte kommt (in Sekunden, Standard: 3). „Aus“ wartet, bis du „Weiter“ oder Enter drückst.',
     intervals: 'Intervalle',
     intervalsLegend: 'Intervalle (in Tagen)',
     stage: 'Stufe {n}',
@@ -407,6 +374,9 @@ export const de = {
     name: 'Name',
     noName: '(kein Name)',
     language: 'Sprache',
+    dailyLimit: 'Vokabeln pro Tag',
+    dailyLimitHint:
+      'Höchstens so viele verschiedene Vokabeln werden pro Tag abgefragt (Wiederholungen und neue zusammen). Der Rest bleibt fällig. Standard: 30.',
   },
   app: {
     serverTitle: 'Server verbinden',
@@ -420,15 +390,6 @@ export const de = {
       'Server nicht erreichbar. Ist das Handy im selben Netz, stimmen Adresse, Port und http/https?',
     server: 'Server: {url}',
     changeServer: 'Ändern',
-    reminder: 'Erinnerung',
-    reminderHint: 'Die Android-App erinnert dich zu dieser Uhrzeit, wenn Vokabeln fällig sind.',
-    reminderOff: 'Aus',
-    reminderOn: 'Täglich um',
-    reminderAppOnly: 'Wirkt nur in der Android-App.',
-    reminderDenied:
-      'Benachrichtigungen sind für WordFlow nicht erlaubt. Erlaube sie in den Android-Einstellungen.',
-    notificationBody: '{n} Vokabeln sind fällig.',
-    notificationBodyOne: '1 Vokabel ist fällig.',
   },
   admin: {
     superuser: 'Superuser',

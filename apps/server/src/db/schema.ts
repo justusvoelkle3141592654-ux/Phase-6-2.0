@@ -26,7 +26,6 @@ export const users = sqliteTable('users', {
     .default('de'),
   /** IANA time zone; decides what "today" means for this account. */
   timezone: text('timezone').notNull().default('Europe/Berlin'),
-  setupCompleted: integer('setup_completed', { mode: 'boolean' }).notNull().default(false),
   /** "admin" is the superuser: packages, AI, accounts, backup, update. */
   role: text('role', { enum: ['admin', 'user'] })
     .notNull()
@@ -59,23 +58,31 @@ export const userSettings = sqliteTable('user_settings', {
   intervals: text('intervals', { mode: 'json' }).$type<number[]>().notNull(),
   wrongMode: text('wrong_mode', { enum: ['reset', 'back'] }).notNull(),
   aiTimeoutMs: integer('ai_timeout_ms').notNull(),
-  autoNextCorrectMs: integer('auto_next_correct_ms').notNull().default(1300),
-  autoNextTypoMs: integer('auto_next_typo_ms').notNull().default(1300),
-  autoNextWrongMs: integer('auto_next_wrong_ms').notNull().default(0),
-  reminderTime: text('reminder_time'),
+  autoNextCorrectMs: integer('auto_next_correct_ms').notNull().default(3000),
+  autoNextTypoMs: integer('auto_next_typo_ms').notNull().default(3000),
+  autoNextWrongMs: integer('auto_next_wrong_ms').notNull().default(3000),
+  /** Most different words asked per day. */
+  dailyLimit: integer('daily_limit').notNull().default(30),
 });
 
-/** Packages are created by the superuser and shared with every account. */
-export const packages = sqliteTable('packages', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
-  /** Preset code (en, fr, la) or free text. */
-  language: text('language').notNull(),
-  direction: text('direction', { enum: ['foreign_native', 'native_foreign', 'random'] })
-    .notNull()
-    .default('foreign_native'),
-  createdAt: createdAt(),
-});
+/** Every account has its own packages. */
+export const packages = sqliteTable(
+  'packages',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    /** Preset code (en, fr, la) or free text. */
+    language: text('language').notNull(),
+    direction: text('direction', { enum: ['foreign_native', 'native_foreign', 'random'] })
+      .notNull()
+      .default('foreign_native'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('packages_user_idx').on(t.userId)],
+);
 
 export const vocab = sqliteTable(
   'vocab',
