@@ -26,6 +26,7 @@ export function toUserDto(user: User): UserDto {
     role: user.role,
     uiLanguage: user.uiLanguage,
     timezone: user.timezone,
+    setupCompleted: true,
   };
 }
 
