@@ -184,8 +184,10 @@ describe('Update', () => {
   it('vergleicht den installierten mit dem neuesten Commit auf GitHub', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wordflow-update-'));
     const calls: string[] = [];
-    const fetchImpl = (async (url: string) => {
+    const auth: (string | undefined)[] = [];
+    const fetchImpl = (async (url: string, init?: RequestInit) => {
       calls.push(String(url));
+      auth.push((init?.headers as Record<string, string> | undefined)?.Authorization);
       return new Response(JSON.stringify({ sha: 'abc123' }), { status: 200 });
     }) as typeof fetch;
     const { buildApp } = await import('../src/app');
@@ -197,6 +199,7 @@ describe('Update', () => {
       dataDir: dir,
       dbFile: ':memory:',
       appSecret: 'x',
+      githubToken: 'github_pat_test',
       updateFetch: fetchImpl,
     });
     try {
@@ -211,8 +214,9 @@ describe('Update', () => {
         running: false,
       });
       expect(calls[0]).toBe(
-        `https://api.github.com/repos/justusvoelkle3141592654-ux/Phase-6-2.0/commits/claude/new-session-uq36ca`,
+        `https://api.github.com/repos/rcode125/Phase-6-2.0/commits/claude/new-session-uq36ca`,
       );
+      expect(auth[0]).toBe('Bearer github_pat_test');
 
       fs.writeFileSync(path.join(dir, 'update.json'), JSON.stringify({ sha: 'abc123' }));
       const second = (

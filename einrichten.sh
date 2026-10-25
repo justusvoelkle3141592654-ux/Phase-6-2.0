@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 # WordFlow – Einrichtungsassistent
 #
-#   git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git wordflow
+# Das Repository ist privat. Erst einen Zugangs-Token erstellen (nur Lesen, siehe
+# ./einrichten.sh hilfe), dann:
+#
+#   git clone https://x-access-token:<TOKEN>@github.com/rcode125/Phase-6-2.0.git wordflow
 #   cd wordflow && ./einrichten.sh
+#
+# Der Assistent speichert den Token in .env (nur für dich lesbar), entfernt ihn aus
+# .git/config und nutzt ihn für git pull und den Update-Knopf.
 #
 # Weitere Befehle: ./einrichten.sh hilfe
 
@@ -12,6 +18,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE=${WORDFLOW_SERVICE_NAME:-wordflow}
 NODE_MIN=22.12
 ASSUME_YES=0
+REPO=rcode125/Phase-6-2.0
+BRANCH=claude/new-session-uq36ca
+REPO_URL="https://github.com/$REPO.git"
+TOKEN_URL="https://github.com/settings/personal-access-tokens/new"
 
 # ---------------------------------------------------------------- Ausgabe ----
 
@@ -22,7 +32,7 @@ else
 fi
 
 STEP=0
-STEPS=6
+STEPS=7
 step() { STEP=$((STEP + 1)); printf '\n%s[%d/%d] %s%s\n' "$B$C" "$STEP" "$STEPS" "$1" "$N"; }
 ok() { printf '  %s✓%s %s\n' "$G" "$N" "$1"; }
 info() { printf '  %s•%s %s\n' "$C" "$N" "$1"; }
@@ -131,6 +141,17 @@ env_get() {
   printf '%s' "$default"
 }
 
+# env_set KEY Wert – ersetzt oder ergänzt eine Zeile in .env (Datei bleibt chmod 600).
+env_set() {
+  local key=$1 value=$2 file="$ROOT/.env" tmp
+  [[ -f $file ]] || : >"$file"
+  tmp=$(mktemp "$ROOT/.env.XXXXXX")
+  grep -vE "^${key}=" "$file" >"$tmp" || true
+  printf '%s=%s\n' "$key" "$value" >>"$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$file"
+}
+
 has_systemd() { have systemctl && [[ -d /run/systemd/system ]]; }
 
 unit_path() {
@@ -185,7 +206,8 @@ check_system() {
       ok "Build-Werkzeuge installiert"
     fi
   fi
-  have git && ok "git $(git --version | awk '{print $3}')" || info "git fehlt (nur für eigene Änderungen nötig, Updates gehen ohne)."
+  have git && ok "git $(git --version | awk '{print $3}')" || info "git fehlt (nur für ./einrichten.sh aktualisieren nötig, der Update-Knopf geht ohne)."
+  have curl || info "curl fehlt (zum Prüfen des GitHub-Tokens empfohlen)."
 }
 
 install_node() {
@@ -270,9 +292,10 @@ configure() {
     info "Alte .env gesichert als .env.bak"
   fi
   # Bestehende Schlüssel und Zusatzwerte bleiben erhalten.
-  local secret cors
+  local secret cors token
   secret=$(env_get APP_SECRET)
   cors=$(env_get CORS_ORIGINS)
+  token=$(env_get GITHUB_TOKEN)
   cat >"$ROOT/.env" <<EOF
 # Erstellt von einrichten.sh am $(date '+%Y-%m-%d %H:%M'). Vorlage: .env.example
 
@@ -285,9 +308,125 @@ LOG_LEVEL=$level
 
 # Leer lassen: wird beim ersten Start erzeugt und in DATA_DIR/secrets.json gespeichert.
 APP_SECRET=$secret
+
+# Lese-Token für das private Repository $REPO (Updates). Ändern: ./einrichten.sh token
+GITHUB_TOKEN=$token
 EOF
   chmod 600 "$ROOT/.env"
   ok ".env geschrieben (Port $PORT, $([[ $HOST == 0.0.0.0 ]] && echo Heimnetz || echo nur lokal))"
+}
+
+# ------------------------------------------------------- GitHub-Zugang ----
+
+# token_check TOKEN → 0 wenn der Token das Repository lesen darf
+token_check() {
+  local code
+  have curl || return 0
+  code=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer $1" -H 'Accept: application/vnd.github+json' \
+    -H 'User-Agent: WordFlow-Setup' "https://api.github.com/repos/$REPO" || true)
+  case $code in
+    200) return 0 ;;
+    401) warn "GitHub lehnt den Token ab (ungültig oder abgelaufen)." ;;
+    403 | 404) warn "Der Token darf $REPO nicht lesen. Beim Erstellen das Repository auswählen und Contents: Read-only setzen." ;;
+    000 | '') warn "GitHub nicht erreichbar – Token wird ungeprüft gespeichert."; return 0 ;;
+    *) warn "Unerwartete Antwort von GitHub (HTTP $code)." ;;
+  esac
+  return 1
+}
+
+token_help() {
+  printf '  %sSo erstellst du den Token (einmalig, im Browser):%s\n' "$B" "$N"
+  printf '    1. %s öffnen (als Besitzer des Repositorys angemeldet)\n' "$TOKEN_URL"
+  printf '    2. Name: WordFlow-Update · Ablauf: z. B. 1 Jahr\n'
+  printf '    3. Repository access: Only select repositories → %s\n' "$REPO"
+  printf '    4. Permissions → Repository permissions → Contents: Read-only\n'
+  printf '    5. Generate token – den Text (github_pat_…) kopieren\n'
+}
+
+# Git holt den Token über dieses Skript, statt ihn in .git/config zu speichern.
+git_setup() {
+  have git && [[ -d "$ROOT/.git" ]] || return 0
+  git -C "$ROOT" remote get-url origin >/dev/null 2>&1 || git -C "$ROOT" remote add origin "$REPO_URL"
+  # Entfernt auch einen Token aus der Clone-URL (https://x-access-token:…@github.com/…).
+  git -C "$ROOT" remote set-url origin "$REPO_URL"
+  git -C "$ROOT" config --local --unset-all credential.https://github.com.helper 2>/dev/null || true
+  # Leerer Eintrag zuerst: andere Helfer (z. B. gh) werden für dieses Repo ignoriert.
+  git -C "$ROOT" config --local --add credential.https://github.com.helper ''
+  git -C "$ROOT" config --local --add credential.https://github.com.helper "!\"$ROOT/einrichten.sh\" git-credential"
+  ok "git nutzt den Token aus .env (origin = $REPO_URL)"
+}
+
+github_access() {
+  step "GitHub-Zugang (privates Repository $REPO)"
+  local current
+  current=$(env_get GITHUB_TOKEN)
+  if [[ -n $current ]]; then
+    if [[ $ASSUME_YES == 1 || ! -t 0 ]] || ! confirm "Es ist schon ein Token gespeichert. Neuen eintragen?" n; then
+      if token_check "$current"; then ok "Token gespeichert und gültig"; else warn "Neuen Token eintragen: ./einrichten.sh token"; fi
+      git_setup
+      return
+    fi
+  elif [[ $ASSUME_YES == 1 || ! -t 0 ]]; then
+    warn "Kein Token gespeichert – Updates gehen erst danach. Eintragen: ./einrichten.sh token"
+    return
+  fi
+  token_set
+}
+
+token_set() {
+  [[ -t 0 ]] || fail "Token bitte interaktiv eintragen: ./einrichten.sh token"
+  token_help
+  local token
+  while true; do
+    read -r -s -p "  ${B}?${N} Token einfügen ${D}(bleibt unsichtbar, leer = überspringen)${N}: " token
+    printf '\n'
+    token=${token//[[:space:]]/}
+    if [[ -z $token ]]; then warn "Übersprungen. Später: ./einrichten.sh token"; return; fi
+    token_check "$token" && break
+    confirm "Trotzdem speichern?" n && break
+  done
+  env_set GITHUB_TOKEN "$token"
+  ok "Token in .env gespeichert (nur für $(id -un) lesbar)"
+  git_setup
+  if [[ -n "$(installed_scope)" ]]; then
+    info "Der laufende Dienst liest den Token erst nach einem Neustart: ./einrichten.sh dienst neustart"
+  fi
+}
+
+# git credential helper: gibt den Token aus .env an git weiter.
+git_credential() {
+  [[ ${1:-} == get ]] || return 0
+  local token
+  token=$(env_get GITHUB_TOKEN)
+  [[ -n $token ]] || return 0
+  printf 'username=x-access-token\npassword=%s\n' "$token"
+}
+
+update_git() {
+  STEPS=2
+  step "Neuesten Stand holen (git pull)"
+  have git || fail "git fehlt. Installieren (sudo apt install git) oder den Update-Knopf in WordFlow nutzen."
+  [[ -d "$ROOT/.git" ]] || fail "Kein git-Klon. Den Update-Knopf in WordFlow nutzen."
+  [[ -n "$(env_get GITHUB_TOKEN)" ]] || fail "Kein Token gespeichert. Erst: ./einrichten.sh token"
+  git_setup
+  git -C "$ROOT" fetch origin "$BRANCH" || fail "git fetch fehlgeschlagen – Token prüfen: ./einrichten.sh token"
+  local before after scope
+  before=$(git -C "$ROOT" rev-parse HEAD)
+  if [[ "$(git -C "$ROOT" rev-parse --abbrev-ref HEAD)" != "$BRANCH" ]]; then
+    git -C "$ROOT" checkout "$BRANCH" 2>/dev/null || git -C "$ROOT" checkout -b "$BRANCH" --track "origin/$BRANCH"
+  fi
+  git -C "$ROOT" pull --ff-only origin "$BRANCH" || fail "git pull fehlgeschlagen (eigene Änderungen? git status)"
+  after=$(git -C "$ROOT" rev-parse HEAD)
+  if [[ $before == "$after" ]]; then ok "Schon aktuell ($(git -C "$ROOT" log -1 --format=%h))"
+  else ok "Aktualisiert: ${before:0:7} → ${after:0:7}"; fi
+  build
+  scope=$(installed_scope)
+  if [[ -n $scope ]]; then
+    sctl "$scope" restart "$SERVICE"
+    PORT=$(env_get PORT 3000)
+    wait_ready
+  fi
 }
 
 # ------------------------------------------------------------- Schritt 3 ----
@@ -515,6 +654,7 @@ wizard() {
 
   check_system
   configure
+  github_access
   build
   start
   firewall
@@ -570,12 +710,19 @@ help() {
     ${C}dienst status${N}               Läuft der Dienst?
     ${C}dienst logs${N}                 Log live ansehen
     ${C}dienst start|stopp|neustart${N}
+    ${C}token${N}                       GitHub-Zugangs-Token eintragen oder ersetzen
+    ${C}aktualisieren${N}               git pull + Build + Dienst neu starten
     ${C}bauen${N}                       npm ci + Build (z. B. nach eigenen Änderungen)
     ${C}docker${N}                      Mit Docker Compose einrichten
     ${C}hilfe${N}                       Diese Hilfe
 
   ${B}Optionen${N}
     ${C}-j, --ja${N}                    Keine Fragen, überall den Vorschlag nehmen
+
+  ${B}Privates Repository${N} ($REPO)
+    Updates brauchen einen Lese-Token. Erstellen unter
+    $TOKEN_URL
+    (Only select repositories → $REPO, Contents: Read-only), dann ./einrichten.sh token
 
 EOF
 }
@@ -593,6 +740,9 @@ main() {
     '') wizard ;;
     dienst | service) shift; service_cmd "$@" ;;
     bauen | build) STEPS=1; build ;;
+    token) STEPS=1; step "GitHub-Zugang"; token_set ;;
+    aktualisieren | update | pull) update_git ;;
+    git-credential) git_credential "${2:-}" ;;
     docker) banner; docker_setup ;;
     hilfe | help | -h | --help) help ;;
     *) fail "Unbekannter Befehl: $1 (./einrichten.sh hilfe)" ;;
