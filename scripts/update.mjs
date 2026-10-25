@@ -31,6 +31,7 @@ const keep = (rel) =>
   rel.startsWith('.env.') ||
   path.resolve(root, rel).startsWith(dataDir);
 
+let restartServer = false;
 const log = (...parts) => console.log(new Date().toISOString(), ...parts);
 
 function run(cmd, args, cwd) {
@@ -94,7 +95,8 @@ try {
       fs.mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
       fs.copyFileSync(path.join(source, f), path.join(root, f));
     }
-    run('npm', ['install', '--no-audit', '--no-fund'], root);
+    // Dev dependencies too: the build needs them, also under NODE_ENV=production.
+    run('npm', ['install', '--include=dev', '--no-audit', '--no-fund'], root);
   }
 
   log('Kopiere Dateien …');
@@ -114,7 +116,11 @@ try {
 
   if (process.env.NODE_ENV === 'production') {
     run('npm', ['run', 'build'], root);
-    log('Build fertig. Bitte den Server neu starten.');
+    log(
+      process.env.WORDFLOW_SERVICE
+        ? 'Build fertig. Der Dienst startet gleich neu.'
+        : 'Build fertig. Bitte den Server neu starten.',
+    );
   } else if (fs.existsSync(path.join(root, 'apps/web/dist'))) {
     // The server delivers the built web app; without a new build it keeps showing the old one.
     run('npm', ['run', 'build', '-w', '@wordflow/web'], root);
@@ -124,10 +130,16 @@ try {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(stateFile, JSON.stringify({ sha, updatedAt: new Date().toISOString() }) + '\n');
   log('Update fertig.');
+  // Started by the server of the systemd service (einrichten.sh): stop it, systemd starts the new build.
+  if (process.env.WORDFLOW_SERVICE && process.env.NODE_ENV === 'production') {
+    log('Starte den Dienst neu …');
+    restartServer = true;
+  }
 } catch (err) {
   log('FEHLER:', err instanceof Error ? err.message : String(err));
   process.exitCode = 1;
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });
   fs.rmSync(lockFile, { force: true });
+  if (restartServer) process.kill(process.ppid, 'SIGTERM');
 }

@@ -5,6 +5,43 @@ handgeschriebenen Vokabelheft werden per KI in Vokabelpakete umgewandelt und nac
 Karteikasten-Prinzip (6 Stufen) als umdrehbare Karteikarten abgefragt. Ein schnelles KI-Modell
 prüft getippte Antworten. Mehrere Accounts auf einem Server, die Daten sind getrennt.
 
+## Schnellstart mit dem Einrichtungsassistenten
+
+```bash
+git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git wordflow
+cd wordflow
+./einrichten.sh
+```
+
+Der Assistent führt Schritt für Schritt durch die Einrichtung:
+
+1. **System prüfen:** Node.js 22.12+ (installiert es bei Bedarf über nvm oder NodeSource), npm und
+   Build-Werkzeuge.
+2. **Konfiguration:** Port (schlägt einen freien vor), erreichbar im Heimnetz oder nur lokal,
+   Datenordner, Reverse-Proxy mit HTTPS, Log-Level. Daraus entsteht die `.env`.
+3. **Installieren und bauen** (`npm ci`, `npm run build`).
+4. **Starten:** als **Systemdienst** (systemd, startet mit dem Rechner), als **Benutzerdienst**
+   (ohne sudo, optional mit `loginctl enable-linger`), einmal im Vordergrund oder gar nicht.
+5. **Firewall:** gibt den Port bei aktivem ufw oder firewalld auf Wunsch frei.
+6. **Fertig:** zeigt die Adressen im Heimnetz und die erste Anmeldung.
+
+Alternativ richtet der Assistent WordFlow mit Docker Compose ein (Auswahl am Anfang).
+
+| Befehl                                               | Wirkung                                           |
+| ---------------------------------------------------- | ------------------------------------------------- |
+| `./einrichten.sh`                                    | Assistent                                         |
+| `./einrichten.sh -j`                                 | Ohne Fragen, überall der Vorschlag                |
+| `./einrichten.sh dienst installieren [system\|user]` | WordFlow als Dienst einrichten                    |
+| `./einrichten.sh dienst status` / `logs`             | Läuft der Dienst? / Log live ansehen              |
+| `./einrichten.sh dienst start\|stopp\|neustart`      | Dienst steuern                                    |
+| `./einrichten.sh dienst anzeigen`                    | Dienstdatei nur anzeigen                          |
+| `./einrichten.sh dienst entfernen`                   | Dienst entfernen (Daten bleiben)                  |
+| `./einrichten.sh bauen`                              | `npm ci` und Build, z. B. nach eigenen Änderungen |
+| `./einrichten.sh hilfe`                              | Alle Befehle                                      |
+
+Läuft WordFlow als Dienst, spielt **Einstellungen → System → Aktualisieren** das Update ein, baut
+neu und startet den Dienst automatisch neu.
+
 ## Schnellstart mit Docker
 
 ```bash
