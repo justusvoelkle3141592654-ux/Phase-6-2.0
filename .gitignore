@@ -9,3 +9,6 @@ coverage/
 test-results/
 playwright-report/
 .DS_Store
+
+# Local working copies of Claude Code
+.claude/worktrees/
