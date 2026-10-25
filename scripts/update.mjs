@@ -4,6 +4,8 @@
 // (POST /api/admin/update) as its own process, because the dev server reloads
 // while files are being replaced.
 //
+// The repository is private: the read token comes from GITHUB_TOKEN (environment or .env).
+//
 // Usage: node scripts/update.mjs --repo owner/name --branch <branch> --root <project> --data <data dir>
 
 import { spawnSync } from 'node:child_process';
@@ -16,7 +18,7 @@ function arg(name, fallback) {
   return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
 }
 
-const repo = arg('repo', 'justusvoelkle3141592654-ux/Phase-6-2.0');
+const repo = arg('repo', 'rcode125/Phase-6-2.0');
 const branch = arg('branch', 'claude/new-session-uq36ca');
 const root = path.resolve(arg('root', path.join(import.meta.dirname, '..')));
 const dataDir = path.resolve(arg('data', path.join(root, 'data')));
@@ -49,7 +51,19 @@ function read(file) {
   }
 }
 
-const headers = { 'User-Agent': 'WordFlow-Updater' };
+// Token from the environment, otherwise from the project's .env (also when started by hand).
+if (!process.env.GITHUB_TOKEN) {
+  try {
+    process.loadEnvFile(path.join(root, '.env'));
+  } catch {
+    // no .env
+  }
+}
+const token = process.env.GITHUB_TOKEN || '';
+const headers = {
+  'User-Agent': 'WordFlow-Updater',
+  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+};
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wordflow-update-'));
 
 try {
@@ -58,11 +72,15 @@ try {
   const commit = await fetch(`https://api.github.com/repos/${repo}/commits/${branch}`, {
     headers: { ...headers, Accept: 'application/vnd.github+json' },
   });
+  if (commit.status === 401) throw new Error('GitHub: Zugangs-Token ungültig (GITHUB_TOKEN)');
+  if (commit.status === 404 && !token)
+    throw new Error('GitHub: kein Zugangs-Token. Eintragen mit ./einrichten.sh token');
   if (!commit.ok) throw new Error(`GitHub: HTTP ${commit.status}`);
   const { sha } = await commit.json();
   log('Neuester Commit:', sha);
 
-  const archive = await fetch(`https://codeload.github.com/${repo}/tar.gz/${sha}`, { headers });
+  // The API endpoint also works for private repositories (redirects to a signed download link).
+  const archive = await fetch(`https://api.github.com/repos/${repo}/tarball/${sha}`, { headers });
   if (!archive.ok) throw new Error(`Download: HTTP ${archive.status}`);
   const tarFile = path.join(tmp, 'source.tar.gz');
   fs.writeFileSync(tarFile, Buffer.from(await archive.arrayBuffer()));

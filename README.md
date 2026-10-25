@@ -7,8 +7,17 @@ prüft getippte Antworten. Mehrere Accounts auf einem Server, die Daten sind get
 
 ## Schnellstart mit dem Einrichtungsassistenten
 
+Das Repository `rcode125/Phase-6-2.0` ist **privat**. Zum Herunterladen und für Updates braucht
+man einen Lese-Token (einmalig im Browser erstellen):
+
+1. <https://github.com/settings/personal-access-tokens/new> öffnen (als Besitzer angemeldet).
+2. Name z. B. `WordFlow-Update`, Ablaufdatum wählen.
+3. **Repository access:** Only select repositories → `rcode125/Phase-6-2.0`.
+4. **Permissions → Repository permissions → Contents: Read-only**, dann _Generate token_.
+5. Den Token (`github_pat_…`) unten für `<TOKEN>` einsetzen.
+
 ```bash
-git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git wordflow
+git clone https://x-access-token:<TOKEN>@github.com/rcode125/Phase-6-2.0.git wordflow
 cd wordflow
 ./einrichten.sh
 ```
@@ -19,11 +28,13 @@ Der Assistent führt Schritt für Schritt durch die Einrichtung:
    Build-Werkzeuge.
 2. **Konfiguration:** Port (schlägt einen freien vor), erreichbar im Heimnetz oder nur lokal,
    Datenordner, Reverse-Proxy mit HTTPS, Log-Level. Daraus entsteht die `.env`.
-3. **Installieren und bauen** (`npm ci`, `npm run build`).
-4. **Starten:** als **Systemdienst** (systemd, startet mit dem Rechner), als **Benutzerdienst**
+3. **GitHub-Zugang:** fragt den Lese-Token ab, prüft ihn, speichert ihn als `GITHUB_TOKEN` in
+   `.env` (chmod 600) und entfernt ihn aus `.git/config`. git und der Update-Knopf nutzen ihn.
+4. **Installieren und bauen** (`npm ci`, `npm run build`).
+5. **Starten:** als **Systemdienst** (systemd, startet mit dem Rechner), als **Benutzerdienst**
    (ohne sudo, optional mit `loginctl enable-linger`), einmal im Vordergrund oder gar nicht.
-5. **Firewall:** gibt den Port bei aktivem ufw oder firewalld auf Wunsch frei.
-6. **Fertig:** zeigt die Adressen im Heimnetz und die erste Anmeldung.
+6. **Firewall:** gibt den Port bei aktivem ufw oder firewalld auf Wunsch frei.
+7. **Fertig:** zeigt die Adressen im Heimnetz und die erste Anmeldung.
 
 Alternativ richtet der Assistent WordFlow mit Docker Compose ein (Auswahl am Anfang).
 
@@ -36,6 +47,8 @@ Alternativ richtet der Assistent WordFlow mit Docker Compose ein (Auswahl am Anf
 | `./einrichten.sh dienst start\|stopp\|neustart`      | Dienst steuern                                    |
 | `./einrichten.sh dienst anzeigen`                    | Dienstdatei nur anzeigen                          |
 | `./einrichten.sh dienst entfernen`                   | Dienst entfernen (Daten bleiben)                  |
+| `./einrichten.sh token`                              | GitHub-Token eintragen oder ersetzen              |
+| `./einrichten.sh aktualisieren`                      | `git pull`, Build und Dienst neu starten          |
 | `./einrichten.sh bauen`                              | `npm ci` und Build, z. B. nach eigenen Änderungen |
 | `./einrichten.sh hilfe`                              | Alle Befehle                                      |
 
@@ -45,7 +58,7 @@ neu und startet den Dienst automatisch neu.
 ## Schnellstart mit Docker
 
 ```bash
-git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git wordflow
+git clone https://x-access-token:<TOKEN>@github.com/rcode125/Phase-6-2.0.git wordflow
 cd wordflow
 docker compose up -d
 ```
@@ -86,7 +99,7 @@ werden normalerweise fertige Binärdateien geladen; passt keine, braucht npm Pyt
 C++-Compiler.
 
 ```bash
-git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git wordflow
+git clone https://x-access-token:<TOKEN>@github.com/rcode125/Phase-6-2.0.git wordflow
 cd wordflow
 npm ci
 npm run build
@@ -104,7 +117,7 @@ Systembenutzer `wordflow`).
 
 ```bash
 sudo useradd --system --home /opt/wordflow --shell /usr/sbin/nologin wordflow
-sudo git clone https://github.com/justusvoelkle3141592654-ux/Phase-6-2.0.git /opt/wordflow
+sudo git clone https://x-access-token:<TOKEN>@github.com/rcode125/Phase-6-2.0.git /opt/wordflow
 cd /opt/wordflow && sudo npm ci && sudo npm run build
 sudo mkdir -p /opt/wordflow/data && sudo chown -R wordflow:wordflow /opt/wordflow/data
 sudo cp deploy/wordflow.service /etc/systemd/system/
@@ -198,8 +211,8 @@ Beim Start legt der Server den **Superuser** an, falls er fehlt: **`admin@wordfl
 - **KI-Einstellungen** (APIs, Modelle, Zeitlimit) stellt nur der Superuser ein. Sie gelten für alle.
 - **Datenbank sichern** (Einstellungen): Export als ZIP mit Datenbank, Fotos und `secrets.json`.
   Der Import ersetzt alle Daten; danach müssen sich alle neu anmelden.
-- **Update** (Einstellungen): Holt den neuesten Stand von GitHub (`justusvoelkle3141592654-ux/Phase-6-2.0`, Branch
-  `claude/new-session-uq36ca`) und kopiert ihn über das Projekt. `data/`, `.env`, `node_modules/`, `.git/`, `release/`
+- **Update** (Einstellungen): Holt den neuesten Stand von GitHub (`rcode125/Phase-6-2.0`, Branch
+  `claude/new-session-uq36ca`, privat: braucht `GITHUB_TOKEN` in `.env`) und kopiert ihn über das Projekt. `data/`, `.env`, `node_modules/`, `.git/`, `release/`
   und `apps/web/android/` bleiben unberührt. Bei geänderten Abhängigkeiten läuft `npm install`.
   Im Dev-Modus (`npm run dev`) lädt der Server danach selbst neu; mit `NODE_ENV=production` wird
   zusätzlich gebaut, dann den Dienst neu starten. Das Protokoll steht in `data/update.log`.

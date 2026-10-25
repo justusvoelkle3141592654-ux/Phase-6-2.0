@@ -411,7 +411,7 @@ export const de = {
     importConfirm: 'Wirklich importieren? Alle aktuellen Daten werden durch das Backup ersetzt.',
     updateTitle: 'Update',
     updateIntro:
-      'Holt den neuesten Stand von GitHub (justusvoelkle3141592654-ux/Phase-6-2.0, Branch claude/new-session-uq36ca).',
+      'Holt den neuesten Stand von GitHub (rcode125/Phase-6-2.0, Branch claude/new-session-uq36ca).',
     versions: 'Installiert: {current} · Neueste: {latest}',
     upToDate: 'WordFlow ist aktuell.',
     updateAvailable: 'Eine neue Version ist verfügbar.',

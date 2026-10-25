@@ -19,8 +19,8 @@ import { deleteOtherSessions } from '../auth/sessions';
 import { deleteUser } from './auth';
 import { parseBody } from './parse';
 
-/** GitHub repository the update button installs from. */
-export const UPDATE_REPO = 'justusvoelkle3141592654-ux/Phase-6-2.0';
+/** GitHub repository the update button installs from (private: needs GITHUB_TOKEN). */
+export const UPDATE_REPO = 'rcode125/Phase-6-2.0';
 export const UPDATE_BRANCH = 'claude/new-session-uq36ca';
 
 export const MAX_BACKUP_BYTES = 1024 * 1024 * 1024;
@@ -33,6 +33,8 @@ export interface AdminOptions {
   repoRoot: string;
   /** Runs after a restore: superuser, photo owners and secrets are brought up to date. */
   afterRestore: () => Promise<void>;
+  /** Read access token for the private update repository. */
+  githubToken?: string | null;
   /** For tests: fetch used to ask GitHub for the latest commit. */
   fetchImpl?: typeof fetch;
 }
@@ -80,7 +82,7 @@ function processAlive(pid: number): boolean {
 
 export const adminRoutes: FastifyPluginAsync<AdminOptions> = async (
   app,
-  { db, dataDir, dbFile, repoRoot, afterRestore, fetchImpl = fetch },
+  { db, dataDir, dbFile, repoRoot, afterRestore, githubToken, fetchImpl = fetch },
 ) => {
   app.addHook('preHandler', app.requireAdmin);
 
@@ -275,10 +277,17 @@ export const adminRoutes: FastifyPluginAsync<AdminOptions> = async (
       const res = await fetchImpl(
         `https://api.github.com/repos/${UPDATE_REPO}/commits/${UPDATE_BRANCH}`,
         {
-          headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'WordFlow-Updater' },
+          headers: {
+            Accept: 'application/vnd.github+json',
+            'User-Agent': 'WordFlow-Updater',
+            ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
+          },
           signal: AbortSignal.timeout(10_000),
         },
       );
+      if (res.status === 401) throw new Error('GitHub: Zugangs-Token ungültig (GITHUB_TOKEN)');
+      if (res.status === 404 && !githubToken)
+        throw new Error('GitHub: kein Zugangs-Token (GITHUB_TOKEN in .env, ./einrichten.sh token)');
       if (!res.ok) throw new Error(`GitHub: HTTP ${res.status}`);
       const body = (await res.json()) as { sha?: string };
       status.latest = body.sha ?? null;
@@ -312,7 +321,12 @@ export const adminRoutes: FastifyPluginAsync<AdminOptions> = async (
         '--data',
         dataDir,
       ],
-      { cwd: repoRoot, detached: true, stdio: ['ignore', log, log], env: process.env },
+      {
+        cwd: repoRoot,
+        detached: true,
+        stdio: ['ignore', log, log],
+        env: githubToken ? { ...process.env, GITHUB_TOKEN: githubToken } : process.env,
+      },
     );
     fs.closeSync(log);
     fs.writeFileSync(lockFile, JSON.stringify({ pid: child.pid, startedAt: Date.now() }));

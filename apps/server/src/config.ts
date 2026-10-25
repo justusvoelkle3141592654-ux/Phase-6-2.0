@@ -21,6 +21,8 @@ export interface AppConfig {
   /** Extra origins allowed for token-authenticated requests (the Android app). */
   corsOrigins: string[];
   logLevel: string;
+  /** Read access token for the private GitHub repository of the update button. */
+  githubToken?: string | null;
   /** For tests: fetch used by the update check instead of the real network. */
   updateFetch?: typeof fetch;
 }
@@ -63,5 +65,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     trustProxy: parseBool(env.TRUST_PROXY, false),
     corsOrigins: [...APP_ORIGINS, ...parseList(env.CORS_ORIGINS)],
     logLevel: env.LOG_LEVEL ?? 'info',
+    githubToken: env.GITHUB_TOKEN || null,
   };
 }
