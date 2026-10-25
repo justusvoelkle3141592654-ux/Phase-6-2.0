@@ -14,20 +14,21 @@ WordFlow is a self‑hosted vocabulary trainer with a Fastify API, a React/Vite 
 
 ## Build & test
 
-| Task                                 | Exact command                             |
-| ------------------------------------ | ----------------------------------------- |
-| Install dependencies                 | `npm ci`                                  |
-| Development (watch server + Vite)    | `npm run dev`                             |
-| Production build (web & server)      | `npm run build`                           |
-| Start production server              | `npm start`                               |
-| Run all tests (server, web, shared)  | `npm test`                                |
-| Type‑check all TypeScript packages   | `npm run typecheck`                       |
-| Code formatting (Prettier)           | `npm run format`                          |
-| Generate a new DB migration (server) | `npm run db:generate -w @wordflow/server` |
-| Build web only                       | `npm run build -w @wordflow/web`          |
-| Build server only                    | `npm run build -w @wordflow/server`       |
-| Run web tests only                   | `npm run test -w @wordflow/web`           |
-| Run server tests only                | `npm run test -w @wordflow/server`        |
+| Task                                                   | Exact command                               |
+| ------------------------------------------------------ | ------------------------------------------- |
+| Interactive setup (deps, .env, build, systemd service) | `./einrichten.sh` (`./einrichten.sh hilfe`) |
+| Install dependencies                                   | `npm ci`                                    |
+| Development (watch server + Vite)                      | `npm run dev`                               |
+| Production build (web & server)                        | `npm run build`                             |
+| Start production server                                | `npm start`                                 |
+| Run all tests (server, web, shared)                    | `npm test`                                  |
+| Type‑check all TypeScript packages                     | `npm run typecheck`                         |
+| Code formatting (Prettier)                             | `npm run format`                            |
+| Generate a new DB migration (server)                   | `npm run db:generate -w @wordflow/server`   |
+| Build web only                                         | `npm run build -w @wordflow/web`            |
+| Build server only                                      | `npm run build -w @wordflow/server`         |
+| Run web tests only                                     | `npm run test -w @wordflow/web`             |
+| Run server tests only                                  | `npm run test -w @wordflow/server`          |
 
 All workspace scripts are invoked via the top‑level wrappers (`--workspaces --if-present`).
 
@@ -61,6 +62,7 @@ README.md        User‑facing documentation
 - **Own packages**: `packages.user_id` is the owner; every account manages (and uploads photos for) only its own packages, other accounts get 404. Learning progress lives in `user_vocab` (a row = activated). Migration `0009` copied the former shared packages for each learning account.
 - **AI setup** is global: `AiService` always uses the superuser's `provider_configs`/`task_models`.
 - **Migrations run with foreign keys off** (`runMigrations` in `db/index.ts`), because table rebuilds inside the migrator's transaction would otherwise cascade-delete rows. `drizzle-kit` in the repo (0.18) cannot `generate`; write migrations by hand (SQL + `meta/_journal.json`).
+- **systemd service** (`./einrichten.sh dienst installieren`) runs `apps/server/dist/index.js` with `NODE_ENV=production` and `WORDFLOW_SERVICE=1`; then `scripts/update.mjs` stops the server after the build and systemd (`Restart=always`) starts the new version.
 - **Update button** runs `scripts/update.mjs` as a detached process (downloads `justusvoelkle3141592654-ux/Phase-6-2.0@claude/new-session-uq36ca`, keeps `data/`, `.env`, `node_modules/`).
 - **Account picker**: there is no online/offline switch any more; `GET /api/auth/mode` always lists all accounts (email + name) so the sign-in page can offer them; passwords are still checked. There is no setup wizard and no learning reminder.
 - **Daily limit**: `user_settings.daily_limit` (default 30) caps the different words asked per day (`learn/limit.ts`); words already asked today may always come again.
