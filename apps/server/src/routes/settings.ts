@@ -14,6 +14,7 @@ import {
 import type { Db } from '../db';
 import { userSettings } from '../db/schema';
 import { parseBody } from './parse';
+import { toUserDto } from './auth';
 
 export function getSettings(db: Db, userId: number): UserSettings {
   const row =
@@ -40,6 +41,9 @@ export const settingsRoutes: FastifyPluginAsync<{ db: Db }> = async (app, { db }
   app.addHook('preHandler', app.requireAuth);
 
   app.get('/settings', async (request) => ({ settings: getSettings(db, request.user!.id) }));
+
+  // Older web and app versions finish their setup wizard here; nothing to store any more.
+  app.post('/setup/complete', async (request) => ({ user: toUserDto(request.user!) }));
 
   app.patch('/settings', async (request, reply) => {
     const input = parseBody(updateSettingsSchema, request.body, reply);

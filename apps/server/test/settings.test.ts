@@ -98,6 +98,14 @@ describe('Einstellungen', () => {
     expect(res.json().settings.wrongMode).toBe('back');
   });
 
+  it('ältere Oberflächen sehen die Einrichtung als erledigt', async () => {
+    const me = await app.inject({ method: 'GET', url: '/api/auth/me', headers });
+    expect(me.json().user.setupCompleted).toBe(true);
+    const res = await app.inject({ method: 'POST', url: '/api/setup/complete', headers });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().user).toMatchObject({ email: 'anna@example.org', setupCompleted: true });
+  });
+
   it('braucht eine Anmeldung', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/settings' });
     expect(res.statusCode).toBe(401);

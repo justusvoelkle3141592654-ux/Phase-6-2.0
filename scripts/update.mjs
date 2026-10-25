@@ -115,6 +115,10 @@ try {
   if (process.env.NODE_ENV === 'production') {
     run('npm', ['run', 'build'], root);
     log('Build fertig. Bitte den Server neu starten.');
+  } else if (fs.existsSync(path.join(root, 'apps/web/dist'))) {
+    // The server delivers the built web app; without a new build it keeps showing the old one.
+    run('npm', ['run', 'build', '-w', '@wordflow/web'], root);
+    log('Web-Oberfläche neu gebaut.');
   }
 
   fs.mkdirSync(dataDir, { recursive: true });

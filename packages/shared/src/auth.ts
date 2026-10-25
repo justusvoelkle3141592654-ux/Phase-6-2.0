@@ -112,6 +112,11 @@ export interface UserDto {
   role: UserRole;
   uiLanguage: (typeof UI_LANGUAGES)[number];
   timezone: string;
+  /**
+   * Always true. Only for older web and app versions, which show their setup
+   * wizard while this is not true.
+   */
+  setupCompleted: true;
 }
 
 export interface AuthResponse {

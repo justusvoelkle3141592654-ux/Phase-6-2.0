@@ -12,6 +12,7 @@ export const USER: UserDto = {
   name: '',
   uiLanguage: 'de',
   timezone: 'Europe/Berlin',
+  setupCompleted: true,
   role: 'user',
 };
 
