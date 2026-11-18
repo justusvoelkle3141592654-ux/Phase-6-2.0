@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <service
+            android:name="app.novaos.system.NovaNotificationService"
+            android:exported="true"
+            android:label="NovaOS Benachrichtigungen"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name="app.novaos.system.NovaDeviceAdmin"
+            android:exported="true"
+            android:label="NovaOS Bildschirmsperre"
+            android:description="@string/nova_admin_description"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/nova_device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="app.novaos.system.ReminderReceiver"
+            android:exported="false" />
+    </application>
+</manifest>

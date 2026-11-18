@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nova_admin_description">Allows NovaOS only to lock the screen with a gesture. Deactivate in Android settings before uninstalling.</string>
+    <string name="nova_reminder_channel">Reminders</string>
+</resources>

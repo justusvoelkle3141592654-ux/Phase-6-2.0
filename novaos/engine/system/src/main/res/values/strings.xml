@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nova_admin_description">Erlaubt NovaOS ausschließlich, den Bildschirm per Geste zu sperren. Vor einer Deinstallation in den Android-Einstellungen deaktivieren.</string>
+    <string name="nova_reminder_channel">Erinnerungen</string>
+</resources>
