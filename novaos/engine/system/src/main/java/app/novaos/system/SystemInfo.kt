@@ -50,7 +50,7 @@ class SystemInfo(private val context: Context) {
     fun start() {
         if (registered) return
         registered = true
-        context.registerReceiver(receiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))?.let { parse(it) }
+        registerSystemReceiver(context, receiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))?.let { parse(it) }
     }
 
     fun stop() {
@@ -137,3 +137,8 @@ class SystemInfo(private val context: Context) {
         }
     }
 }
+
+/** Registriert einen Empfänger für System-Broadcasts (nicht exportiert, Android 13+ konform). */
+fun registerSystemReceiver(context: Context, receiver: BroadcastReceiver, filter: IntentFilter): Intent? =
+    if (android.os.Build.VERSION.SDK_INT >= 33) context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    else context.registerReceiver(receiver, filter)

@@ -75,7 +75,7 @@ class ProfileContextProvider(private val context: Context) {
                 addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
                 addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
             }
-            runCatching { context.registerReceiver(btReceiver, f) }
+            runCatching { registerSystemReceiver(context, btReceiver, f) }
             queryBluetooth()
         }
         if (hasLocationPermission()) {

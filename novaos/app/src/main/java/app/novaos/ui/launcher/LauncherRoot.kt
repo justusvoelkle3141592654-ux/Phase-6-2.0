@@ -64,6 +64,8 @@ fun LauncherRoot(vm: LauncherViewModel, actions: LauncherActions, widgetHost: No
     val activity = LocalContext.current as MainActivity
 
     var currentPage by remember { mutableIntStateOf(profile.layout.defaultPage) }
+    // Zurück auf dem Startbildschirm beendet den Launcher nicht (Overlays registrieren eigene Handler).
+    BackHandler(enabled = true) { }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
         val wPx = with(density) { maxWidth.roundToPx() }
