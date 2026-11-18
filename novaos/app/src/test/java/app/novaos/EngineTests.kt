@@ -79,6 +79,7 @@ class WidgetRenderTest {
         runBlocking { container.config.update { Defaults.config().copy(setupCompleted = true) } }
         val profile = runBlocking { container.config.flow.first().activeProfile }
         val variants = WidgetLayoutVariant.entries.flatMap { l -> SurfaceBackground.entries.map { b -> l to b } }
+        compose.mainClock.autoAdvance = false
         compose.setContent {
             CompositionLocalProvider(LocalContainer provides container, LocalProfile provides profile) {
                 NovaTheme(profile.theme) {
@@ -96,13 +97,14 @@ class WidgetRenderTest {
                 }
             }
         }
-        compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(2_000)
         // Widgets ohne Freigabe zeigen einen Hinweis statt leerer Fläche
         assertTrue(compose.onAllNodesWithText("Tippen: Benachrichtigungszugriff erlauben").fetchSemanticsNodes().isNotEmpty())
     }
 
     @Test fun builtInTemplatesRender() {
         val profile = Defaults.config().activeProfile
+        compose.mainClock.autoAdvance = false
         compose.setContent {
             CompositionLocalProvider(LocalContainer provides container, LocalProfile provides profile) {
                 ThemePresets.all.forEach { theme ->
@@ -117,7 +119,7 @@ class WidgetRenderTest {
                 }
             }
         }
-        compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(2_000)
     }
 }
 
